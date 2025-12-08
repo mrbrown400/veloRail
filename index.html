@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bike + Train Navigator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <nav class="navbar">
+        <div class="logo">🚲 + 🚆 <span class="brand-name">VeloRail</span></div>
+      </nav>
+      
+      <main class="main-layout">
+        <aside class="sidebar">
+          <div class="search-container">
+            <h1>Plan your trip</h1>
+            <div class="input-group">
+              <label for="start">Start</label>
+              <input type="text" id="start" placeholder="Enter starting location" />
+            </div>
+            <div class="input-group">
+              <label for="end">Destination</label>
+              <input type="text" id="end" placeholder="Enter destination" />
+            </div>
+            <button id="find-route-btn" class="primary-btn">Find Route</button>
+          </div>
+          <div id="route-details" class="route-details hidden">
+            <!-- Route info will go here -->
+          </div>
+        </aside>
+        
+        <div id="map-container" class="map-container">
+          <!-- Map will be rendered here -->
+        </div>
+      </main>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
