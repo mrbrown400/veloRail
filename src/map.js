@@ -2,8 +2,11 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { TRANSIT_LINES } from './transit_data.js';
 import { initBikeOverlay } from './bike_network.js';
+import { getOSRMRoute } from './osrm.js';
 
 let map;
+// Cache for bus route geometries (fetched once, reused on re-renders)
+const busRouteCache = new Map();
 
 export function initMap(elementId) {
     // Initialize map centered on Los Angeles
@@ -25,89 +28,149 @@ export function initMap(elementId) {
     console.log('Leaflet Map initialized on', elementId);
 }
 
-function renderTransitMap() {
+// Fetch road-following route for a bus line
+async function fetchBusRouteGeometry(lineName, stations) {
+    // Check cache first
+    if (busRouteCache.has(lineName)) {
+        return busRouteCache.get(lineName);
+    }
+
+    try {
+        // Convert stations to waypoints for OSRM
+        const waypoints = stations.map(s => ({ lat: s.lat, lon: s.lon }));
+        const route = await getOSRMRoute(waypoints, 'driving');
+
+        if (route && route.geometry && route.geometry.coordinates) {
+            // Convert from [lon, lat] to [lat, lon] for Leaflet
+            const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+            busRouteCache.set(lineName, coords);
+            return coords;
+        }
+    } catch (err) {
+        console.warn(`Failed to fetch route for ${lineName}:`, err);
+    }
+
+    // Fallback to straight line
+    const fallback = stations.map(s => [s.lat, s.lon]);
+    busRouteCache.set(lineName, fallback);
+    return fallback;
+}
+
+async function renderTransitMap() {
     if (!map) return;
 
-    // Render all transit lines as background
-    Object.entries(TRANSIT_LINES).forEach(([lineName, line]) => {
-        const coords = line.stations.map(s => [s.lat, s.lon]);
+    // Separate lines by type for rendering order
+    const railLines = [];
+    const brtLines = [];
+    const busLines = [];
 
-        // Determine line type for styling
+    Object.entries(TRANSIT_LINES).forEach(([lineName, line]) => {
         const isCommuterExpress = lineName.startsWith('LADOT CE') || lineName === 'Union/Bunker Shuttle';
         const isBRT = lineName === 'Orange' || lineName === 'Silver' || lineName === 'Foothill Silver Streak';
-        const isRail = !isCommuterExpress && !isBRT;
 
         if (isCommuterExpress) {
-            // LADOT Commuter Express - subtle dashed lines
-            L.polyline(coords, {
-                color: '#4a90d9',
-                weight: 2,
-                opacity: 0.25,
-                dashArray: '8, 8',
-                lineCap: 'round',
-                lineJoin: 'round'
-            }).addTo(map);
+            busLines.push({ name: lineName, ...line });
         } else if (isBRT) {
-            // BRT lines - dashed with casing
-            // Outer casing
-            L.polyline(coords, {
-                color: '#000000',
-                weight: 6,
-                opacity: 0.3,
-                lineCap: 'round',
-                lineJoin: 'round'
-            }).addTo(map);
-            // Inner colored line (dashed)
-            L.polyline(coords, {
-                color: line.color,
-                weight: 4,
-                opacity: 0.5,
-                dashArray: '12, 6',
-                lineCap: 'round',
-                lineJoin: 'round'
-            }).addTo(map);
-            // Station markers for BRT
-            line.stations.forEach(s => {
-                L.circleMarker([s.lat, s.lon], {
-                    color: '#1a1a2e',
-                    fillColor: line.color,
-                    fillOpacity: 0.5,
-                    radius: 3,
-                    weight: 1.5,
-                    opacity: 0.5
-                }).addTo(map);
-            });
+            brtLines.push({ name: lineName, ...line });
         } else {
-            // Rail lines - solid with casing (Google/Apple Maps style)
-            // Outer dark casing for depth
-            L.polyline(coords, {
-                color: '#0d0d15',
-                weight: 7,
-                opacity: 0.5,
-                lineCap: 'round',
-                lineJoin: 'round'
-            }).addTo(map);
-            // Inner colored line
-            L.polyline(coords, {
-                color: line.color,
-                weight: 4,
-                opacity: 0.6,
-                lineCap: 'round',
-                lineJoin: 'round'
-            }).addTo(map);
-            // Station markers - white fill with colored border
-            line.stations.forEach(s => {
-                L.circleMarker([s.lat, s.lon], {
-                    color: line.color,
-                    fillColor: '#ffffff',
-                    fillOpacity: 0.7,
-                    radius: 3.5,
-                    weight: 2,
-                    opacity: 0.6
-                }).addTo(map);
-            });
+            railLines.push({ name: lineName, ...line });
         }
     });
+
+    // Render bus lines first (bottom layer) - fetch actual road routes
+    for (const line of busLines) {
+        const coords = await fetchBusRouteGeometry(line.name, line.stations);
+
+        // LADOT Commuter Express - subtle line following actual roads
+        L.polyline(coords, {
+            color: '#4a90d9',
+            weight: 2.5,
+            opacity: 0.35,
+            lineCap: 'round',
+            lineJoin: 'round'
+        }).addTo(map);
+
+        // Add small station markers
+        line.stations.forEach(s => {
+            L.circleMarker([s.lat, s.lon], {
+                color: '#4a90d9',
+                fillColor: '#ffffff',
+                fillOpacity: 0.6,
+                radius: 2.5,
+                weight: 1.5,
+                opacity: 0.4
+            }).addTo(map);
+        });
+    }
+
+    // Render BRT lines - fetch actual road routes
+    for (const line of brtLines) {
+        const coords = await fetchBusRouteGeometry(line.name, line.stations);
+
+        // BRT lines - dashed with casing, following actual roads
+        // Outer casing
+        L.polyline(coords, {
+            color: '#000000',
+            weight: 6,
+            opacity: 0.3,
+            lineCap: 'round',
+            lineJoin: 'round'
+        }).addTo(map);
+        // Inner colored line (dashed)
+        L.polyline(coords, {
+            color: line.color,
+            weight: 4,
+            opacity: 0.5,
+            dashArray: '12, 6',
+            lineCap: 'round',
+            lineJoin: 'round'
+        }).addTo(map);
+        // Station markers for BRT
+        line.stations.forEach(s => {
+            L.circleMarker([s.lat, s.lon], {
+                color: '#1a1a2e',
+                fillColor: line.color,
+                fillOpacity: 0.5,
+                radius: 3,
+                weight: 1.5,
+                opacity: 0.5
+            }).addTo(map);
+        });
+    }
+
+    // Render rail lines (top layer)
+    for (const line of railLines) {
+        const coords = line.stations.map(s => [s.lat, s.lon]);
+
+        // Rail lines - solid with casing (Google/Apple Maps style)
+        // Outer dark casing for depth
+        L.polyline(coords, {
+            color: '#0d0d15',
+            weight: 7,
+            opacity: 0.5,
+            lineCap: 'round',
+            lineJoin: 'round'
+        }).addTo(map);
+        // Inner colored line
+        L.polyline(coords, {
+            color: line.color,
+            weight: 4,
+            opacity: 0.6,
+            lineCap: 'round',
+            lineJoin: 'round'
+        }).addTo(map);
+        // Station markers - white fill with colored border
+        line.stations.forEach(s => {
+            L.circleMarker([s.lat, s.lon], {
+                color: line.color,
+                fillColor: '#ffffff',
+                fillOpacity: 0.7,
+                radius: 3.5,
+                weight: 2,
+                opacity: 0.6
+            }).addTo(map);
+        });
+    }
 }
 
 
