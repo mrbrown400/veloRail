@@ -103,37 +103,28 @@ async function renderTransitMap() {
         });
     }
 
-    // Render BRT lines - fetch actual road routes
+    // Render BRT lines - fetch actual road routes (styled like LADOT lines)
     for (const line of brtLines) {
         const coords = await fetchBusRouteGeometry(line.name, line.stations);
 
-        // BRT lines - dashed with casing, following actual roads
-        // Outer casing
-        L.polyline(coords, {
-            color: '#000000',
-            weight: 6,
-            opacity: 0.3,
-            lineCap: 'round',
-            lineJoin: 'round'
-        }).addTo(map);
-        // Inner colored line (dashed)
+        // BRT lines - subtle solid line following actual roads
         L.polyline(coords, {
             color: line.color,
-            weight: 4,
-            opacity: 0.5,
-            dashArray: '12, 6',
+            weight: 2.5,
+            opacity: 0.35,
             lineCap: 'round',
             lineJoin: 'round'
         }).addTo(map);
-        // Station markers for BRT
+
+        // Add small station markers
         line.stations.forEach(s => {
             L.circleMarker([s.lat, s.lon], {
-                color: '#1a1a2e',
-                fillColor: line.color,
-                fillOpacity: 0.5,
-                radius: 3,
+                color: line.color,
+                fillColor: '#ffffff',
+                fillOpacity: 0.6,
+                radius: 2.5,
                 weight: 1.5,
-                opacity: 0.5
+                opacity: 0.4
             }).addTo(map);
         });
     }
