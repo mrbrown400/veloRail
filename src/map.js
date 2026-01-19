@@ -60,6 +60,7 @@ async function renderTransitMap() {
     if (!map) return;
 
     // Separate lines by type for rendering order
+    const commuterRailLines = [];
     const railLines = [];
     const brtLines = [];
     const busLines = [];
@@ -67,17 +68,46 @@ async function renderTransitMap() {
     Object.entries(TRANSIT_LINES).forEach(([lineName, line]) => {
         const isCommuterExpress = lineName.startsWith('LADOT CE') || lineName === 'Union/Bunker Shuttle';
         const isBRT = lineName === 'Orange' || lineName === 'Silver' || lineName === 'Foothill Silver Streak';
+        const isCommuterRail = line.type === 'commuter_rail';
 
         if (isCommuterExpress) {
             busLines.push({ name: lineName, ...line });
         } else if (isBRT) {
             brtLines.push({ name: lineName, ...line });
+        } else if (isCommuterRail) {
+            commuterRailLines.push({ name: lineName, ...line });
         } else {
             railLines.push({ name: lineName, ...line });
         }
     });
 
-    // Render bus lines first (bottom layer) - fetch actual road routes
+    // Render commuter rail lines first (bottom layer) - follow actual rail routes
+    for (const line of commuterRailLines) {
+        const coords = await fetchBusRouteGeometry(line.name, line.stations);
+
+        // Commuter rail - subtle line following actual rail corridor
+        L.polyline(coords, {
+            color: line.color,
+            weight: 2.5,
+            opacity: 0.4,
+            lineCap: 'round',
+            lineJoin: 'round'
+        }).addTo(map);
+
+        // Add small station markers
+        line.stations.forEach(s => {
+            L.circleMarker([s.lat, s.lon], {
+                color: line.color,
+                fillColor: '#ffffff',
+                fillOpacity: 0.6,
+                radius: 2.5,
+                weight: 1.5,
+                opacity: 0.5
+            }).addTo(map);
+        });
+    }
+
+    // Render bus lines - fetch actual road routes
     for (const line of busLines) {
         const coords = await fetchBusRouteGeometry(line.name, line.stations);
 

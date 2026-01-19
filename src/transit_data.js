@@ -217,5 +217,152 @@ export const TRANSIT_LINES = {
     "LADOT CE 549": { color: "#0047BB", stations: [{ name: "Pasadena (Del Mar)", lat: 34.1426, lon: -118.1488 }, { name: "Glendale (Brand/Broadway)", lat: 34.1470, lon: -118.2550 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }] },
     "LADOT CE 573": { color: "#0047BB", stations: [{ name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "Century City", lat: 34.0577, lon: -118.4168 }] },
     "LADOT CE 574": { color: "#0047BB", stations: [{ name: "Granada Hills (Zelzah/Chatsworth)", lat: 34.2650, lon: -118.5240 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "LAX City Bus Center", lat: 33.9600, lon: -118.4040 }] },
-    "Union/Bunker Shuttle": { color: "#0047BB", stations: [{ name: "Union Station", lat: 34.0561, lon: -118.2375 }, { name: "Bunker Hill (Grand/3rd)", lat: 34.0530, lon: -118.2510 }] }
+    "Union/Bunker Shuttle": { color: "#0047BB", stations: [{ name: "Union Station", lat: 34.0561, lon: -118.2375 }, { name: "Bunker Hill (Grand/3rd)", lat: 34.0530, lon: -118.2510 }] },
+
+    // Metrolink Commuter Rail Lines
+    "Metrolink Ventura": {
+        color: "#55b135", // Metrolink green
+        type: "commuter_rail",
+        stations: [
+            { name: "East Ventura", lat: 34.2756, lon: -119.2295 },
+            { name: "Oxnard", lat: 34.1975, lon: -119.1803 },
+            { name: "Camarillo", lat: 34.2164, lon: -119.0375 },
+            { name: "Moorpark", lat: 34.2856, lon: -118.8764 },
+            { name: "Simi Valley", lat: 34.2697, lon: -118.7381 },
+            { name: "Chatsworth", lat: 34.2569, lon: -118.5986 },
+            { name: "Northridge", lat: 34.2314, lon: -118.5667 },
+            { name: "Van Nuys", lat: 34.1891, lon: -118.4492 },
+            { name: "Burbank Downtown", lat: 34.1808, lon: -118.3089 },
+            { name: "Burbank Airport North", lat: 34.1967, lon: -118.3556 },
+            { name: "Glendale", lat: 34.1478, lon: -118.2553 },
+            { name: "LA Union Station", lat: 34.0561, lon: -118.2375 }
+        ]
+    },
+    "Metrolink Antelope Valley": {
+        color: "#55b135",
+        type: "commuter_rail",
+        stations: [
+            { name: "Lancaster", lat: 34.6981, lon: -118.1367 },
+            { name: "Palmdale", lat: 34.5794, lon: -118.1164 },
+            { name: "Vincent Grade/Acton", lat: 34.4897, lon: -118.1972 },
+            { name: "Via Princessa", lat: 34.4178, lon: -118.4908 },
+            { name: "Santa Clarita", lat: 34.3867, lon: -118.5425 },
+            { name: "Newhall", lat: 34.3847, lon: -118.5306 },
+            { name: "Sylmar/San Fernando", lat: 34.3078, lon: -118.4697 },
+            { name: "Sun Valley", lat: 34.2261, lon: -118.3933 },
+            { name: "Burbank Airport North", lat: 34.1967, lon: -118.3556 },
+            { name: "Burbank Downtown", lat: 34.1808, lon: -118.3089 },
+            { name: "Glendale", lat: 34.1478, lon: -118.2553 },
+            { name: "LA Union Station", lat: 34.0561, lon: -118.2375 }
+        ]
+    },
+    "Metrolink San Bernardino": {
+        color: "#55b135",
+        type: "commuter_rail",
+        stations: [
+            { name: "San Bernardino Downtown", lat: 34.1083, lon: -117.2942 },
+            { name: "San Bernardino Depot", lat: 34.1097, lon: -117.3014 },
+            { name: "Rialto", lat: 34.1061, lon: -117.3703 },
+            { name: "Fontana", lat: 34.0856, lon: -117.4350 },
+            { name: "Rancho Cucamonga", lat: 34.0978, lon: -117.5647 },
+            { name: "Upland", lat: 34.0975, lon: -117.6478 },
+            { name: "Claremont", lat: 34.0964, lon: -117.7192 },
+            { name: "Pomona North", lat: 34.0997, lon: -117.7650 },
+            { name: "Covina", lat: 34.0900, lon: -117.8886 },
+            { name: "Baldwin Park", lat: 34.0853, lon: -117.9653 },
+            { name: "El Monte", lat: 34.0733, lon: -118.0275 },
+            { name: "Cal State LA", lat: 34.0667, lon: -118.1672 },
+            { name: "LA Union Station", lat: 34.0561, lon: -118.2375 }
+        ]
+    },
+    "Metrolink Riverside": {
+        color: "#55b135",
+        type: "commuter_rail",
+        stations: [
+            { name: "Riverside Downtown", lat: 33.9781, lon: -117.3764 },
+            { name: "Riverside La Sierra", lat: 33.9375, lon: -117.4558 },
+            { name: "Corona North Main", lat: 33.8911, lon: -117.5628 },
+            { name: "Corona West", lat: 33.8669, lon: -117.5989 },
+            { name: "Anaheim Canyon", lat: 33.8572, lon: -117.7519 },
+            { name: "Orange", lat: 33.8044, lon: -117.8533 },
+            { name: "Santa Ana", lat: 33.7456, lon: -117.8689 },
+            { name: "Tustin", lat: 33.7339, lon: -117.8253 },
+            { name: "Irvine", lat: 33.6569, lon: -117.7378 },
+            { name: "Fullerton", lat: 33.8703, lon: -117.9253 },
+            { name: "Buena Park", lat: 33.8486, lon: -117.9944 },
+            { name: "Norwalk/Santa Fe Springs", lat: 33.9056, lon: -118.0681 },
+            { name: "Commerce", lat: 34.0003, lon: -118.1597 },
+            { name: "LA Union Station", lat: 34.0561, lon: -118.2375 }
+        ]
+    },
+    "Metrolink Orange County": {
+        color: "#55b135",
+        type: "commuter_rail",
+        stations: [
+            { name: "Oceanside", lat: 33.1967, lon: -117.3792 },
+            { name: "San Clemente", lat: 33.4147, lon: -117.6178 },
+            { name: "San Juan Capistrano", lat: 33.5019, lon: -117.6625 },
+            { name: "Laguna Niguel/Mission Viejo", lat: 33.5461, lon: -117.7003 },
+            { name: "Irvine", lat: 33.6569, lon: -117.7378 },
+            { name: "Tustin", lat: 33.7339, lon: -117.8253 },
+            { name: "Santa Ana", lat: 33.7456, lon: -117.8689 },
+            { name: "Orange", lat: 33.8044, lon: -117.8533 },
+            { name: "Anaheim", lat: 33.8328, lon: -117.9139 },
+            { name: "Fullerton", lat: 33.8703, lon: -117.9253 },
+            { name: "Buena Park", lat: 33.8486, lon: -117.9944 },
+            { name: "Norwalk/Santa Fe Springs", lat: 33.9056, lon: -118.0681 },
+            { name: "Commerce", lat: 34.0003, lon: -118.1597 },
+            { name: "LA Union Station", lat: 34.0561, lon: -118.2375 }
+        ]
+    },
+    "Metrolink 91/Perris Valley": {
+        color: "#55b135",
+        type: "commuter_rail",
+        stations: [
+            { name: "Perris Downtown", lat: 33.7819, lon: -117.2267 },
+            { name: "Perris South", lat: 33.7556, lon: -117.2264 },
+            { name: "Moreno Valley/March Field", lat: 33.8833, lon: -117.2569 },
+            { name: "Riverside Downtown", lat: 33.9781, lon: -117.3764 },
+            { name: "Riverside La Sierra", lat: 33.9375, lon: -117.4558 },
+            { name: "Corona North Main", lat: 33.8911, lon: -117.5628 },
+            { name: "Corona West", lat: 33.8669, lon: -117.5989 },
+            { name: "Fullerton", lat: 33.8703, lon: -117.9253 },
+            { name: "Buena Park", lat: 33.8486, lon: -117.9944 },
+            { name: "Norwalk/Santa Fe Springs", lat: 33.9056, lon: -118.0681 },
+            { name: "Commerce", lat: 34.0003, lon: -118.1597 },
+            { name: "LA Union Station", lat: 34.0561, lon: -118.2375 }
+        ]
+    },
+
+    // Amtrak Pacific Surfliner (Santa Barbara to Orange County section)
+    "Amtrak Pacific Surfliner": {
+        color: "#1C4E9D", // Amtrak blue
+        type: "commuter_rail",
+        stations: [
+            { name: "Santa Barbara", lat: 34.4147, lon: -119.6858 },
+            { name: "Goleta", lat: 34.4328, lon: -119.8269 },
+            { name: "Carpinteria", lat: 34.3917, lon: -119.5186 },
+            { name: "Ventura", lat: 34.2786, lon: -119.2931 },
+            { name: "Oxnard", lat: 34.1975, lon: -119.1803 },
+            { name: "Camarillo", lat: 34.2164, lon: -119.0375 },
+            { name: "Moorpark", lat: 34.2856, lon: -118.8764 },
+            { name: "Simi Valley", lat: 34.2697, lon: -118.7381 },
+            { name: "Chatsworth", lat: 34.2569, lon: -118.5986 },
+            { name: "Van Nuys", lat: 34.1891, lon: -118.4492 },
+            { name: "Burbank Airport", lat: 34.1967, lon: -118.3556 },
+            { name: "Glendale", lat: 34.1478, lon: -118.2553 },
+            { name: "LA Union Station", lat: 34.0561, lon: -118.2375 },
+            { name: "Commerce", lat: 34.0003, lon: -118.1597 },
+            { name: "Norwalk/Santa Fe Springs", lat: 33.9056, lon: -118.0681 },
+            { name: "Buena Park", lat: 33.8486, lon: -117.9944 },
+            { name: "Fullerton", lat: 33.8703, lon: -117.9253 },
+            { name: "Anaheim", lat: 33.8328, lon: -117.9139 },
+            { name: "Orange", lat: 33.8044, lon: -117.8533 },
+            { name: "Santa Ana", lat: 33.7456, lon: -117.8689 },
+            { name: "Irvine", lat: 33.6569, lon: -117.7378 },
+            { name: "San Juan Capistrano", lat: 33.5019, lon: -117.6625 },
+            { name: "San Clemente", lat: 33.4147, lon: -117.6178 },
+            { name: "Oceanside", lat: 33.1967, lon: -117.3792 }
+        ]
+    }
 };
