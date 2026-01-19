@@ -271,10 +271,22 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike') {
             const { hub, leg1, leg2 } = transitPlan;
             console.log(`Routing transit transfer: ${entryStation.name} -> ${hub.name} -> ${exitStation.name}`);
 
-            // Simple straight line approximation for transfer legs for now
-            const dist1 = getDistance(entryStation.lat, entryStation.lon, hub.lat, hub.lon);
-            const dist2 = getDistance(hub.lat, hub.lon, exitStation.lat, exitStation.lon);
-            const transitDistance = dist1 + dist2;
+            // Build full station list from both segments
+            // leg1.segment goes from entry to hub, leg2.segment goes from hub to exit
+            // Avoid duplicating the hub station
+            const allStations = [...leg1.segment];
+            // Add leg2 stations, skipping the first one if it's the hub (to avoid duplicate)
+            const leg2StationsToAdd = leg2.segment[0].name === hub.name ? leg2.segment.slice(1) : leg2.segment;
+            allStations.push(...leg2StationsToAdd);
+
+            // Build coordinates from all stations
+            const transitCoordinates = allStations.map(s => [s.lon, s.lat]);
+
+            // Calculate actual distance along the route
+            let transitDistance = 0;
+            for (let i = 0; i < allStations.length - 1; i++) {
+                transitDistance += getDistance(allStations[i].lat, allStations[i].lon, allStations[i + 1].lat, allStations[i + 1].lon);
+            }
 
             const avgSpeedKmh = 35;
             const bufferSeconds = 10 * 60; // Extra buffer for transfer
@@ -288,11 +300,11 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike') {
                 to: exitStation,
                 geometry: {
                     type: "LineString",
-                    coordinates: [[entryStation.lon, entryStation.lat], [hub.lon, hub.lat], [exitStation.lon, exitStation.lat]]
+                    coordinates: transitCoordinates
                 },
                 distance: transitDistance,
                 duration: transitDuration,
-                stations: [entryStation, hub, exitStation]
+                stations: allStations
             });
         }
 

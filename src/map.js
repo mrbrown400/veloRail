@@ -29,26 +29,84 @@ function renderTransitMap() {
     if (!map) return;
 
     // Render all transit lines as background
-    Object.values(TRANSIT_LINES).forEach(line => {
+    Object.entries(TRANSIT_LINES).forEach(([lineName, line]) => {
         const coords = line.stations.map(s => [s.lat, s.lon]);
 
-        // Draw the line
-        L.polyline(coords, {
-            color: line.color,
-            weight: 3,
-            opacity: 0.4, // Dimmed by default
-            smoothFactor: 1
-        }).addTo(map);
+        // Determine line type for styling
+        const isCommuterExpress = lineName.startsWith('LADOT CE') || lineName === 'Union/Bunker Shuttle';
+        const isBRT = lineName === 'Orange' || lineName === 'Silver' || lineName === 'Foothill Silver Streak';
+        const isRail = !isCommuterExpress && !isBRT;
 
-        // Draw stations (small dots)
-        line.stations.forEach(s => {
-            L.circleMarker([s.lat, s.lon], {
-                color: line.color,
-                radius: 2,
-                opacity: 0.4,
-                fillOpacity: 0.4
+        if (isCommuterExpress) {
+            // LADOT Commuter Express - subtle dashed lines
+            L.polyline(coords, {
+                color: '#4a90d9',
+                weight: 2,
+                opacity: 0.25,
+                dashArray: '8, 8',
+                lineCap: 'round',
+                lineJoin: 'round'
             }).addTo(map);
-        });
+        } else if (isBRT) {
+            // BRT lines - dashed with casing
+            // Outer casing
+            L.polyline(coords, {
+                color: '#000000',
+                weight: 6,
+                opacity: 0.3,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(map);
+            // Inner colored line (dashed)
+            L.polyline(coords, {
+                color: line.color,
+                weight: 4,
+                opacity: 0.5,
+                dashArray: '12, 6',
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(map);
+            // Station markers for BRT
+            line.stations.forEach(s => {
+                L.circleMarker([s.lat, s.lon], {
+                    color: '#1a1a2e',
+                    fillColor: line.color,
+                    fillOpacity: 0.5,
+                    radius: 3,
+                    weight: 1.5,
+                    opacity: 0.5
+                }).addTo(map);
+            });
+        } else {
+            // Rail lines - solid with casing (Google/Apple Maps style)
+            // Outer dark casing for depth
+            L.polyline(coords, {
+                color: '#0d0d15',
+                weight: 7,
+                opacity: 0.5,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(map);
+            // Inner colored line
+            L.polyline(coords, {
+                color: line.color,
+                weight: 4,
+                opacity: 0.6,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(map);
+            // Station markers - white fill with colored border
+            line.stations.forEach(s => {
+                L.circleMarker([s.lat, s.lon], {
+                    color: line.color,
+                    fillColor: '#ffffff',
+                    fillOpacity: 0.7,
+                    radius: 3.5,
+                    weight: 2,
+                    opacity: 0.6
+                }).addTo(map);
+            });
+        }
     });
 }
 
@@ -108,42 +166,91 @@ export function drawRoute(routeData) {
 
             let color = '#39FF14'; // Default Bike
             let dashArray = null;
-            let weight = 5;
 
             if (leg.mode === 'walk') {
-                color = '#777777'; // Grey
-                dashArray = '5, 10';
+                color = '#9ca3af'; // Grey
+                dashArray = '4, 8';
             } else if (leg.mode === 'transit_bus') {
                 color = '#3b82f6'; // Blue
-                dashArray = '5, 10';
+                dashArray = '6, 8';
             } else if (leg.mode === 'driving') {
                 color = '#60A5FA'; // Light Blue
             }
 
+            // White outer casing for visibility
+            L.polyline(latlngs, {
+                color: '#ffffff',
+                weight: 10,
+                opacity: 0.9,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(map);
+
+            // Dark casing
+            L.polyline(latlngs, {
+                color: '#1a1a2e',
+                weight: 7,
+                opacity: 1,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(map);
+
+            // Main colored line
             L.polyline(latlngs, {
                 color: color,
-                weight: weight,
-                opacity: 0.8,
+                weight: 4,
+                opacity: 1,
+                lineCap: 'round',
                 lineJoin: 'round',
                 dashArray: dashArray
             }).addTo(map);
             bounds.extend(latlngs);
 
         } else if (leg.mode === 'transit') {
-            // Transit Line
+            // Transit Line - highlighted route (Google/Apple Maps style)
             // leg.geometry is our constructed LineString from station data
             const latlngs = leg.geometry.coordinates.map(c => [c[1], c[0]]);
 
-            const pl = L.polyline(latlngs, {
+            // Outer glow/casing for visibility (white outline)
+            L.polyline(latlngs, {
+                color: '#ffffff',
+                weight: 12,
+                opacity: 0.9,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(map);
+
+            // Dark casing for depth
+            L.polyline(latlngs, {
+                color: '#1a1a2e',
+                weight: 9,
+                opacity: 1,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(map);
+
+            // Main colored line
+            L.polyline(latlngs, {
                 color: leg.color,
                 weight: 6,
                 opacity: 1,
+                lineCap: 'round',
+                lineJoin: 'round'
             }).addTo(map);
 
-            // Add station markers for this segment
+            // Add station markers for this segment - larger and more prominent
             leg.stations.forEach(s => {
+                // Outer white ring
                 L.circleMarker([s.lat, s.lon], {
-                    color: 'white',
+                    color: '#ffffff',
+                    fillColor: '#ffffff',
+                    fillOpacity: 1,
+                    radius: 8,
+                    weight: 0
+                }).addTo(map);
+                // Inner colored circle
+                L.circleMarker([s.lat, s.lon], {
+                    color: '#1a1a2e',
                     fillColor: leg.color,
                     fillOpacity: 1,
                     radius: 5,
