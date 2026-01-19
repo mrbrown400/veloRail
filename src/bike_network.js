@@ -17,6 +17,8 @@ export function initBikeOverlay(map) {
     const regions = [
         // LA Basin core
         { name: 'LA Core', bbox: '33.70,-118.67,34.34,-118.15' },
+        // San Gabriel Valley (East LA, Pasadena, West Covina, Whittier, etc.)
+        { name: 'San Gabriel Valley', bbox: '33.85,-118.20,34.25,-117.70' },
         // Orange County
         { name: 'Orange County', bbox: '33.40,-118.15,33.95,-117.45' },
         // Inland Empire (San Bernardino/Riverside)
