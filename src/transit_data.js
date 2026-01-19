@@ -202,21 +202,20 @@ export const TRANSIT_LINES = {
             { name: "Pico/Flower", lat: 34.0399, lon: -118.2671 } // Terminus near Convention Center
         ]
     },
-},
-// Commuter Express Lines
-"LADOT CE 142": { color: "#0047BB", stations: [{ name: "San Pedro Ports O'Call", lat: 33.7335, lon: -118.2764 }, { name: "Long Beach Transit Gallery", lat: 33.7709, lon: -118.1924 }] },
-"LADOT CE 409": { color: "#0047BB", stations: [{ name: "Glendale College", lat: 34.1668, lon: -118.2323 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-"LADOT CE 419": { color: "#0047BB", stations: [{ name: "Chatsworth Station", lat: 34.2569, lon: -118.5986 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-"LADOT CE 422": { color: "#0047BB", stations: [{ name: "Thousand Oaks Transp. Ctr", lat: 34.1750, lon: -118.8612 }, { name: "Warner Center", lat: 34.1797, lon: -118.5979 }, { name: "Universal City/Studio City", lat: 34.1394, lon: -118.3624 }, { name: "7th St/Metro Center", lat: 34.0487, lon: -118.2587 }] },
-"LADOT CE 423": { color: "#0047BB", stations: [{ name: "Thousand Oaks Transp. Ctr", lat: 34.1750, lon: -118.8612 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "USC", lat: 34.0224, lon: -118.2851 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-"LADOT CE 431": { color: "#0047BB", stations: [{ name: "Westwood (Weyburn/Westwood)", lat: 34.0620, lon: -118.4455 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-"LADOT CE 437": { color: "#0047BB", stations: [{ name: "Venice (Pacific/Washington)", lat: 33.9859, lon: -118.4731 }, { name: "Culver City", lat: 34.0284, lon: -118.3887 }, { name: "7th St/Metro Center", lat: 34.0487, lon: -118.2587 }] },
-"LADOT CE 438": { color: "#0047BB", stations: [{ name: "Redondo Beach Pier", lat: 33.8397, lon: -118.3927 }, { name: "Harbor Gateway", lat: 33.8693, lon: -118.2874 }, { name: "Union Station", lat: 34.0561, lon: -118.2359 }] },
-"LADOT CE 439": { color: "#0047BB", stations: [{ name: "El Segundo (Douglas Stn)", lat: 33.9056, lon: -118.3862 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-"LADOT CE 448": { color: "#0047BB", stations: [{ name: "Rancho Palos Verdes (Hawthorne/Crest)", lat: 33.7612, lon: -118.4061 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-"LADOT CE 534": { color: "#0047BB", stations: [{ name: "West LA (Sepulveda/National)", lat: 34.0267, lon: -118.4116 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-"LADOT CE 549": { color: "#0047BB", stations: [{ name: "Pasadena (Del Mar)", lat: 34.1426, lon: -118.1488 }, { name: "Glendale (Brand/Broadway)", lat: 34.1470, lon: -118.2550 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }] },
-"LADOT CE 573": { color: "#0047BB", stations: [{ name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "Century City", lat: 34.0577, lon: -118.4168 }] },
-"LADOT CE 574": { color: "#0047BB", stations: [{ name: "Granada Hills (Zelzah/Chatsworth)", lat: 34.2650, lon: -118.5240 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "LAX City Bus Center", lat: 33.9600, lon: -118.4040 }] },
-"Union/Bunker Shuttle": { color: "#0047BB", stations: [{ name: "Union Station", lat: 34.0561, lon: -118.2375 }, { name: "Bunker Hill (Grand/3rd)", lat: 34.0530, lon: -118.2510 }] }
+    // Commuter Express Lines
+    "LADOT CE 142": { color: "#0047BB", stations: [{ name: "San Pedro Ports O'Call", lat: 33.7335, lon: -118.2764 }, { name: "Long Beach Transit Gallery", lat: 33.7709, lon: -118.1924 }] },
+    "LADOT CE 409": { color: "#0047BB", stations: [{ name: "Glendale College", lat: 34.1668, lon: -118.2323 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
+    "LADOT CE 419": { color: "#0047BB", stations: [{ name: "Chatsworth Station", lat: 34.2569, lon: -118.5986 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
+    "LADOT CE 422": { color: "#0047BB", stations: [{ name: "Thousand Oaks Transp. Ctr", lat: 34.1750, lon: -118.8612 }, { name: "Warner Center", lat: 34.1797, lon: -118.5979 }, { name: "Universal City/Studio City", lat: 34.1394, lon: -118.3624 }, { name: "7th St/Metro Center", lat: 34.0487, lon: -118.2587 }] },
+    "LADOT CE 423": { color: "#0047BB", stations: [{ name: "Thousand Oaks Transp. Ctr", lat: 34.1750, lon: -118.8612 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "USC", lat: 34.0224, lon: -118.2851 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
+    "LADOT CE 431": { color: "#0047BB", stations: [{ name: "Westwood (Weyburn/Westwood)", lat: 34.0620, lon: -118.4455 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
+    "LADOT CE 437": { color: "#0047BB", stations: [{ name: "Venice (Pacific/Washington)", lat: 33.9859, lon: -118.4731 }, { name: "Culver City", lat: 34.0284, lon: -118.3887 }, { name: "7th St/Metro Center", lat: 34.0487, lon: -118.2587 }] },
+    "LADOT CE 438": { color: "#0047BB", stations: [{ name: "Redondo Beach Pier", lat: 33.8397, lon: -118.3927 }, { name: "Harbor Gateway", lat: 33.8693, lon: -118.2874 }, { name: "Union Station", lat: 34.0561, lon: -118.2359 }] },
+    "LADOT CE 439": { color: "#0047BB", stations: [{ name: "El Segundo (Douglas Stn)", lat: 33.9056, lon: -118.3862 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
+    "LADOT CE 448": { color: "#0047BB", stations: [{ name: "Rancho Palos Verdes (Hawthorne/Crest)", lat: 33.7612, lon: -118.4061 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
+    "LADOT CE 534": { color: "#0047BB", stations: [{ name: "West LA (Sepulveda/National)", lat: 34.0267, lon: -118.4116 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
+    "LADOT CE 549": { color: "#0047BB", stations: [{ name: "Pasadena (Del Mar)", lat: 34.1426, lon: -118.1488 }, { name: "Glendale (Brand/Broadway)", lat: 34.1470, lon: -118.2550 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }] },
+    "LADOT CE 573": { color: "#0047BB", stations: [{ name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "Century City", lat: 34.0577, lon: -118.4168 }] },
+    "LADOT CE 574": { color: "#0047BB", stations: [{ name: "Granada Hills (Zelzah/Chatsworth)", lat: 34.2650, lon: -118.5240 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "LAX City Bus Center", lat: 33.9600, lon: -118.4040 }] },
+    "Union/Bunker Shuttle": { color: "#0047BB", stations: [{ name: "Union Station", lat: 34.0561, lon: -118.2375 }, { name: "Bunker Hill (Grand/3rd)", lat: 34.0530, lon: -118.2510 }] }
 };
