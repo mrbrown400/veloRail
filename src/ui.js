@@ -7,6 +7,7 @@ export function setupUI() {
   const startInput = document.getElementById('start');
   const endInput = document.getElementById('end');
   const routeDetails = document.getElementById('route-details');
+  const safetySelect = document.getElementById('bike-safety');
 
   const formatDuration = (seconds) => {
     const min = Math.round(seconds / 60);
@@ -30,7 +31,8 @@ export function setupUI() {
     routeDetails.classList.add('hidden');
 
     try {
-      const comparisonResults = await compareRoutes(start, end);
+      const safetyPreference = safetySelect ? safetySelect.value : 'balanced';
+      const comparisonResults = await compareRoutes(start, end, safetyPreference);
 
       // Default to the first result (Bike + Metro) for map
       const primaryRoute = comparisonResults[0];
@@ -95,6 +97,18 @@ export function setupUI() {
       return `${leg.mode.toUpperCase()}`;
     };
 
+    const getSafetyClass = (score) => {
+      if (score >= 70) return 'safety-good';
+      if (score >= 40) return 'safety-moderate';
+      return 'safety-poor';
+    };
+
+    const getSafetyLabel = (score) => {
+      if (score >= 70) return 'Safe';
+      if (score >= 40) return 'Moderate';
+      return 'Caution';
+    };
+
     return `
             <div class="legs mt-4">
             ${routeData.legs.map((leg) => `
@@ -102,7 +116,11 @@ export function setupUI() {
                 <span class="mode-icon">${getModeIcon(leg.mode)}</span>
                 <div class="leg-info">
                     <span class="leg-mode">${getInstruction(leg)}</span>
-                    <span class="leg-details">${leg.distance.toFixed(1)} km • ${formatDuration(leg.duration)}</span>
+                    <span class="leg-details">${leg.distance.toFixed(1)} km • ${formatDuration(leg.duration)}${
+                      leg.safety && leg.mode === 'bike'
+                        ? ` <span class="leg-safety ${getSafetyClass(leg.safety.score)}">${getSafetyLabel(leg.safety.score)}</span>`
+                        : ''
+                    }</span>
                 </div>
                 </div>
             `).join('')}

@@ -31,6 +31,14 @@
               <label for="end">Destination</label>
               <input type="text" id="end" placeholder="Enter destination" />
             </div>
+            <div class="input-group">
+              <label for="bike-safety">Bike Route Preference</label>
+              <select id="bike-safety">
+                <option value="balanced">Balanced (Default)</option>
+                <option value="safe">Safer Route (Prefer Bike Lanes)</option>
+                <option value="fast">Fastest (Direct)</option>
+              </select>
+            </div>
             <button id="find-route-btn" class="primary-btn">Find Route</button>
           </div>
           <div id="route-details" class="route-details hidden">

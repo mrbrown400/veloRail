@@ -2,6 +2,9 @@ import { geocode } from './geocoding.js';
 import { TRANSIT_LINES } from './transit_data.js';
 import { getBikeRoute, getOSRMRoute } from './osrm.js';
 import { getRouteElevation } from './elevation.js';
+import { getORSBikeRoute } from './ors.js';
+import { calculateRouteSafetyScore } from './bike_safety.js';
+import { CONFIG } from './config.js';
 
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371;
@@ -78,7 +81,7 @@ function getCommonLines(s1, s2) {
 }
 
 
-export async function calculateRoute(startAddr, endAddr, travelMode = 'bike') {
+export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', safetyPreference = 'balanced') {
     console.log(`Calculating route (${travelMode})...`);
 
     const startLoc = (typeof startAddr === 'string') ? await geocode(startAddr) : startAddr;
@@ -169,6 +172,29 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike') {
         return totalSeconds > 0 ? totalSeconds : (distanceKm * 1000 / fallbackSpeedMs);
     };
 
+    // Get bike route with safety preference (ORS with OSRM fallback)
+    const getBikeRouteWithSafety = async (waypoints, safetyPref) => {
+        // Try ORS first for safe/balanced preferences
+        if (travelMode === 'bike' && safetyPref !== 'fast') {
+            const orsRoute = await getORSBikeRoute(waypoints, safetyPref);
+            if (orsRoute) {
+                const safetyInfo = await calculateRouteSafetyScore(orsRoute.geometry);
+                return { ...orsRoute, safety: safetyInfo };
+            }
+        }
+
+        // Fallback to OSRM
+        const osrmRoute = await getOSRMRoute(waypoints, osrmProfile);
+        if (osrmRoute) {
+            const safetyInfo = travelMode === 'bike'
+                ? await calculateRouteSafetyScore(osrmRoute.geometry)
+                : null;
+            return { ...osrmRoute, source: 'osrm', safety: safetyInfo };
+        }
+
+        return null;
+    };
+
     const commonRoutes = getCommonLines(entryStation, exitStation);
     let transitPlan = null;
 
@@ -203,7 +229,9 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike') {
     // If short distance, or no transit, or same station
     if (directDist < (isWalking ? 1.5 : 5) || !canTakeTransit || entryStation.name === exitStation.name) {
         console.log(`Using direct ${travelMode} route`);
-        const route = await getOSRMRoute([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: endLoc.lat, lon: endLoc.lon }], osrmProfile);
+        const route = travelMode === 'bike'
+            ? await getBikeRouteWithSafety([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: endLoc.lat, lon: endLoc.lon }], safetyPreference)
+            : await getOSRMRoute([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: endLoc.lat, lon: endLoc.lon }], osrmProfile);
 
         // Fallback calc
         const distKm = route ? route.distance : directDist;
@@ -216,14 +244,16 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike') {
             to: endLoc,
             geometry: route ? route.geometry : { type: "LineString", coordinates: [[startLoc.lon, startLoc.lat], [endLoc.lon, endLoc.lat]] },
             distance: distKm,
-            distance: distKm,
-            duration: duration + busPenaltySeconds
+            duration: duration + busPenaltySeconds,
+            safety: route?.safety || null
         });
     } else {
         console.log('Using Multimodal route');
 
         // Leg 1: Access -> Entry
-        const l1 = await getOSRMRoute([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: entryStation.lat, lon: entryStation.lon }], osrmProfile);
+        const l1 = travelMode === 'bike'
+            ? await getBikeRouteWithSafety([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: entryStation.lat, lon: entryStation.lon }], safetyPreference)
+            : await getOSRMRoute([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: entryStation.lat, lon: entryStation.lon }], osrmProfile);
         const d1 = l1 ? l1.distance : getDistance(startLoc.lat, startLoc.lon, entryStation.lat, entryStation.lon);
         legs.push({
             mode: travelMode,
@@ -231,9 +261,8 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike') {
             to: entryStation,
             geometry: l1 ? l1.geometry : { type: "LineString", coordinates: [[startLoc.lon, startLoc.lat], [entryStation.lon, entryStation.lat]] },
             distance: d1,
-            distance: d1,
-            distance: d1,
-            duration: (await calculateBikeDuration(d1, l1 ? l1.geometry : null)) + busPenaltySeconds
+            duration: (await calculateBikeDuration(d1, l1 ? l1.geometry : null)) + busPenaltySeconds,
+            safety: l1?.safety || null
         });
 
         // Leg 2: Transit (Direct or Transfer)
@@ -309,7 +338,9 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike') {
         }
 
         // Leg 3: Egress -> Dest
-        const l3 = await getOSRMRoute([{ lat: exitStation.lat, lon: exitStation.lon }, { lat: endLoc.lat, lon: endLoc.lon }], osrmProfile);
+        const l3 = travelMode === 'bike'
+            ? await getBikeRouteWithSafety([{ lat: exitStation.lat, lon: exitStation.lon }, { lat: endLoc.lat, lon: endLoc.lon }], safetyPreference)
+            : await getOSRMRoute([{ lat: exitStation.lat, lon: exitStation.lon }, { lat: endLoc.lat, lon: endLoc.lon }], osrmProfile);
         const d3 = l3 ? l3.distance : getDistance(exitStation.lat, exitStation.lon, endLoc.lat, endLoc.lon);
         legs.push({
             mode: travelMode,
@@ -317,8 +348,8 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike') {
             to: endLoc,
             geometry: l3 ? l3.geometry : { type: "LineString", coordinates: [[exitStation.lon, exitStation.lat], [endLoc.lon, endLoc.lat]] },
             distance: d3,
-            distance: d3,
-            duration: (await calculateBikeDuration(d3, l3 ? l3.geometry : null)) + busPenaltySeconds
+            duration: (await calculateBikeDuration(d3, l3 ? l3.geometry : null)) + busPenaltySeconds,
+            safety: l3?.safety || null
         });
     }
 
@@ -341,7 +372,7 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike') {
     };
 }
 
-export async function compareRoutes(startAddr, endAddr) {
+export async function compareRoutes(startAddr, endAddr, safetyPreference = 'balanced') {
     const results = [];
 
     // Geocode ONCE
@@ -354,7 +385,7 @@ export async function compareRoutes(startAddr, endAddr) {
 
     // 1. Bike + Metro (Standard)
     try {
-        const bikeRoute = await calculateRoute(startLoc, endLoc, 'bike');
+        const bikeRoute = await calculateRoute(startLoc, endLoc, 'bike', safetyPreference);
         bikeRoute.label = "Bike + Rail";
         results.push(bikeRoute);
     } catch (e) { console.error("Bike route failed", e); }
