@@ -372,9 +372,7 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
     };
 }
 
-export async function compareRoutes(startAddr, endAddr, safetyPreference = 'balanced') {
-    const results = [];
-
+export async function compareRoutes(startAddr, endAddr, safetyPreference = 'balanced', modeFilter = 'all') {
     // Geocode ONCE
     const startLoc = await geocode(startAddr);
     const endLoc = await geocode(endAddr);
@@ -383,61 +381,76 @@ export async function compareRoutes(startAddr, endAddr, safetyPreference = 'bala
         throw new Error("Could not find start or end location");
     }
 
-    // 1. Bike + Metro (Standard)
-    try {
-        const bikeRoute = await calculateRoute(startLoc, endLoc, 'bike', safetyPreference);
-        bikeRoute.label = "Bike + Rail";
-        results.push(bikeRoute);
-    } catch (e) { console.error("Bike route failed", e); }
+    const formatDuration = (seconds) => {
+        const min = Math.round(seconds / 60);
+        if (min < 60) return `${min} min`;
+        const hr = Math.floor(min / 60);
+        const m = min % 60;
+        return `${hr} hr ${m} min`;
+    };
 
-    // 2. Driving (Direct OSRM)
-    try {
-        // Reuse locations
-        const drivingRoute = await getOSRMRoute([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: endLoc.lat, lon: endLoc.lon }], 'driving');
-        if (drivingRoute) {
-            // Formatting for simple driving route
-            const formatDuration = (seconds) => {
-                const min = Math.round(seconds / 60);
-                if (min < 60) return `${min} min`;
-                const hr = Math.floor(min / 60);
-                const m = min % 60;
-                return `${hr} hr ${m} min`;
-            };
+    // Build array of route promises based on mode filter
+    const routePromises = [];
 
-            results.push({
-                type: 'Driving',
-                label: "Driving",
-                start: startLoc,
-                end: endLoc,
-                legs: [{
-                    mode: 'driving',
-                    from: startLoc,
-                    to: endLoc,
-                    geometry: drivingRoute.geometry,
-                    distance: drivingRoute.distance,
-                    duration: drivingRoute.duration * 1.5 // Simulating LA Traffic
-                }],
-                totalDistance: drivingRoute.distance,
-                totalDuration: drivingRoute.duration * 1.5,
-                formattedDuration: formatDuration(drivingRoute.duration * 1.5),
-                summary: `Direct Drive (${drivingRoute.distance.toFixed(1)} km)`
-            });
-        }
-    } catch (e) { console.error("Driving route failed", e); }
+    // Bike + Rail
+    if (modeFilter === 'all' || modeFilter === 'bike') {
+        routePromises.push(
+            calculateRoute(startLoc, endLoc, 'bike', safetyPreference)
+                .then(route => ({ ...route, label: "Bike + Rail" }))
+                .catch(e => { console.error("Bike route failed", e); return null; })
+        );
+    }
 
-    // 3. Walk + Metro
-    try {
-        const walkRoute = await calculateRoute(startLoc, endLoc, 'walk');
-        walkRoute.label = "Walk + Rail";
-        results.push(walkRoute);
-    } catch (e) { console.error("Walk route failed", e); }
+    // Driving
+    if (modeFilter === 'all' || modeFilter === 'driving') {
+        routePromises.push(
+            getOSRMRoute([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: endLoc.lat, lon: endLoc.lon }], 'driving')
+                .then(drivingRoute => {
+                    if (!drivingRoute) return null;
+                    return {
+                        type: 'Driving',
+                        label: "Driving",
+                        start: startLoc,
+                        end: endLoc,
+                        legs: [{
+                            mode: 'driving',
+                            from: startLoc,
+                            to: endLoc,
+                            geometry: drivingRoute.geometry,
+                            distance: drivingRoute.distance,
+                            duration: drivingRoute.duration * 1.5
+                        }],
+                        totalDistance: drivingRoute.distance,
+                        totalDuration: drivingRoute.duration * 1.5,
+                        formattedDuration: formatDuration(drivingRoute.duration * 1.5),
+                        summary: `Direct Drive (${drivingRoute.distance.toFixed(1)} km)`
+                    };
+                })
+                .catch(e => { console.error("Driving route failed", e); return null; })
+        );
+    }
 
-    // 4. Transit + Bus
-    try {
-        const busRoute = await calculateRoute(startLoc, endLoc, 'transit_bus');
-        busRoute.label = "Bus + Rail";
-        results.push(busRoute);
-    } catch (e) { console.error("Bus route failed", e); }
+    // Walk + Rail
+    if (modeFilter === 'all' || modeFilter === 'walk') {
+        routePromises.push(
+            calculateRoute(startLoc, endLoc, 'walk')
+                .then(route => ({ ...route, label: "Walk + Rail" }))
+                .catch(e => { console.error("Walk route failed", e); return null; })
+        );
+    }
 
-    return results;
+    // Bus + Rail (only in 'all' mode)
+    if (modeFilter === 'all') {
+        routePromises.push(
+            calculateRoute(startLoc, endLoc, 'transit_bus')
+                .then(route => ({ ...route, label: "Bus + Rail" }))
+                .catch(e => { console.error("Bus route failed", e); return null; })
+        );
+    }
+
+    // Execute all route calculations in parallel
+    const results = await Promise.all(routePromises);
+
+    // Filter out null results (failed routes)
+    return results.filter(route => route !== null);
 }

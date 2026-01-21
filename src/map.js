@@ -81,11 +81,43 @@ async function renderTransitMap() {
         }
     });
 
-    // Render commuter rail lines first (bottom layer) - follow actual rail routes
-    for (const line of commuterRailLines) {
-        const coords = await fetchBusRouteGeometry(line.name, line.stations);
+    // Fetch route geometries in BATCHES to avoid rate limiting
+    // (5 concurrent requests with 200ms delay between batches)
+    const allRoutedLines = [...commuterRailLines, ...busLines, ...brtLines];
+    const batchSize = 5;
+    const batchDelay = 200; // ms between batches
+    const routeResults = [];
 
-        // Commuter rail - subtle line following actual rail corridor
+    for (let i = 0; i < allRoutedLines.length; i += batchSize) {
+        const batch = allRoutedLines.slice(i, i + batchSize);
+        const batchPromises = batch.map(line =>
+            fetchBusRouteGeometry(line.name, line.stations)
+                .then(coords => ({ line, coords }))
+                .catch(err => {
+                    console.warn(`Failed to fetch route for ${line.name}:`, err);
+                    return { line, coords: line.stations.map(s => [s.lat, s.lon]) };
+                })
+        );
+
+        const batchResults = await Promise.all(batchPromises);
+        routeResults.push(...batchResults);
+
+        // Small delay between batches to avoid rate limiting
+        if (i + batchSize < allRoutedLines.length) {
+            await new Promise(resolve => setTimeout(resolve, batchDelay));
+        }
+    }
+
+    // Create a map of line name to coords for quick lookup
+    const routeMap = new Map();
+    routeResults.forEach(({ line, coords }) => {
+        routeMap.set(line.name, coords);
+    });
+
+    // Render commuter rail lines first (bottom layer)
+    for (const line of commuterRailLines) {
+        const coords = routeMap.get(line.name);
+
         L.polyline(coords, {
             color: line.color,
             weight: 2.5,
@@ -94,7 +126,6 @@ async function renderTransitMap() {
             lineJoin: 'round'
         }).addTo(map);
 
-        // Add small station markers
         line.stations.forEach(s => {
             L.circleMarker([s.lat, s.lon], {
                 color: line.color,
@@ -107,11 +138,10 @@ async function renderTransitMap() {
         });
     }
 
-    // Render bus lines - fetch actual road routes
+    // Render bus lines
     for (const line of busLines) {
-        const coords = await fetchBusRouteGeometry(line.name, line.stations);
+        const coords = routeMap.get(line.name);
 
-        // LADOT Commuter Express - subtle line following actual roads
         L.polyline(coords, {
             color: '#4a90d9',
             weight: 2.5,
@@ -120,7 +150,6 @@ async function renderTransitMap() {
             lineJoin: 'round'
         }).addTo(map);
 
-        // Add small station markers
         line.stations.forEach(s => {
             L.circleMarker([s.lat, s.lon], {
                 color: '#4a90d9',
@@ -133,11 +162,10 @@ async function renderTransitMap() {
         });
     }
 
-    // Render BRT lines - fetch actual road routes (styled like LADOT lines)
+    // Render BRT lines
     for (const line of brtLines) {
-        const coords = await fetchBusRouteGeometry(line.name, line.stations);
+        const coords = routeMap.get(line.name);
 
-        // BRT lines - subtle solid line following actual roads
         L.polyline(coords, {
             color: line.color,
             weight: 2.5,
@@ -146,7 +174,6 @@ async function renderTransitMap() {
             lineJoin: 'round'
         }).addTo(map);
 
-        // Add small station markers
         line.stations.forEach(s => {
             L.circleMarker([s.lat, s.lon], {
                 color: line.color,
@@ -159,12 +186,10 @@ async function renderTransitMap() {
         });
     }
 
-    // Render rail lines (top layer)
+    // Render rail lines (top layer) - no API calls needed
     for (const line of railLines) {
         const coords = line.stations.map(s => [s.lat, s.lon]);
 
-        // Rail lines - solid with casing (Google/Apple Maps style)
-        // Outer dark casing for depth
         L.polyline(coords, {
             color: '#0d0d15',
             weight: 7,
@@ -172,7 +197,7 @@ async function renderTransitMap() {
             lineCap: 'round',
             lineJoin: 'round'
         }).addTo(map);
-        // Inner colored line
+
         L.polyline(coords, {
             color: line.color,
             weight: 4,
@@ -180,7 +205,7 @@ async function renderTransitMap() {
             lineCap: 'round',
             lineJoin: 'round'
         }).addTo(map);
-        // Station markers - white fill with colored border
+
         line.stations.forEach(s => {
             L.circleMarker([s.lat, s.lon], {
                 color: line.color,

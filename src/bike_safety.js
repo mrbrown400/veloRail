@@ -1,5 +1,8 @@
 // Bike Safety Scoring using OSM data via Overpass API
 
+// Cache for Overpass safety data (keyed by rounded bbox)
+const safetyDataCache = new Map();
+
 /**
  * Calculate safety score for a bike route geometry
  * @param {Object} geometry - GeoJSON LineString
@@ -39,6 +42,15 @@ function getBoundingBox(coordinates) {
 }
 
 async function fetchSafetyData(bbox) {
+    // Round bbox to 2 decimal places for cache key (covers ~1km grid)
+    const bboxParts = bbox.split(',').map(n => parseFloat(n).toFixed(2));
+    const cacheKey = bboxParts.join(',');
+
+    if (safetyDataCache.has(cacheKey)) {
+        console.log('Safety data cache hit');
+        return safetyDataCache.get(cacheKey);
+    }
+
     const query = `
         [out:json][timeout:30];
         (
@@ -63,7 +75,11 @@ async function fetchSafetyData(bbox) {
     });
 
     if (!response.ok) throw new Error('Overpass API failed');
-    return response.json();
+    const data = await response.json();
+
+    // Cache the result
+    safetyDataCache.set(cacheKey, data);
+    return data;
 }
 
 function analyzeRouteSafety(routeCoords, osmData) {

@@ -8,6 +8,7 @@ export function setupUI() {
   const endInput = document.getElementById('end');
   const routeDetails = document.getElementById('route-details');
   const safetySelect = document.getElementById('bike-safety');
+  const modeSelect = document.getElementById('travel-mode');
 
   const formatDuration = (seconds) => {
     const min = Math.round(seconds / 60);
@@ -32,7 +33,8 @@ export function setupUI() {
 
     try {
       const safetyPreference = safetySelect ? safetySelect.value : 'balanced';
-      const comparisonResults = await compareRoutes(start, end, safetyPreference);
+      const modeFilter = modeSelect ? modeSelect.value : 'all';
+      const comparisonResults = await compareRoutes(start, end, safetyPreference, modeFilter);
 
       // Default to the first result (Bike + Metro) for map
       const primaryRoute = comparisonResults[0];

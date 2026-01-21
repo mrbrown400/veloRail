@@ -1,10 +1,12 @@
-
 // Elevation Helper using Open-Meteo API
+
+// Cache for elevation data (keyed by rounded coordinates)
+const elevationCache = new Map();
 
 /**
  * Fetches elevation for a single coordinate
- * @param {number} lat 
- * @param {number} lon 
+ * @param {number} lat
+ * @param {number} lon
  * @returns {Promise<number>} Elevation in meters
  */
 export async function getElevation(lat, lon) {
@@ -28,6 +30,16 @@ export async function getElevation(lat, lon) {
  */
 export async function getRouteElevation(coordinates) {
     if (!coordinates || coordinates.length === 0) return [];
+
+    // Generate cache key from start/end coordinates (rounded to 3 decimal places)
+    const startKey = `${coordinates[0][1].toFixed(3)},${coordinates[0][0].toFixed(3)}`;
+    const endKey = `${coordinates[coordinates.length - 1][1].toFixed(3)},${coordinates[coordinates.length - 1][0].toFixed(3)}`;
+    const cacheKey = `${startKey}-${endKey}-${coordinates.length}`;
+
+    if (elevationCache.has(cacheKey)) {
+        console.log('Elevation cache hit');
+        return elevationCache.get(cacheKey);
+    }
 
     // Sampling strategy: limit to ~20 points max to keep URL safe and fast
     const maxSamples = 20;
@@ -71,6 +83,9 @@ export async function getRouteElevation(coordinates) {
                 });
             });
         }
+
+        // Cache the result
+        elevationCache.set(cacheKey, results);
         return results;
     } catch (e) {
         console.warn("Route elevation fetch failed:", e);
