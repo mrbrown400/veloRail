@@ -5,6 +5,16 @@
 export const TRANSIT_LINES = {
     "Red": { // B Line
         color: "#E31837",
+        schedule: {
+            type: "rail",
+            frequency_peak: 6,
+            frequency_offpeak: 12,
+            operating_hours: {
+                weekday: { start: "04:30", end: "00:30" },
+                saturday: { start: "04:30", end: "00:30" },
+                sunday: { start: "05:00", end: "00:30" }
+            }
+        },
         stations: [
             { name: "Union Station", lat: 34.0561, lon: -118.2375 },
             { name: "Civic Center/Grand Park", lat: 34.0549, lon: -118.2460 },
@@ -24,6 +34,16 @@ export const TRANSIT_LINES = {
     },
     "Purple": { // D Line
         color: "#A05DA5",
+        schedule: {
+            type: "rail",
+            frequency_peak: 6,
+            frequency_offpeak: 10,
+            operating_hours: {
+                weekday: { start: "04:30", end: "00:30" },
+                saturday: { start: "04:30", end: "00:30" },
+                sunday: { start: "05:00", end: "00:30" }
+            }
+        },
         stations: [
             { name: "Union Station", lat: 34.0561, lon: -118.2375 },
             { name: "7th St/Metro Center", lat: 34.0486, lon: -118.2588 },
@@ -34,6 +54,16 @@ export const TRANSIT_LINES = {
     },
     "Blue": { // A Line (Long Beach to Azusa)
         color: "#0072CE",
+        schedule: {
+            type: "rail",
+            frequency_peak: 6,
+            frequency_offpeak: 12,
+            operating_hours: {
+                weekday: { start: "04:00", end: "00:30" },
+                saturday: { start: "04:30", end: "00:30" },
+                sunday: { start: "05:00", end: "00:30" }
+            }
+        },
         stations: [
             // Foothill Extension (formerly Gold)
             { name: "APU/Citrus College", lat: 34.1369, lon: -117.8901 },
@@ -83,6 +113,16 @@ export const TRANSIT_LINES = {
     },
     "Expo": { // E Line (Santa Monica to East LA)
         color: "#EAC71B",
+        schedule: {
+            type: "rail",
+            frequency_peak: 6,
+            frequency_offpeak: 12,
+            operating_hours: {
+                weekday: { start: "04:00", end: "00:30" },
+                saturday: { start: "04:30", end: "00:30" },
+                sunday: { start: "05:00", end: "00:30" }
+            }
+        },
         stations: [
             // Eastside Extension (formerly Gold)
             { name: "Atlantic", lat: 34.0334, lon: -118.1540 },
@@ -117,6 +157,16 @@ export const TRANSIT_LINES = {
     },
     "Green": { // C Line (Norwalk to Redondo Beach/K Line)
         color: "#58A738",
+        schedule: {
+            type: "rail",
+            frequency_peak: 8,
+            frequency_offpeak: 12,
+            operating_hours: {
+                weekday: { start: "04:00", end: "00:30" },
+                saturday: { start: "04:30", end: "00:30" },
+                sunday: { start: "05:00", end: "00:30" }
+            }
+        },
         stations: [
             { name: "Norwalk", lat: 33.9008, lon: -118.0827 },
             { name: "Lakewood Blvd", lat: 33.9160, lon: -118.1180 },
@@ -136,6 +186,16 @@ export const TRANSIT_LINES = {
     },
     "K Line": { // Crenshaw/LAX
         color: "#E56DB1", // Pinkish
+        schedule: {
+            type: "rail",
+            frequency_peak: 8,
+            frequency_offpeak: 12,
+            operating_hours: {
+                weekday: { start: "04:30", end: "00:00" },
+                saturday: { start: "05:00", end: "00:00" },
+                sunday: { start: "05:00", end: "00:00" }
+            }
+        },
         stations: [
             { name: "Expo/Crenshaw", lat: 34.0223, lon: -118.3353 },
             { name: "Martin Luther King Jr.", lat: 34.0101, lon: -118.3353 },
@@ -150,6 +210,16 @@ export const TRANSIT_LINES = {
     },
     "Orange": { // G Line (BRT)
         color: "#F58220",
+        schedule: {
+            type: "brt",
+            frequency_peak: 4,
+            frequency_offpeak: 10,
+            operating_hours: {
+                weekday: { start: "04:00", end: "01:00" },
+                saturday: { start: "04:30", end: "01:00" },
+                sunday: { start: "05:00", end: "00:30" }
+            }
+        },
         stations: [
             { name: "North Hollywood", lat: 34.1685, lon: -118.3765 },
             { name: "Laurel Canyon", lat: 34.1706, lon: -118.3965 },
@@ -170,6 +240,16 @@ export const TRANSIT_LINES = {
     },
     "Silver": { // J Line (BRT)
         color: "#A0A9AC",
+        schedule: {
+            type: "brt",
+            frequency_peak: 5,
+            frequency_offpeak: 12,
+            operating_hours: {
+                weekday: { start: "04:00", end: "00:30" },
+                saturday: { start: "04:30", end: "00:30" },
+                sunday: { start: "05:00", end: "00:00" }
+            }
+        },
         stations: [
             { name: "El Monte", lat: 34.0734, lon: -118.0465 },
             { name: "Cal State LA", lat: 34.0620, lon: -118.1705 },
@@ -191,6 +271,16 @@ export const TRANSIT_LINES = {
     },
     "Foothill Silver Streak": {
         color: "#C0C0C0", // Metallic Silver
+        schedule: {
+            type: "brt",
+            frequency_peak: 15,
+            frequency_offpeak: 30,
+            operating_hours: {
+                weekday: { start: "04:30", end: "23:30" },
+                saturday: { start: "05:30", end: "22:30" },
+                sunday: { start: "05:30", end: "22:30" }
+            }
+        },
         stations: [
             { name: "Montclair Transit Center", lat: 34.0940, lon: -117.6962 },
             { name: "Pomona Transit Center", lat: 34.0593, lon: -117.7514 },
@@ -203,26 +293,231 @@ export const TRANSIT_LINES = {
         ]
     },
     // Commuter Express Lines
-    "LADOT CE 142": { color: "#0047BB", stations: [{ name: "San Pedro Ports O'Call", lat: 33.7335, lon: -118.2764 }, { name: "Long Beach Transit Gallery", lat: 33.7709, lon: -118.1924 }] },
-    "LADOT CE 409": { color: "#0047BB", stations: [{ name: "Glendale College", lat: 34.1668, lon: -118.2323 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-    "LADOT CE 419": { color: "#0047BB", stations: [{ name: "Chatsworth Station", lat: 34.2569, lon: -118.5986 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-    "LADOT CE 422": { color: "#0047BB", stations: [{ name: "Thousand Oaks Transp. Ctr", lat: 34.1750, lon: -118.8612 }, { name: "Warner Center", lat: 34.1797, lon: -118.5979 }, { name: "Universal City/Studio City", lat: 34.1394, lon: -118.3624 }, { name: "7th St/Metro Center", lat: 34.0487, lon: -118.2587 }] },
-    "LADOT CE 423": { color: "#0047BB", stations: [{ name: "Thousand Oaks Transp. Ctr", lat: 34.1750, lon: -118.8612 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "USC", lat: 34.0224, lon: -118.2851 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-    "LADOT CE 431": { color: "#0047BB", stations: [{ name: "Westwood (Weyburn/Westwood)", lat: 34.0620, lon: -118.4455 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-    "LADOT CE 437": { color: "#0047BB", stations: [{ name: "Venice (Pacific/Washington)", lat: 33.9859, lon: -118.4731 }, { name: "Culver City", lat: 34.0284, lon: -118.3887 }, { name: "7th St/Metro Center", lat: 34.0487, lon: -118.2587 }] },
-    "LADOT CE 438": { color: "#0047BB", stations: [{ name: "Redondo Beach Pier", lat: 33.8397, lon: -118.3927 }, { name: "Harbor Gateway", lat: 33.8693, lon: -118.2874 }, { name: "Union Station", lat: 34.0561, lon: -118.2359 }] },
-    "LADOT CE 439": { color: "#0047BB", stations: [{ name: "El Segundo (Douglas Stn)", lat: 33.9056, lon: -118.3862 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-    "LADOT CE 448": { color: "#0047BB", stations: [{ name: "Rancho Palos Verdes (Hawthorne/Crest)", lat: 33.7612, lon: -118.4061 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-    "LADOT CE 534": { color: "#0047BB", stations: [{ name: "West LA (Sepulveda/National)", lat: 34.0267, lon: -118.4116 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }] },
-    "LADOT CE 549": { color: "#0047BB", stations: [{ name: "Pasadena (Del Mar)", lat: 34.1426, lon: -118.1488 }, { name: "Glendale (Brand/Broadway)", lat: 34.1470, lon: -118.2550 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }] },
-    "LADOT CE 573": { color: "#0047BB", stations: [{ name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "Century City", lat: 34.0577, lon: -118.4168 }] },
-    "LADOT CE 574": { color: "#0047BB", stations: [{ name: "Granada Hills (Zelzah/Chatsworth)", lat: 34.2650, lon: -118.5240 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "LAX City Bus Center", lat: 33.9600, lon: -118.4040 }] },
-    "Union/Bunker Shuttle": { color: "#0047BB", stations: [{ name: "Union Station", lat: 34.0561, lon: -118.2375 }, { name: "Bunker Hill (Grand/3rd)", lat: 34.0530, lon: -118.2510 }] },
+    "LADOT CE 142": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 30,
+            frequency_offpeak: 30,
+            operating_hours: {
+                weekday: { start: "05:30", end: "23:30" },
+                saturday: { start: "06:00", end: "23:30" },
+                sunday: { start: "06:00", end: "23:30" }
+            }
+        },
+        stations: [{ name: "San Pedro Ports O'Call", lat: 33.7335, lon: -118.2764 }, { name: "Long Beach Transit Gallery", lat: 33.7709, lon: -118.1924 }]
+    },
+    "LADOT CE 409": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 20,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "05:30", end: "09:00" }, pm_peak: { start: "15:30", end: "19:30" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "Glendale College", lat: 34.1668, lon: -118.2323 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }]
+    },
+    "LADOT CE 419": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 30,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "05:00", end: "09:00" }, pm_peak: { start: "15:00", end: "19:30" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "Chatsworth Station", lat: 34.2569, lon: -118.5986 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }]
+    },
+    "LADOT CE 422": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 30,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "05:30", end: "09:00" }, pm_peak: { start: "15:30", end: "19:30" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "Thousand Oaks Transp. Ctr", lat: 34.1750, lon: -118.8612 }, { name: "Warner Center", lat: 34.1797, lon: -118.5979 }, { name: "Universal City/Studio City", lat: 34.1394, lon: -118.3624 }, { name: "7th St/Metro Center", lat: 34.0487, lon: -118.2587 }]
+    },
+    "LADOT CE 423": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 30,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "05:30", end: "09:00" }, pm_peak: { start: "15:30", end: "19:30" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "Thousand Oaks Transp. Ctr", lat: 34.1750, lon: -118.8612 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "USC", lat: 34.0224, lon: -118.2851 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }]
+    },
+    "LADOT CE 431": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 20,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "06:00", end: "09:00" }, pm_peak: { start: "16:00", end: "19:00" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "Westwood (Weyburn/Westwood)", lat: 34.0620, lon: -118.4455 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }]
+    },
+    "LADOT CE 437": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 20,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "06:00", end: "09:00" }, pm_peak: { start: "16:00", end: "19:00" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "Venice (Pacific/Washington)", lat: 33.9859, lon: -118.4731 }, { name: "Culver City", lat: 34.0284, lon: -118.3887 }, { name: "7th St/Metro Center", lat: 34.0487, lon: -118.2587 }]
+    },
+    "LADOT CE 438": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 20,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "05:30", end: "09:00" }, pm_peak: { start: "15:30", end: "19:00" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "Redondo Beach Pier", lat: 33.8397, lon: -118.3927 }, { name: "Harbor Gateway", lat: 33.8693, lon: -118.2874 }, { name: "Union Station", lat: 34.0561, lon: -118.2359 }]
+    },
+    "LADOT CE 439": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 20,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "06:00", end: "09:00" }, pm_peak: { start: "16:00", end: "19:00" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "El Segundo (Douglas Stn)", lat: 33.9056, lon: -118.3862 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }]
+    },
+    "LADOT CE 448": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 30,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "05:30", end: "08:30" }, pm_peak: { start: "16:00", end: "19:00" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "Rancho Palos Verdes (Hawthorne/Crest)", lat: 33.7612, lon: -118.4061 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }]
+    },
+    "LADOT CE 534": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 20,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "06:00", end: "09:00" }, pm_peak: { start: "16:00", end: "19:00" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "West LA (Sepulveda/National)", lat: 34.0267, lon: -118.4116 }, { name: "Union Station", lat: 34.0561, lon: -118.2375 }]
+    },
+    "LADOT CE 549": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 30,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "06:00", end: "09:00" }, pm_peak: { start: "16:00", end: "19:00" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "Pasadena (Del Mar)", lat: 34.1426, lon: -118.1488 }, { name: "Glendale (Brand/Broadway)", lat: 34.1470, lon: -118.2550 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }]
+    },
+    "LADOT CE 573": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 20,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "06:30", end: "09:00" }, pm_peak: { start: "16:00", end: "18:30" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "Century City", lat: 34.0577, lon: -118.4168 }]
+    },
+    "LADOT CE 574": {
+        color: "#0047BB",
+        schedule: {
+            type: "commuter_express",
+            frequency_peak: 30,
+            frequency_offpeak: null,
+            operating_hours: {
+                weekday: { am_peak: { start: "05:30", end: "08:30" }, pm_peak: { start: "16:30", end: "19:30" } },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "Granada Hills (Zelzah/Chatsworth)", lat: 34.2650, lon: -118.5240 }, { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988 }, { name: "LAX City Bus Center", lat: 33.9600, lon: -118.4040 }]
+    },
+    "Union/Bunker Shuttle": {
+        color: "#0047BB",
+        schedule: {
+            type: "shuttle",
+            frequency_peak: 5,
+            frequency_offpeak: 10,
+            operating_hours: {
+                weekday: { start: "06:30", end: "19:00" },
+                saturday: null,
+                sunday: null
+            }
+        },
+        stations: [{ name: "Union Station", lat: 34.0561, lon: -118.2375 }, { name: "Bunker Hill (Grand/3rd)", lat: 34.0530, lon: -118.2510 }]
+    },
 
     // Metrolink Commuter Rail Lines
     "Metrolink Ventura": {
         color: "#55b135", // Metrolink green
         type: "commuter_rail",
+        schedule: {
+            type: "commuter_rail",
+            frequency_peak: 30,
+            frequency_offpeak: 60,
+            operating_hours: {
+                weekday: { start: "04:30", end: "22:00" },
+                saturday: { start: "06:00", end: "22:00" },
+                sunday: { start: "07:00", end: "21:00" }
+            }
+        },
         stations: [
             { name: "East Ventura", lat: 34.2756, lon: -119.2295 },
             { name: "Oxnard", lat: 34.1975, lon: -119.1803 },
@@ -241,6 +536,16 @@ export const TRANSIT_LINES = {
     "Metrolink Antelope Valley": {
         color: "#55b135",
         type: "commuter_rail",
+        schedule: {
+            type: "commuter_rail",
+            frequency_peak: 45,
+            frequency_offpeak: 90,
+            operating_hours: {
+                weekday: { start: "04:00", end: "22:30" },
+                saturday: { start: "06:00", end: "22:00" },
+                sunday: null
+            }
+        },
         stations: [
             { name: "Lancaster", lat: 34.6981, lon: -118.1367 },
             { name: "Palmdale", lat: 34.5794, lon: -118.1164 },
@@ -259,6 +564,16 @@ export const TRANSIT_LINES = {
     "Metrolink San Bernardino": {
         color: "#55b135",
         type: "commuter_rail",
+        schedule: {
+            type: "commuter_rail",
+            frequency_peak: 20,
+            frequency_offpeak: 60,
+            operating_hours: {
+                weekday: { start: "04:00", end: "23:30" },
+                saturday: { start: "05:30", end: "23:00" },
+                sunday: { start: "06:00", end: "22:30" }
+            }
+        },
         stations: [
             { name: "San Bernardino Downtown", lat: 34.1083, lon: -117.2942 },
             { name: "San Bernardino Depot", lat: 34.1097, lon: -117.3014 },
@@ -278,6 +593,16 @@ export const TRANSIT_LINES = {
     "Metrolink Riverside": {
         color: "#55b135",
         type: "commuter_rail",
+        schedule: {
+            type: "commuter_rail",
+            frequency_peak: 30,
+            frequency_offpeak: 60,
+            operating_hours: {
+                weekday: { start: "05:00", end: "22:00" },
+                saturday: { start: "07:00", end: "21:00" },
+                sunday: null
+            }
+        },
         stations: [
             { name: "Riverside Downtown", lat: 33.9781, lon: -117.3764 },
             { name: "Riverside La Sierra", lat: 33.9375, lon: -117.4558 },
@@ -298,6 +623,16 @@ export const TRANSIT_LINES = {
     "Metrolink Orange County": {
         color: "#55b135",
         type: "commuter_rail",
+        schedule: {
+            type: "commuter_rail",
+            frequency_peak: 30,
+            frequency_offpeak: 60,
+            operating_hours: {
+                weekday: { start: "04:30", end: "23:00" },
+                saturday: { start: "06:00", end: "22:00" },
+                sunday: { start: "07:00", end: "21:00" }
+            }
+        },
         stations: [
             { name: "Oceanside", lat: 33.1967, lon: -117.3792 },
             { name: "San Clemente", lat: 33.4147, lon: -117.6178 },
@@ -318,6 +653,16 @@ export const TRANSIT_LINES = {
     "Metrolink 91/Perris Valley": {
         color: "#55b135",
         type: "commuter_rail",
+        schedule: {
+            type: "commuter_rail",
+            frequency_peak: 45,
+            frequency_offpeak: 90,
+            operating_hours: {
+                weekday: { start: "05:00", end: "21:00" },
+                saturday: null,
+                sunday: null
+            }
+        },
         stations: [
             { name: "Perris Downtown", lat: 33.7819, lon: -117.2267 },
             { name: "Perris South", lat: 33.7556, lon: -117.2264 },
@@ -338,6 +683,16 @@ export const TRANSIT_LINES = {
     "Amtrak Pacific Surfliner": {
         color: "#1C4E9D", // Amtrak blue
         type: "commuter_rail",
+        schedule: {
+            type: "intercity_rail",
+            frequency_peak: 60,
+            frequency_offpeak: 120,
+            operating_hours: {
+                weekday: { start: "05:00", end: "23:00" },
+                saturday: { start: "06:00", end: "23:00" },
+                sunday: { start: "06:00", end: "23:00" }
+            }
+        },
         stations: [
             { name: "Santa Barbara", lat: 34.4147, lon: -119.6858 },
             { name: "Goleta", lat: 34.4328, lon: -119.8269 },

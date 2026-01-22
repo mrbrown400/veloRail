@@ -37,6 +37,10 @@ export function setupUI() {
   const safetySelect = document.getElementById('bike-safety');
   const modeSelect = document.getElementById('travel-mode');
 
+  // DOM Elements - Time Selector
+  const timeRadios = document.querySelectorAll('input[name="departure-time"]');
+  const customTimeInput = document.getElementById('custom-time');
+
   // DOM Elements - Layers
   const layersBtn = document.getElementById('layers-btn');
   const layersPanel = document.getElementById('layers-panel');
@@ -64,6 +68,9 @@ export function setupUI() {
   if (useLocationBtn) {
     useLocationBtn.addEventListener('click', handleUseLocationClick);
   }
+
+  // Time selector
+  setupTimeSelector();
 
   // Layers panel
   setupLayersControl();
@@ -166,6 +173,38 @@ export function setupUI() {
       uiState.startLocation = null;
       startInput.classList.remove('using-geolocation');
     }
+  }
+
+  // --- Time Selector ---
+
+  function setupTimeSelector() {
+    // Initialize custom time input with current time
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    customTimeInput.value = now.toISOString().slice(0, 16);
+
+    // Handle radio button changes
+    timeRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        if (radio.value === 'depart') {
+          customTimeInput.classList.remove('hidden');
+          // Update to current time when switching to custom
+          const now = new Date();
+          now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+          customTimeInput.value = now.toISOString().slice(0, 16);
+        } else {
+          customTimeInput.classList.add('hidden');
+        }
+      });
+    });
+  }
+
+  function getDepartureTime() {
+    const selectedRadio = document.querySelector('input[name="departure-time"]:checked');
+    if (selectedRadio && selectedRadio.value === 'depart' && customTimeInput.value) {
+      return new Date(customTimeInput.value);
+    }
+    return new Date(); // "Leave now" - use current time
   }
 
   // --- Layers Control ---
@@ -274,7 +313,8 @@ export function setupUI() {
     try {
       const safetyPreference = safetySelect ? safetySelect.value : 'balanced';
       const modeFilter = modeSelect ? modeSelect.value : 'all';
-      const comparisonResults = await compareRoutes(startValue, destinationValue, safetyPreference, modeFilter);
+      const departureTime = getDepartureTime();
+      const comparisonResults = await compareRoutes(startValue, destinationValue, safetyPreference, modeFilter, departureTime);
 
       // Expand search UI if not already
       if (!uiState.hasSearched && uiState.mode === 'collapsed') {
@@ -383,6 +423,12 @@ export function setupUI() {
       return 'Caution';
     };
 
+    const formatWaitTime = (seconds) => {
+      const minutes = Math.round(seconds / 60);
+      if (minutes < 1) return 'arriving';
+      return `~${minutes} min wait`;
+    };
+
     return `
       <div class="legs mt-4">
         ${routeData.legs.map((leg) => `
@@ -391,6 +437,10 @@ export function setupUI() {
             <div class="leg-info">
               <span class="leg-mode">${getInstruction(leg)}</span>
               <span class="leg-details">${leg.distance.toFixed(1)} km • ${formatDuration(leg.duration)}${
+                leg.waitTime && leg.mode === 'transit'
+                  ? ` <span class="leg-wait">(${formatWaitTime(leg.waitTime)})</span>`
+                  : ''
+              }${
                 leg.safety && leg.mode === 'bike'
                   ? ` <span class="leg-safety ${getSafetyClass(leg.safety.score)}">${getSafetyLabel(leg.safety.score)}</span>`
                   : ''

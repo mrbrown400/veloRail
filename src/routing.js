@@ -5,6 +5,7 @@ import { getRouteElevation } from './elevation.js';
 import { getORSBikeRoute } from './ors.js';
 import { calculateRouteSafetyScore } from './bike_safety.js';
 import { CONFIG } from './config.js';
+import { isLineOperating, estimateWaitTime, getOperatingLines } from './schedule.js';
 
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371;
@@ -23,9 +24,14 @@ function deg2rad(deg) {
 }
 
 // Flatten all stations from all lines for searching
-function getAllStations() {
+// Optional departureTime filters to only operating lines
+function getAllStations(departureTime = null) {
     let all = [];
     for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
+        // Skip lines not operating at the query time
+        if (departureTime && !isLineOperating(lineName, departureTime)) {
+            continue;
+        }
         data.stations.forEach(s => {
             all.push({ ...s, line: lineName, color: data.color });
         });
@@ -33,10 +39,10 @@ function getAllStations() {
     return all;
 }
 
-function findNearestStation(lat, lon) {
+function findNearestStation(lat, lon, departureTime = null) {
     let nearest = null;
     let minDist = Infinity;
-    const stations = getAllStations();
+    const stations = getAllStations(departureTime);
 
     for (const station of stations) {
         const dist = getDistance(lat, lon, station.lat, station.lon);
@@ -49,16 +55,22 @@ function findNearestStation(lat, lon) {
 }
 
 // Identify shared lines between two stations
-function getCommonLines(s1, s2) {
+// Optional departureTime filters to only operating lines
+function getCommonLines(s1, s2, departureTime = null) {
     // s1 and s2 might be on different lines physically, but we're simplifying.
     // In our data, stations don't list ALL lines they are on in the object (simplified),
-    // but names match. 
+    // but names match.
     // Better approach: Find all line definitions that contain station Name 1 AND station Name 2.
     // AND the index of S1 < Index S2 or vice versa.
 
     let routes = [];
 
     for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
+        // Skip lines not operating at the query time
+        if (departureTime && !isLineOperating(lineName, departureTime)) {
+            continue;
+        }
+
         const idx1 = data.stations.findIndex(s => s.name === s1.name);
         const idx2 = data.stations.findIndex(s => s.name === s2.name);
 
@@ -81,8 +93,10 @@ function getCommonLines(s1, s2) {
 }
 
 
-export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', safetyPreference = 'balanced') {
-    console.log(`Calculating route (${travelMode})...`);
+export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', safetyPreference = 'balanced', departureTime = null) {
+    // Default to current time if not specified
+    const queryTime = departureTime || new Date();
+    console.log(`Calculating route (${travelMode}) for departure at ${queryTime.toLocaleTimeString()}...`);
 
     const startLoc = (typeof startAddr === 'string') ? await geocode(startAddr) : startAddr;
     if (!startLoc) throw new Error(`Could not find location: ${startAddr} `);
@@ -115,8 +129,8 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
     const fallbackSpeedMs = fallbackSpeed / 3.6;
     const busPenaltySeconds = isBus ? 600 : 0; // 10 mins penalty for bus
 
-    const entryStation = findNearestStation(startLoc.lat, startLoc.lon);
-    const exitStation = findNearestStation(endLoc.lat, endLoc.lon);
+    const entryStation = findNearestStation(startLoc.lat, startLoc.lon, queryTime);
+    const exitStation = findNearestStation(endLoc.lat, endLoc.lon, queryTime);
 
     let legs = [];
 
@@ -195,7 +209,7 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
         return null;
     };
 
-    const commonRoutes = getCommonLines(entryStation, exitStation);
+    const commonRoutes = getCommonLines(entryStation, exitStation, queryTime);
     let transitPlan = null;
 
     if (commonRoutes.length > 0) {
@@ -208,8 +222,8 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
         for (const hubName of hubs) {
             const hub = stations.find(s => s.name === hubName);
             if (hub) {
-                const leg1 = getCommonLines(entryStation, hub);
-                const leg2 = getCommonLines(hub, exitStation);
+                const leg1 = getCommonLines(entryStation, hub, queryTime);
+                const leg2 = getCommonLines(hub, exitStation, queryTime);
                 if (leg1.length > 0 && leg2.length > 0) {
                     transitPlan = {
                         type: 'transfer',
@@ -282,8 +296,9 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
             }
 
             const avgSpeedKmh = 35;
-            const bufferSeconds = 5 * 60;
-            const transitDuration = (transitDistance / avgSpeedKmh) * 3600 + bufferSeconds;
+            // Estimate wait time based on schedule frequency
+            const waitTimeSeconds = estimateWaitTime(bestTransit.line, queryTime);
+            const transitDuration = (transitDistance / avgSpeedKmh) * 3600 + waitTimeSeconds;
 
             legs.push({
                 mode: 'transit',
@@ -294,6 +309,7 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
                 geometry: { type: "LineString", coordinates: transitCoordinates },
                 distance: transitDistance,
                 duration: transitDuration,
+                waitTime: waitTimeSeconds,
                 stations: bestTransit.segment
             });
         } else if (transitPlan.type === 'transfer') {
@@ -318,8 +334,11 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
             }
 
             const avgSpeedKmh = 35;
-            const bufferSeconds = 10 * 60; // Extra buffer for transfer
-            const transitDuration = (transitDistance / avgSpeedKmh) * 3600 + bufferSeconds;
+            // Estimate wait time for first leg + transfer wait for second leg
+            const waitTime1 = estimateWaitTime(leg1.line, queryTime);
+            const waitTime2 = estimateWaitTime(leg2.line, queryTime);
+            const totalWaitTime = waitTime1 + waitTime2;
+            const transitDuration = (transitDistance / avgSpeedKmh) * 3600 + totalWaitTime;
 
             legs.push({
                 mode: 'transit',
@@ -333,6 +352,7 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
                 },
                 distance: transitDistance,
                 duration: transitDuration,
+                waitTime: totalWaitTime,
                 stations: allStations
             });
         }
@@ -372,7 +392,7 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
     };
 }
 
-export async function compareRoutes(startInput, endInput, safetyPreference = 'balanced', modeFilter = 'all') {
+export async function compareRoutes(startInput, endInput, safetyPreference = 'balanced', modeFilter = 'all', departureTime = null) {
     // Support both string addresses and coordinate objects (for geolocation)
     const startLoc = (typeof startInput === 'string') ? await geocode(startInput) : startInput;
     const endLoc = (typeof endInput === 'string') ? await geocode(endInput) : endInput;
@@ -380,6 +400,9 @@ export async function compareRoutes(startInput, endInput, safetyPreference = 'ba
     if (!startLoc || !endLoc) {
         throw new Error("Could not find start or end location");
     }
+
+    // Default to current time if not specified
+    const queryTime = departureTime || new Date();
 
     const formatDuration = (seconds) => {
         const min = Math.round(seconds / 60);
@@ -395,13 +418,13 @@ export async function compareRoutes(startInput, endInput, safetyPreference = 'ba
     // Bike + Rail
     if (modeFilter === 'all' || modeFilter === 'bike') {
         routePromises.push(
-            calculateRoute(startLoc, endLoc, 'bike', safetyPreference)
+            calculateRoute(startLoc, endLoc, 'bike', safetyPreference, queryTime)
                 .then(route => ({ ...route, label: "Bike + Rail" }))
                 .catch(e => { console.error("Bike route failed", e); return null; })
         );
     }
 
-    // Driving
+    // Driving (not affected by transit schedules)
     if (modeFilter === 'all' || modeFilter === 'driving') {
         routePromises.push(
             getOSRMRoute([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: endLoc.lat, lon: endLoc.lon }], 'driving')
@@ -433,7 +456,7 @@ export async function compareRoutes(startInput, endInput, safetyPreference = 'ba
     // Walk + Rail
     if (modeFilter === 'all' || modeFilter === 'walk') {
         routePromises.push(
-            calculateRoute(startLoc, endLoc, 'walk')
+            calculateRoute(startLoc, endLoc, 'walk', 'balanced', queryTime)
                 .then(route => ({ ...route, label: "Walk + Rail" }))
                 .catch(e => { console.error("Walk route failed", e); return null; })
         );
@@ -442,7 +465,7 @@ export async function compareRoutes(startInput, endInput, safetyPreference = 'ba
     // Bus + Rail (only in 'all' mode)
     if (modeFilter === 'all') {
         routePromises.push(
-            calculateRoute(startLoc, endLoc, 'transit_bus')
+            calculateRoute(startLoc, endLoc, 'transit_bus', 'balanced', queryTime)
                 .then(route => ({ ...route, label: "Bus + Rail" }))
                 .catch(e => { console.error("Bus route failed", e); return null; })
         );

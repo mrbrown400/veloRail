@@ -54,6 +54,19 @@
           </div>
         </div>
 
+        <!-- Departure Time Selector -->
+        <div id="time-selector" class="time-selector">
+          <label class="time-option">
+            <input type="radio" name="departure-time" value="now" checked />
+            <span>Leave now</span>
+          </label>
+          <label class="time-option">
+            <input type="radio" name="departure-time" value="depart" />
+            <span>Depart at</span>
+          </label>
+          <input type="datetime-local" id="custom-time" class="custom-time hidden" />
+        </div>
+
         <!-- Options Row (inside search card) -->
         <div id="options-row" class="options-row">
           <select id="travel-mode">
