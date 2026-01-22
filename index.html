@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bike + Train Navigator</title>
+    <title>VeloRail - Bike + Train Navigator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -15,76 +15,109 @@
   </head>
   <body>
     <div id="app">
-      <nav class="navbar">
-        <div class="logo">🚲 + 🚆 <span class="brand-name">VeloRail</span></div>
-      </nav>
-      
-      <main class="main-layout">
-        <aside class="sidebar">
-          <div class="search-container">
-            <h1>Plan your trip</h1>
+      <!-- Full-screen Map (background) -->
+      <div id="map-container" class="map-fullscreen"></div>
 
-            <!-- Collapsed State: Destination Only -->
-            <div id="search-collapsed" class="search-state">
-              <div class="input-group">
-                <label for="end">Where to?</label>
-                <input type="text" id="end" placeholder="Enter destination" />
-              </div>
-              <div id="location-status" class="location-status">
-                <span class="status-icon"></span>
-                <span class="status-text">Getting your location...</span>
-              </div>
-            </div>
-
-            <!-- Expanded State: Both Fields -->
-            <div id="search-expanded" class="search-state hidden">
-              <div class="input-group">
-                <label for="start">From</label>
-                <div class="location-input-wrapper">
-                  <input type="text" id="start" placeholder="Your Location" />
-                  <button id="use-location-btn" class="location-btn" type="button" title="Use my location">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="3"></circle>
-                      <path d="M12 2v4m0 12v4m10-10h-4M6 12H2"></path>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <div class="input-group">
-                <label for="end-expanded">To</label>
-                <input type="text" id="end-expanded" placeholder="Enter destination" />
-              </div>
-            </div>
-
-            <!-- Shared Controls (always visible) -->
-            <div class="input-group">
-              <label for="travel-mode">Travel Mode</label>
-              <select id="travel-mode">
-                <option value="all">All Options</option>
-                <option value="bike">Bike + Rail Only</option>
-                <option value="walk">Walk + Rail Only</option>
-                <option value="driving">Driving Only</option>
-              </select>
-            </div>
-            <div class="input-group">
-              <label for="bike-safety">Bike Route Preference</label>
-              <select id="bike-safety">
-                <option value="balanced">Balanced (Default)</option>
-                <option value="safe">Safer Route (Prefer Bike Lanes)</option>
-                <option value="fast">Fastest (Direct)</option>
-              </select>
-            </div>
-            <button id="find-route-btn" class="primary-btn">Find Route</button>
-          </div>
-          <div id="route-details" class="route-details hidden">
-            <!-- Route info will go here -->
-          </div>
-        </aside>
-        
-        <div id="map-container" class="map-container">
-          <!-- Map will be rendered here -->
+      <!-- Floating Search Card (top-left) -->
+      <div id="search-card" class="floating-card">
+        <div class="search-header">
+          <span class="logo">🚲 + 🚆</span>
+          <span class="brand-name">VeloRail</span>
         </div>
-      </main>
+
+        <!-- Collapsed State: Destination Only -->
+        <div id="search-collapsed" class="search-state">
+          <div class="input-group">
+            <input type="text" id="end" placeholder="Where to?" />
+          </div>
+          <div id="location-status" class="location-status">
+            <span class="status-icon"></span>
+            <span class="status-text">Getting your location...</span>
+          </div>
+        </div>
+
+        <!-- Expanded State: Both Fields -->
+        <div id="search-expanded" class="search-state hidden">
+          <div class="input-group">
+            <div class="location-input-wrapper">
+              <input type="text" id="start" placeholder="Your Location" />
+              <button id="use-location-btn" class="location-btn" type="button" title="Use my location">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M12 2v4m0 12v4m10-10h-4M6 12H2"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="input-group">
+            <input type="text" id="end-expanded" placeholder="Where to?" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating Options Row (below search card) -->
+      <div id="options-row" class="floating-row">
+        <select id="travel-mode">
+          <option value="all">All Options</option>
+          <option value="bike">Bike + Rail</option>
+          <option value="walk">Walk + Rail</option>
+          <option value="driving">Driving</option>
+        </select>
+        <select id="bike-safety">
+          <option value="balanced">Balanced</option>
+          <option value="safe">Safer Route</option>
+          <option value="fast">Fastest</option>
+        </select>
+        <button id="find-route-btn" class="primary-btn">Find Route</button>
+      </div>
+
+      <!-- Floating Layers Button (bottom-right) -->
+      <div id="layers-control" class="floating-layers">
+        <button id="layers-btn" class="layers-btn" type="button" title="Map layers">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </button>
+
+        <!-- Expanded Layers Panel -->
+        <div id="layers-panel" class="layers-panel hidden">
+          <h3>Map Layers</h3>
+          <div class="layer-toggle">
+            <label for="layer-bike">Bike Lanes</label>
+            <input type="checkbox" id="layer-bike" checked />
+          </div>
+          <div class="layer-toggle">
+            <label for="layer-metro-rail">Metro Rail</label>
+            <input type="checkbox" id="layer-metro-rail" checked />
+          </div>
+          <div class="layer-toggle">
+            <label for="layer-metro-brt">Metro BRT</label>
+            <input type="checkbox" id="layer-metro-brt" checked />
+          </div>
+          <div class="layer-toggle">
+            <label for="layer-ladot">LADOT</label>
+            <input type="checkbox" id="layer-ladot" checked />
+          </div>
+          <div class="layer-toggle">
+            <label for="layer-silver-streak">Silver Streak</label>
+            <input type="checkbox" id="layer-silver-streak" checked />
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide-in Results Sidebar -->
+      <aside id="results-sidebar" class="results-sidebar">
+        <div class="sidebar-header">
+          <span class="logo">🚲 + 🚆</span>
+          <span class="brand-name">VeloRail</span>
+          <button id="close-sidebar" class="close-btn" type="button" title="Close">&times;</button>
+        </div>
+        <div id="route-details" class="route-details">
+          <!-- Route info rendered here -->
+        </div>
+      </aside>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

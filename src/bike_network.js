@@ -3,6 +3,8 @@ import L from 'leaflet';
 
 // Prevent multiple initializations (HMR protection)
 let bikeOverlayInitialized = false;
+let bikeLayerGroup = null;
+let mapInstance = null;
 
 export async function initBikeOverlay(map) {
     if (bikeOverlayInitialized) {
@@ -10,7 +12,11 @@ export async function initBikeOverlay(map) {
         return;
     }
     bikeOverlayInitialized = true;
+    mapInstance = map;
     console.log('Initializing Bike Network Overlay...');
+
+    // Create layer group for bike paths
+    bikeLayerGroup = L.layerGroup().addTo(map);
 
     // Split into multiple smaller bounding boxes to avoid API timeout
     const regions = [
@@ -51,16 +57,17 @@ export async function initBikeOverlay(map) {
             if (!data.elements) return;
             console.log(`Fetched ${data.elements.length} bike paths for ${region.name}`);
 
-            // Render bike paths for this region
+            // Render bike paths to layer group
             data.elements.forEach(element => {
                 if (element.type === 'way' && element.geometry) {
                     const latlngs = element.geometry.map(pt => [pt.lat, pt.lon]);
-                    L.polyline(latlngs, {
+                    const polyline = L.polyline(latlngs, {
                         color: '#4ade80',
                         weight: 1,
                         opacity: 0.2,
                         className: 'bike-path-overlay'
-                    }).addTo(map);
+                    });
+                    bikeLayerGroup.addLayer(polyline);
                 }
             });
         } catch (err) {
@@ -71,4 +78,19 @@ export async function initBikeOverlay(map) {
     // Fetch ALL regions in PARALLEL (major performance improvement: 40s -> ~3s)
     await Promise.all(regions.map(region => fetchRegion(region)));
     console.log('Bike network overlay complete');
+}
+
+// Toggle bike overlay visibility
+export function toggleBikeOverlay(visible) {
+    if (!bikeLayerGroup || !mapInstance) return;
+
+    if (visible) {
+        if (!mapInstance.hasLayer(bikeLayerGroup)) {
+            mapInstance.addLayer(bikeLayerGroup);
+        }
+    } else {
+        if (mapInstance.hasLayer(bikeLayerGroup)) {
+            mapInstance.removeLayer(bikeLayerGroup);
+        }
+    }
 }

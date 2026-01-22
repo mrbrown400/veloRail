@@ -8,9 +8,17 @@ let map;
 // Cache for bus route geometries (fetched once, reused on re-renders)
 const busRouteCache = new Map();
 
+// Layer groups for toggle control
+const layerGroups = {
+    metroRail: null,
+    metroBrt: null,
+    ladot: null,
+    silverStreak: null
+};
+
 export function initMap(elementId) {
     // Initialize map centered on Los Angeles
-    map = L.map(elementId).setView([34.0522, -118.2437], 11); // Zoom out slightly
+    map = L.map(elementId).setView([34.0522, -118.2437], 11);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -28,20 +36,39 @@ export function initMap(elementId) {
     console.log('Leaflet Map initialized on', elementId);
 }
 
+export function invalidateMapSize() {
+    if (map) {
+        map.invalidateSize();
+    }
+}
+
+// Toggle layer group visibility
+export function toggleLayerGroup(groupName, visible) {
+    const group = layerGroups[groupName];
+    if (!group || !map) return;
+
+    if (visible) {
+        if (!map.hasLayer(group)) {
+            map.addLayer(group);
+        }
+    } else {
+        if (map.hasLayer(group)) {
+            map.removeLayer(group);
+        }
+    }
+}
+
 // Fetch road-following route for a bus line
 async function fetchBusRouteGeometry(lineName, stations) {
-    // Check cache first
     if (busRouteCache.has(lineName)) {
         return busRouteCache.get(lineName);
     }
 
     try {
-        // Convert stations to waypoints for OSRM
         const waypoints = stations.map(s => ({ lat: s.lat, lon: s.lon }));
         const route = await getOSRMRoute(waypoints, 'driving');
 
         if (route && route.geometry && route.geometry.coordinates) {
-            // Convert from [lon, lat] to [lat, lon] for Leaflet
             const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
             busRouteCache.set(lineName, coords);
             return coords;
@@ -50,7 +77,6 @@ async function fetchBusRouteGeometry(lineName, stations) {
         console.warn(`Failed to fetch route for ${lineName}:`, err);
     }
 
-    // Fallback to straight line
     const fallback = stations.map(s => [s.lat, s.lon]);
     busRouteCache.set(lineName, fallback);
     return fallback;
@@ -59,33 +85,43 @@ async function fetchBusRouteGeometry(lineName, stations) {
 async function renderTransitMap() {
     if (!map) return;
 
-    // Separate lines by type for rendering order
-    const commuterRailLines = [];
-    const railLines = [];
-    const brtLines = [];
-    const busLines = [];
+    // Initialize layer groups
+    layerGroups.metroRail = L.layerGroup();
+    layerGroups.metroBrt = L.layerGroup();
+    layerGroups.ladot = L.layerGroup();
+    layerGroups.silverStreak = L.layerGroup();
+
+    // Categorize lines
+    const metroRailLines = [];
+    const metroBrtLines = [];
+    const ladotLines = [];
+    const silverStreakLines = [];
+    const otherLines = []; // Metrolink, Amtrak - keep visible always
 
     Object.entries(TRANSIT_LINES).forEach(([lineName, line]) => {
-        const isCommuterExpress = lineName.startsWith('LADOT CE') || lineName === 'Union/Bunker Shuttle';
-        const isBRT = lineName === 'Orange' || lineName === 'Silver' || lineName === 'Foothill Silver Streak';
-        const isCommuterRail = line.type === 'commuter_rail';
+        const isLADOT = lineName.startsWith('LADOT CE') || lineName === 'Union/Bunker Shuttle';
+        const isBRT = lineName === 'Orange' || lineName === 'Silver';
+        const isSilverStreak = lineName === 'Foothill Silver Streak';
+        const isMetrolink = lineName.startsWith('Metrolink');
+        const isAmtrak = lineName.startsWith('Amtrak');
 
-        if (isCommuterExpress) {
-            busLines.push({ name: lineName, ...line });
+        if (isLADOT) {
+            ladotLines.push({ name: lineName, ...line });
+        } else if (isSilverStreak) {
+            silverStreakLines.push({ name: lineName, ...line });
         } else if (isBRT) {
-            brtLines.push({ name: lineName, ...line });
-        } else if (isCommuterRail) {
-            commuterRailLines.push({ name: lineName, ...line });
+            metroBrtLines.push({ name: lineName, ...line });
+        } else if (isMetrolink || isAmtrak) {
+            otherLines.push({ name: lineName, ...line });
         } else {
-            railLines.push({ name: lineName, ...line });
+            metroRailLines.push({ name: lineName, ...line });
         }
     });
 
-    // Fetch route geometries in BATCHES to avoid rate limiting
-    // (5 concurrent requests with 200ms delay between batches)
-    const allRoutedLines = [...commuterRailLines, ...busLines, ...brtLines];
+    // Fetch route geometries for routed lines
+    const allRoutedLines = [...ladotLines, ...silverStreakLines, ...metroBrtLines, ...otherLines];
     const batchSize = 5;
-    const batchDelay = 200; // ms between batches
+    const batchDelay = 200;
     const routeResults = [];
 
     for (let i = 0; i < allRoutedLines.length; i += batchSize) {
@@ -102,20 +138,18 @@ async function renderTransitMap() {
         const batchResults = await Promise.all(batchPromises);
         routeResults.push(...batchResults);
 
-        // Small delay between batches to avoid rate limiting
         if (i + batchSize < allRoutedLines.length) {
             await new Promise(resolve => setTimeout(resolve, batchDelay));
         }
     }
 
-    // Create a map of line name to coords for quick lookup
     const routeMap = new Map();
     routeResults.forEach(({ line, coords }) => {
         routeMap.set(line.name, coords);
     });
 
-    // Render commuter rail lines first (bottom layer)
-    for (const line of commuterRailLines) {
+    // Render other lines (Metrolink, Amtrak) directly to map
+    for (const line of otherLines) {
         const coords = routeMap.get(line.name);
 
         L.polyline(coords, {
@@ -138,109 +172,152 @@ async function renderTransitMap() {
         });
     }
 
-    // Render bus lines
-    for (const line of busLines) {
+    // Render LADOT lines to layer group
+    for (const line of ladotLines) {
         const coords = routeMap.get(line.name);
 
-        L.polyline(coords, {
+        const polyline = L.polyline(coords, {
             color: '#4a90d9',
             weight: 2.5,
             opacity: 0.35,
             lineCap: 'round',
             lineJoin: 'round'
-        }).addTo(map);
+        });
+        layerGroups.ladot.addLayer(polyline);
 
         line.stations.forEach(s => {
-            L.circleMarker([s.lat, s.lon], {
+            const marker = L.circleMarker([s.lat, s.lon], {
                 color: '#4a90d9',
                 fillColor: '#ffffff',
                 fillOpacity: 0.6,
                 radius: 2.5,
                 weight: 1.5,
                 opacity: 0.4
-            }).addTo(map);
+            });
+            layerGroups.ladot.addLayer(marker);
         });
     }
 
-    // Render BRT lines
-    for (const line of brtLines) {
+    // Render Silver Streak to layer group
+    for (const line of silverStreakLines) {
         const coords = routeMap.get(line.name);
 
-        L.polyline(coords, {
+        const polyline = L.polyline(coords, {
             color: line.color,
             weight: 2.5,
             opacity: 0.35,
             lineCap: 'round',
             lineJoin: 'round'
-        }).addTo(map);
+        });
+        layerGroups.silverStreak.addLayer(polyline);
 
         line.stations.forEach(s => {
-            L.circleMarker([s.lat, s.lon], {
+            const marker = L.circleMarker([s.lat, s.lon], {
                 color: line.color,
                 fillColor: '#ffffff',
                 fillOpacity: 0.6,
                 radius: 2.5,
                 weight: 1.5,
                 opacity: 0.4
-            }).addTo(map);
+            });
+            layerGroups.silverStreak.addLayer(marker);
         });
     }
 
-    // Render rail lines (top layer) - no API calls needed
-    for (const line of railLines) {
+    // Render BRT lines to layer group
+    for (const line of metroBrtLines) {
+        const coords = routeMap.get(line.name);
+
+        const polyline = L.polyline(coords, {
+            color: line.color,
+            weight: 2.5,
+            opacity: 0.35,
+            lineCap: 'round',
+            lineJoin: 'round'
+        });
+        layerGroups.metroBrt.addLayer(polyline);
+
+        line.stations.forEach(s => {
+            const marker = L.circleMarker([s.lat, s.lon], {
+                color: line.color,
+                fillColor: '#ffffff',
+                fillOpacity: 0.6,
+                radius: 2.5,
+                weight: 1.5,
+                opacity: 0.4
+            });
+            layerGroups.metroBrt.addLayer(marker);
+        });
+    }
+
+    // Render Metro Rail lines to layer group
+    for (const line of metroRailLines) {
         const coords = line.stations.map(s => [s.lat, s.lon]);
 
-        L.polyline(coords, {
+        // Outer casing
+        const casing = L.polyline(coords, {
             color: '#0d0d15',
             weight: 7,
             opacity: 0.5,
             lineCap: 'round',
             lineJoin: 'round'
-        }).addTo(map);
+        });
+        layerGroups.metroRail.addLayer(casing);
 
-        L.polyline(coords, {
+        // Main line
+        const mainLine = L.polyline(coords, {
             color: line.color,
             weight: 4,
             opacity: 0.6,
             lineCap: 'round',
             lineJoin: 'round'
-        }).addTo(map);
+        });
+        layerGroups.metroRail.addLayer(mainLine);
 
+        // Station markers
         line.stations.forEach(s => {
-            L.circleMarker([s.lat, s.lon], {
+            const marker = L.circleMarker([s.lat, s.lon], {
                 color: line.color,
                 fillColor: '#ffffff',
                 fillOpacity: 0.7,
                 radius: 3.5,
                 weight: 2,
                 opacity: 0.6
-            }).addTo(map);
+            });
+            layerGroups.metroRail.addLayer(marker);
         });
     }
+
+    // Add all layer groups to map (all visible by default)
+    layerGroups.ladot.addTo(map);
+    layerGroups.silverStreak.addTo(map);
+    layerGroups.metroBrt.addTo(map);
+    layerGroups.metroRail.addTo(map);
 }
 
 
 export function drawRoute(routeData) {
     if (!map) return;
 
-    // Clear existing layers - crude but effective for PoC
-    // Ideally, use a specific LayerGroup for route items
-
-    // Clear existing layers instead of destroying map
+    // Clear existing route layers (markers and polylines, but not layer groups)
     map.eachLayer((layer) => {
-        // Keep the tile layer (it typically doesn't have a specific property we check easily, 
-        // but often we want to keep base tiles. 
-        // Simpler approach: Remove everything, then re-init tiles? 
-        // Or better: Just remove Markers and Polylines.
-        // Let's rely on standard Leaflet practice:
         if (layer instanceof L.Marker || layer instanceof L.Polyline || layer instanceof L.CircleMarker) {
-            map.removeLayer(layer);
+            // Check if layer belongs to a layer group we want to keep
+            let belongsToGroup = false;
+            Object.values(layerGroups).forEach(group => {
+                if (group && group.hasLayer(layer)) {
+                    belongsToGroup = true;
+                }
+            });
+            if (!belongsToGroup) {
+                map.removeLayer(layer);
+            }
         }
     });
 
-    // Re-render static transit map (background)
-    renderTransitMap();
-
+    // Re-render static transit map (this will skip if layer groups exist)
+    // Actually, we need to be smarter - only re-render if needed
+    // For now, just add the route on top
 
     const bounds = L.latLngBounds();
 
@@ -269,24 +346,22 @@ export function drawRoute(routeData) {
     routeData.legs.forEach(leg => {
 
         if (leg.mode !== 'transit') {
-            // Access/Direct Legs (Bike, Walk, Bus, Driving)
-            // Geometry is typically LineString [lon, lat]
             const latlngs = leg.geometry.coordinates.map(c => [c[1], c[0]]);
 
             let color = '#39FF14'; // Default Bike
             let dashArray = null;
 
             if (leg.mode === 'walk') {
-                color = '#9ca3af'; // Grey
+                color = '#9ca3af';
                 dashArray = '4, 8';
             } else if (leg.mode === 'transit_bus') {
-                color = '#3b82f6'; // Blue
+                color = '#3b82f6';
                 dashArray = '6, 8';
             } else if (leg.mode === 'driving') {
-                color = '#60A5FA'; // Light Blue
+                color = '#60A5FA';
             }
 
-            // White outer casing for visibility
+            // White outer casing
             L.polyline(latlngs, {
                 color: '#ffffff',
                 weight: 10,
@@ -316,11 +391,9 @@ export function drawRoute(routeData) {
             bounds.extend(latlngs);
 
         } else if (leg.mode === 'transit') {
-            // Transit Line - highlighted route (Google/Apple Maps style)
-            // leg.geometry is our constructed LineString from station data
             const latlngs = leg.geometry.coordinates.map(c => [c[1], c[0]]);
 
-            // Outer glow/casing for visibility (white outline)
+            // White outer casing
             L.polyline(latlngs, {
                 color: '#ffffff',
                 weight: 12,
@@ -329,7 +402,7 @@ export function drawRoute(routeData) {
                 lineJoin: 'round'
             }).addTo(map);
 
-            // Dark casing for depth
+            // Dark casing
             L.polyline(latlngs, {
                 color: '#1a1a2e',
                 weight: 9,
@@ -347,9 +420,8 @@ export function drawRoute(routeData) {
                 lineJoin: 'round'
             }).addTo(map);
 
-            // Add station markers for this segment - larger and more prominent
+            // Station markers
             leg.stations.forEach(s => {
-                // Outer white ring
                 L.circleMarker([s.lat, s.lon], {
                     color: '#ffffff',
                     fillColor: '#ffffff',
@@ -357,7 +429,7 @@ export function drawRoute(routeData) {
                     radius: 8,
                     weight: 0
                 }).addTo(map);
-                // Inner colored circle
+
                 L.circleMarker([s.lat, s.lon], {
                     color: '#1a1a2e',
                     fillColor: leg.color,

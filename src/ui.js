@@ -1,18 +1,27 @@
 // UI event listeners and DOM manipulation
 import { compareRoutes } from './routing.js';
-import { drawRoute } from './map.js';
+import { drawRoute, toggleLayerGroup, invalidateMapSize } from './map.js';
 import { requestGeolocation, getCurrentLocationState } from './geolocation.js';
+import { toggleBikeOverlay } from './bike_network.js';
 
 // UI State
 let uiState = {
   mode: 'collapsed',          // 'collapsed' | 'expanded'
   startLocation: null,        // Geolocation coords or null
   isUsingGeolocation: false,
-  hasSearched: false
+  hasSearched: false,
+  sidebarOpen: false,
+  layers: {
+    bike: true,
+    metroRail: true,
+    metroBrt: true,
+    ladot: true,
+    silverStreak: true
+  }
 };
 
 export function setupUI() {
-  // DOM Elements - Collapsed state
+  // DOM Elements - Search Card
   const searchCollapsed = document.getElementById('search-collapsed');
   const endInput = document.getElementById('end');
   const locationStatus = document.getElementById('location-status');
@@ -23,16 +32,24 @@ export function setupUI() {
   const endInputExpanded = document.getElementById('end-expanded');
   const useLocationBtn = document.getElementById('use-location-btn');
 
-  // DOM Elements - Shared
+  // DOM Elements - Options Row
   const findRouteBtn = document.getElementById('find-route-btn');
-  const routeDetails = document.getElementById('route-details');
   const safetySelect = document.getElementById('bike-safety');
   const modeSelect = document.getElementById('travel-mode');
+
+  // DOM Elements - Layers
+  const layersBtn = document.getElementById('layers-btn');
+  const layersPanel = document.getElementById('layers-panel');
+
+  // DOM Elements - Results Sidebar
+  const resultsSidebar = document.getElementById('results-sidebar');
+  const closeSidebarBtn = document.getElementById('close-sidebar');
+  const routeDetails = document.getElementById('route-details');
 
   // Initialize geolocation on page load
   initGeolocation();
 
-  // Event Listeners
+  // Setup event listeners
   findRouteBtn.addEventListener('click', handleSearch);
 
   if (startInput) {
@@ -41,6 +58,14 @@ export function setupUI() {
 
   if (useLocationBtn) {
     useLocationBtn.addEventListener('click', handleUseLocationClick);
+  }
+
+  // Layers panel
+  setupLayersControl();
+
+  // Sidebar
+  if (closeSidebarBtn) {
+    closeSidebarBtn.addEventListener('click', hideResultsSidebar);
   }
 
   // --- Geolocation ---
@@ -76,13 +101,13 @@ export function setupUI() {
         break;
       case 'denied':
         statusIcon.textContent = '';
-        statusText.innerHTML = 'Location access denied. <button type="button" class="link-btn" id="enter-start-btn">Enter start location</button>';
+        statusText.innerHTML = 'Location access denied. <button type="button" class="link-btn" id="enter-start-btn">Enter start</button>';
         locationStatus.className = 'location-status warning';
         attachEnterStartHandler();
         break;
       case 'unavailable':
         statusIcon.textContent = '';
-        statusText.innerHTML = 'Location unavailable. <button type="button" class="link-btn" id="enter-start-btn">Enter start location</button>';
+        statusText.innerHTML = 'Location unavailable. <button type="button" class="link-btn" id="enter-start-btn">Enter start</button>';
         locationStatus.className = 'location-status warning';
         attachEnterStartHandler();
         break;
@@ -101,10 +126,8 @@ export function setupUI() {
 
   function handleGeolocationError(error) {
     if (error.code === 1) {
-      // Permission denied
       updateLocationStatus('denied');
     } else {
-      // Position unavailable or timeout
       updateLocationStatus('unavailable');
     }
   }
@@ -125,12 +148,73 @@ export function setupUI() {
   function handleStartInputChange(event) {
     const value = event.target.value;
 
-    // If user clears the field or changes from "Your Location"
     if (value !== 'Your Location') {
       uiState.isUsingGeolocation = false;
       uiState.startLocation = null;
       startInput.classList.remove('using-geolocation');
     }
+  }
+
+  // --- Layers Control ---
+
+  function setupLayersControl() {
+    // Toggle panel visibility
+    layersBtn.addEventListener('click', () => {
+      layersPanel.classList.toggle('hidden');
+    });
+
+    // Close panel when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!layersPanel.classList.contains('hidden') &&
+          !layersPanel.contains(e.target) &&
+          !layersBtn.contains(e.target)) {
+        layersPanel.classList.add('hidden');
+      }
+    });
+
+    // Layer toggle handlers
+    document.getElementById('layer-bike').addEventListener('change', (e) => {
+      uiState.layers.bike = e.target.checked;
+      toggleBikeOverlay(e.target.checked);
+    });
+
+    document.getElementById('layer-metro-rail').addEventListener('change', (e) => {
+      uiState.layers.metroRail = e.target.checked;
+      toggleLayerGroup('metroRail', e.target.checked);
+    });
+
+    document.getElementById('layer-metro-brt').addEventListener('change', (e) => {
+      uiState.layers.metroBrt = e.target.checked;
+      toggleLayerGroup('metroBrt', e.target.checked);
+    });
+
+    document.getElementById('layer-ladot').addEventListener('change', (e) => {
+      uiState.layers.ladot = e.target.checked;
+      toggleLayerGroup('ladot', e.target.checked);
+    });
+
+    document.getElementById('layer-silver-streak').addEventListener('change', (e) => {
+      uiState.layers.silverStreak = e.target.checked;
+      toggleLayerGroup('silverStreak', e.target.checked);
+    });
+  }
+
+  // --- Sidebar Management ---
+
+  function showResultsSidebar() {
+    resultsSidebar.classList.add('visible');
+    document.getElementById('app').classList.add('sidebar-open');
+    uiState.sidebarOpen = true;
+    // Invalidate map size after animation
+    setTimeout(() => invalidateMapSize(), 350);
+  }
+
+  function hideResultsSidebar() {
+    resultsSidebar.classList.remove('visible');
+    document.getElementById('app').classList.remove('sidebar-open');
+    uiState.sidebarOpen = false;
+    // Invalidate map size after animation
+    setTimeout(() => invalidateMapSize(), 350);
   }
 
   // --- Search Flow ---
@@ -149,22 +233,19 @@ export function setupUI() {
     // Determine start location
     let startValue;
     if (uiState.mode === 'collapsed') {
-      // In collapsed mode, we need geolocation or show error
       if (uiState.isUsingGeolocation && uiState.startLocation) {
-        startValue = uiState.startLocation; // Pass coordinates directly
+        startValue = uiState.startLocation;
       } else {
-        // No geolocation available, expand UI for manual entry
         expandSearchUI(destinationValue);
         alert('Please enter a starting location.');
         startInput.focus();
         return;
       }
     } else {
-      // In expanded mode
       if (uiState.isUsingGeolocation && uiState.startLocation && startInput.value === 'Your Location') {
-        startValue = uiState.startLocation; // Pass coordinates directly
+        startValue = uiState.startLocation;
       } else {
-        startValue = startInput.value; // Pass string to be geocoded
+        startValue = startInput.value;
         if (!startValue) {
           alert('Please enter a starting location.');
           startInput.focus();
@@ -176,51 +257,47 @@ export function setupUI() {
     // Show loading state
     findRouteBtn.textContent = 'Calculating...';
     findRouteBtn.disabled = true;
-    routeDetails.classList.add('hidden');
 
     try {
       const safetyPreference = safetySelect ? safetySelect.value : 'balanced';
       const modeFilter = modeSelect ? modeSelect.value : 'all';
       const comparisonResults = await compareRoutes(startValue, destinationValue, safetyPreference, modeFilter);
 
-      // After first successful search, expand UI
+      // Expand search UI if not already
       if (!uiState.hasSearched && uiState.mode === 'collapsed') {
         expandSearchUI(destinationValue);
         uiState.hasSearched = true;
       }
 
-      // Default to the first result for map
+      // Draw primary route on map
       const primaryRoute = comparisonResults[0];
       if (primaryRoute) drawRoute(primaryRoute);
 
-      // Update UI with comparison list
+      // Render route options in sidebar
       routeDetails.innerHTML = `
-                <h2>Route Options</h2>
-                <div class="route-options">
-                    ${comparisonResults.map((route, index) => `
-                        <div class="route-option ${index === 0 ? 'selected' : ''}" data-index="${index}">
-                            <div class="option-header">
-                                <span class="option-label">${route.label}</span>
-                                <span class="option-time">${route.formattedDuration}</span>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
+        <h2>Route Options</h2>
+        <div class="route-options">
+          ${comparisonResults.map((route, index) => `
+            <div class="route-option ${index === 0 ? 'selected' : ''}" data-index="${index}">
+              <div class="option-header">
+                <span class="option-label">${route.label}</span>
+                <span class="option-time">${route.formattedDuration}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div id="active-route-details">
+          ${renderRouteDetails(primaryRoute)}
+        </div>
+      `;
 
-                <div id="active-route-details">
-                   ${renderRouteDetails(primaryRoute)}
-                </div>
-            `;
-
-      // Add click handlers for switching routes
+      // Add click handlers for route options
       const options = routeDetails.querySelectorAll('.route-option');
       options.forEach(opt => {
         opt.addEventListener('click', () => {
-          // Visual selection
           options.forEach(o => o.classList.remove('selected'));
           opt.classList.add('selected');
 
-          // Update Map & Details
           const idx = opt.dataset.index;
           const selectedRoute = comparisonResults[idx];
           drawRoute(selectedRoute);
@@ -228,7 +305,8 @@ export function setupUI() {
         });
       });
 
-      routeDetails.classList.remove('hidden');
+      // Show results sidebar
+      showResultsSidebar();
 
     } catch (error) {
       console.error("[UI Error]", error);
@@ -244,11 +322,9 @@ export function setupUI() {
   function expandSearchUI(destinationValue) {
     uiState.mode = 'expanded';
 
-    // Hide collapsed, show expanded
     searchCollapsed.classList.add('hidden');
     searchExpanded.classList.remove('hidden');
 
-    // Populate fields
     if (uiState.isUsingGeolocation && uiState.startLocation) {
       startInput.value = 'Your Location';
       startInput.classList.add('using-geolocation');
@@ -295,22 +371,22 @@ export function setupUI() {
     };
 
     return `
-            <div class="legs mt-4">
-            ${routeData.legs.map((leg) => `
-                <div class="leg-item">
-                <span class="mode-icon">${getModeIcon(leg.mode)}</span>
-                <div class="leg-info">
-                    <span class="leg-mode">${getInstruction(leg)}</span>
-                    <span class="leg-details">${leg.distance.toFixed(1)} km • ${formatDuration(leg.duration)}${
-      leg.safety && leg.mode === 'bike'
-        ? ` <span class="leg-safety ${getSafetyClass(leg.safety.score)}">${getSafetyLabel(leg.safety.score)}</span>`
-        : ''
-    }</span>
-                </div>
-                </div>
-            `).join('')}
+      <div class="legs mt-4">
+        ${routeData.legs.map((leg) => `
+          <div class="leg-item">
+            <span class="mode-icon">${getModeIcon(leg.mode)}</span>
+            <div class="leg-info">
+              <span class="leg-mode">${getInstruction(leg)}</span>
+              <span class="leg-details">${leg.distance.toFixed(1)} km • ${formatDuration(leg.duration)}${
+                leg.safety && leg.mode === 'bike'
+                  ? ` <span class="leg-safety ${getSafetyClass(leg.safety.score)}">${getSafetyLabel(leg.safety.score)}</span>`
+                  : ''
+              }</span>
             </div>
-        `;
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
 
   function getModeIcon(mode) {
