@@ -18,7 +18,12 @@ const layerGroups = {
 
 export function initMap(elementId) {
     // Initialize map centered on Los Angeles
-    map = L.map(elementId).setView([34.0522, -118.2437], 11);
+    map = L.map(elementId, {
+        zoomControl: false // Disable default position, we'll add it manually
+    }).setView([34.0522, -118.2437], 11);
+
+    // Add zoom control to top-right to avoid overlap with search card
+    L.control.zoom({ position: 'topright' }).addTo(map);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',

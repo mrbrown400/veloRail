@@ -30,7 +30,7 @@
           <div class="input-group">
             <input type="text" id="end" placeholder="Where to?" />
           </div>
-          <div id="location-status" class="location-status">
+          <div id="location-status" class="location-status clickable">
             <span class="status-icon"></span>
             <span class="status-text">Getting your location...</span>
           </div>
@@ -53,22 +53,22 @@
             <input type="text" id="end-expanded" placeholder="Where to?" />
           </div>
         </div>
-      </div>
 
-      <!-- Floating Options Row (below search card) -->
-      <div id="options-row" class="floating-row">
-        <select id="travel-mode">
-          <option value="all">All Options</option>
-          <option value="bike">Bike + Rail</option>
-          <option value="walk">Walk + Rail</option>
-          <option value="driving">Driving</option>
-        </select>
-        <select id="bike-safety">
-          <option value="balanced">Balanced</option>
-          <option value="safe">Safer Route</option>
-          <option value="fast">Fastest</option>
-        </select>
-        <button id="find-route-btn" class="primary-btn">Find Route</button>
+        <!-- Options Row (inside search card) -->
+        <div id="options-row" class="options-row">
+          <select id="travel-mode">
+            <option value="all">All Options</option>
+            <option value="bike">Bike + Rail</option>
+            <option value="walk">Walk + Rail</option>
+            <option value="driving">Driving</option>
+          </select>
+          <select id="bike-safety">
+            <option value="balanced">Balanced</option>
+            <option value="safe">Safer Route</option>
+            <option value="fast">Fastest</option>
+          </select>
+          <button id="find-route-btn" class="primary-btn">Find Route</button>
+        </div>
       </div>
 
       <!-- Floating Layers Button (bottom-right) -->

@@ -76,21 +76,19 @@ body {
     -webkit-text-fill-color: transparent;
 }
 
-/* ===== Floating Options Row ===== */
-.floating-row {
-    position: absolute;
-    top: 180px;
-    left: 20px;
+/* ===== Options Row (inside search card) ===== */
+.options-row {
     display: flex;
     gap: 8px;
-    z-index: 100;
+    margin-top: 12px;
+    align-items: center;
 }
 
-.floating-row select {
+.options-row select {
     padding: 10px 32px 10px 12px;
     border-radius: 8px;
-    border: none;
-    background-color: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
     color: var(--text-main);
     font-size: 0.875rem;
     cursor: pointer;
@@ -98,14 +96,14 @@ body {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.floating-row select:hover {
-    background-color: #2d3a4f;
+.options-row select:hover {
+    border-color: var(--primary);
 }
 
-.floating-row .primary-btn {
+.options-row .primary-btn {
+    margin-left: auto;
     padding: 10px 20px;
     background-color: var(--primary);
     color: white;
@@ -114,19 +112,18 @@ body {
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     transition: background-color 0.2s, transform 0.05s;
 }
 
-.floating-row .primary-btn:hover {
+.options-row .primary-btn:hover {
     background-color: var(--primary-hover);
 }
 
-.floating-row .primary-btn:active {
+.options-row .primary-btn:active {
     transform: scale(0.98);
 }
 
-.floating-row .primary-btn:disabled {
+.options-row .primary-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
@@ -290,8 +287,7 @@ body {
 }
 
 /* Hide floating UI when sidebar is open */
-.sidebar-open .floating-card,
-.sidebar-open .floating-row {
+.sidebar-open .floating-card {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
@@ -411,6 +407,16 @@ input.using-geolocation:focus {
 
 .location-status.warning .status-icon::before {
     content: '\26A0';
+}
+
+/* Clickable location status */
+.location-status.clickable {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.location-status.clickable:hover {
+    opacity: 0.8;
 }
 
 @keyframes spin {

@@ -52,6 +52,11 @@ export function setupUI() {
   // Setup event listeners
   findRouteBtn.addEventListener('click', handleSearch);
 
+  // Make location status clickable to change start location
+  if (locationStatus) {
+    locationStatus.addEventListener('click', handleLocationStatusClick);
+  }
+
   if (startInput) {
     startInput.addEventListener('input', handleStartInputChange);
   }
@@ -130,6 +135,14 @@ export function setupUI() {
     } else {
       updateLocationStatus('unavailable');
     }
+  }
+
+  function handleLocationStatusClick() {
+    // Expand search UI to allow changing start location
+    const destinationValue = endInput.value || '';
+    expandSearchUI(destinationValue);
+    startInput.focus();
+    startInput.select();
   }
 
   async function handleUseLocationClick() {
