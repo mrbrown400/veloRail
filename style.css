@@ -236,3 +236,220 @@ select option {
     background-color: rgba(248, 113, 113, 0.2);
     color: #f87171;
 }
+
+/* ===== Google Maps-Style Search UI ===== */
+
+/* Search State Containers */
+.search-state {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Location Status Indicator */
+.location-status {
+    font-size: 0.85rem;
+    padding: 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2rem;
+}
+
+.location-status.pending {
+    color: var(--text-muted);
+}
+
+.location-status.pending .status-icon::after {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--text-muted);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.location-status.success {
+    color: #4ade80;
+}
+
+.location-status.success .status-icon::before {
+    content: '\2713';
+}
+
+.location-status.warning {
+    color: #facc15;
+}
+
+.location-status.warning .status-icon::before {
+    content: '\26A0';
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Location Input Wrapper (with button) */
+.location-input-wrapper {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.location-input-wrapper input {
+    flex: 1;
+}
+
+/* Use My Location Button */
+.location-btn {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    color: var(--text-main);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.location-btn:hover {
+    border-color: var(--primary);
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.location-btn:active {
+    transform: scale(0.95);
+}
+
+.location-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Geolocation Active Indicator on Input */
+input.using-geolocation {
+    border-color: #4ade80;
+    background-color: rgba(74, 222, 128, 0.05);
+}
+
+input.using-geolocation:focus {
+    border-color: #4ade80;
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2);
+}
+
+/* Inline Link Button in Status Messages */
+.link-btn {
+    background: transparent;
+    border: none;
+    color: var(--primary);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: inherit;
+    padding: 0;
+    font-family: inherit;
+}
+
+.link-btn:hover {
+    color: var(--primary-hover);
+}
+
+/* Route Options Styling */
+.route-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.route-option {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.route-option:hover {
+    border-color: var(--primary);
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+.route-option.selected {
+    border-color: var(--primary);
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.option-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.option-label {
+    font-weight: 500;
+}
+
+.option-time {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+/* Leg Info Styling */
+.leg-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.leg-mode {
+    font-weight: 500;
+}
+
+.leg-details {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.mode-icon {
+    font-size: 1.25rem;
+    min-width: 2rem;
+    text-align: center;
+}
+
+/* Utility */
+.mt-4 {
+    margin-top: 1rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        max-height: 45vh;
+        overflow-y: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .main-layout {
+        flex-direction: column;
+    }
+
+    .map-container {
+        min-height: 55vh;
+    }
+
+    .location-input-wrapper {
+        flex-direction: row;
+    }
+
+    .location-btn {
+        width: 44px;
+        height: 44px;
+    }
+}

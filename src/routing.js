@@ -372,10 +372,10 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
     };
 }
 
-export async function compareRoutes(startAddr, endAddr, safetyPreference = 'balanced', modeFilter = 'all') {
-    // Geocode ONCE
-    const startLoc = await geocode(startAddr);
-    const endLoc = await geocode(endAddr);
+export async function compareRoutes(startInput, endInput, safetyPreference = 'balanced', modeFilter = 'all') {
+    // Support both string addresses and coordinate objects (for geolocation)
+    const startLoc = (typeof startInput === 'string') ? await geocode(startInput) : startInput;
+    const endLoc = (typeof endInput === 'string') ? await geocode(endInput) : endInput;
 
     if (!startLoc || !endLoc) {
         throw new Error("Could not find start or end location");
