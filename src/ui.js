@@ -1,6 +1,6 @@
 // UI event listeners and DOM manipulation
 import { compareRoutes } from './routing.js';
-import { drawRoute, toggleLayerGroup, invalidateMapSize } from './map.js';
+import { drawRoute, toggleLayerGroup, invalidateMapSize, refreshTransitMap } from './map.js';
 import { requestGeolocation, getCurrentLocationState } from './geolocation.js';
 import { toggleBikeOverlay } from './bike_network.js';
 
@@ -192,10 +192,21 @@ export function setupUI() {
           const now = new Date();
           now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
           customTimeInput.value = now.toISOString().slice(0, 16);
+          // Refresh map with custom time
+          refreshTransitMap(new Date(customTimeInput.value));
         } else {
           customTimeInput.classList.add('hidden');
+          // Refresh map with current time
+          refreshTransitMap(new Date());
         }
       });
+    });
+
+    // Handle custom time input changes
+    customTimeInput.addEventListener('change', () => {
+      if (customTimeInput.value) {
+        refreshTransitMap(new Date(customTimeInput.value));
+      }
     });
   }
 

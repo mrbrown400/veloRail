@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import { TRANSIT_LINES } from './transit_data.js';
 import { initBikeOverlay } from './bike_network.js';
 import { getOSRMRoute } from './osrm.js';
+import { isLineOperating } from './schedule.js';
 
 let map;
 // Cache for bus route geometries (fetched once, reused on re-renders)
@@ -63,6 +64,22 @@ export function toggleLayerGroup(groupName, visible) {
     }
 }
 
+// Refresh transit map with new departure time
+export async function refreshTransitMap(queryTime = null) {
+    if (!map) return;
+
+    // Clear existing layer groups from map
+    Object.values(layerGroups).forEach(group => {
+        if (group && map.hasLayer(group)) {
+            map.removeLayer(group);
+            group.clearLayers();
+        }
+    });
+
+    // Re-render with new time
+    await renderTransitMap(queryTime);
+}
+
 // Fetch road-following route for a bus line
 async function fetchBusRouteGeometry(lineName, stations) {
     if (busRouteCache.has(lineName)) {
@@ -87,8 +104,11 @@ async function fetchBusRouteGeometry(lineName, stations) {
     return fallback;
 }
 
-async function renderTransitMap() {
+async function renderTransitMap(queryTime = null) {
     if (!map) return;
+
+    // Use current time if not specified
+    const currentTime = queryTime || new Date();
 
     // Initialize layer groups
     layerGroups.metroRail = L.layerGroup();
@@ -96,14 +116,19 @@ async function renderTransitMap() {
     layerGroups.ladot = L.layerGroup();
     layerGroups.silverStreak = L.layerGroup();
 
-    // Categorize lines
+    // Categorize lines - only include operating lines
     const metroRailLines = [];
     const metroBrtLines = [];
     const ladotLines = [];
     const silverStreakLines = [];
-    const otherLines = []; // Metrolink, Amtrak - keep visible always
+    const otherLines = []; // Metrolink, Amtrak
 
     Object.entries(TRANSIT_LINES).forEach(([lineName, line]) => {
+        // Skip lines not operating at current time
+        if (!isLineOperating(lineName, currentTime)) {
+            return;
+        }
+
         const isLADOT = lineName.startsWith('LADOT CE') || lineName === 'Union/Bunker Shuttle';
         const isBRT = lineName === 'Orange' || lineName === 'Silver';
         const isSilverStreak = lineName === 'Foothill Silver Streak';
