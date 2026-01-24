@@ -14,7 +14,8 @@ const layerGroups = {
     metroRail: null,
     metroBrt: null,
     ladot: null,
-    silverStreak: null
+    silverStreak: null,
+    otherLines: null  // Metrolink, Amtrak
 };
 
 export function initMap(elementId) {
@@ -115,6 +116,7 @@ async function renderTransitMap(queryTime = null) {
     layerGroups.metroBrt = L.layerGroup();
     layerGroups.ladot = L.layerGroup();
     layerGroups.silverStreak = L.layerGroup();
+    layerGroups.otherLines = L.layerGroup();
 
     // Categorize lines - only include operating lines
     const metroRailLines = [];
@@ -178,27 +180,29 @@ async function renderTransitMap(queryTime = null) {
         routeMap.set(line.name, coords);
     });
 
-    // Render other lines (Metrolink, Amtrak) directly to map
+    // Render other lines (Metrolink, Amtrak) to layer group
     for (const line of otherLines) {
         const coords = routeMap.get(line.name);
 
-        L.polyline(coords, {
+        const polyline = L.polyline(coords, {
             color: line.color,
             weight: 2.5,
             opacity: 0.4,
             lineCap: 'round',
             lineJoin: 'round'
-        }).addTo(map);
+        });
+        layerGroups.otherLines.addLayer(polyline);
 
         line.stations.forEach(s => {
-            L.circleMarker([s.lat, s.lon], {
+            const marker = L.circleMarker([s.lat, s.lon], {
                 color: line.color,
                 fillColor: '#ffffff',
                 fillOpacity: 0.6,
                 radius: 2.5,
                 weight: 1.5,
                 opacity: 0.5
-            }).addTo(map);
+            });
+            layerGroups.otherLines.addLayer(marker);
         });
     }
 
@@ -319,6 +323,7 @@ async function renderTransitMap(queryTime = null) {
     }
 
     // Add all layer groups to map (all visible by default)
+    layerGroups.otherLines.addTo(map);
     layerGroups.ladot.addTo(map);
     layerGroups.silverStreak.addTo(map);
     layerGroups.metroBrt.addTo(map);

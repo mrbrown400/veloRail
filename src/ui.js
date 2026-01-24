@@ -183,6 +183,15 @@ export function setupUI() {
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     customTimeInput.value = now.toISOString().slice(0, 16);
 
+    // Debounce timer for map refresh
+    let refreshTimer = null;
+    const debouncedRefresh = (time) => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        refreshTransitMap(time);
+      }, 300);
+    };
+
     // Handle radio button changes
     timeRadios.forEach(radio => {
       radio.addEventListener('change', () => {
@@ -192,12 +201,12 @@ export function setupUI() {
           const now = new Date();
           now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
           customTimeInput.value = now.toISOString().slice(0, 16);
-          // Refresh map with custom time
-          refreshTransitMap(new Date(customTimeInput.value));
+          // Refresh map with custom time (debounced)
+          debouncedRefresh(new Date(customTimeInput.value));
         } else {
           customTimeInput.classList.add('hidden');
-          // Refresh map with current time
-          refreshTransitMap(new Date());
+          // Refresh map with current time (debounced)
+          debouncedRefresh(new Date());
         }
       });
     });
@@ -205,7 +214,7 @@ export function setupUI() {
     // Handle custom time input changes
     customTimeInput.addEventListener('change', () => {
       if (customTimeInput.value) {
-        refreshTransitMap(new Date(customTimeInput.value));
+        debouncedRefresh(new Date(customTimeInput.value));
       }
     });
   }
