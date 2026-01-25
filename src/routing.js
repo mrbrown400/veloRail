@@ -5,7 +5,7 @@ import { getRouteElevation } from './elevation.js';
 import { getORSBikeRoute } from './ors.js';
 import { calculateRouteSafetyScore } from './bike_safety.js';
 import { CONFIG } from './config.js';
-import { isLineOperating, estimateWaitTime, getOperatingLines } from './schedule.js';
+import { isLineOperating, estimateWaitTime, getOperatingLines, getNextDeparture } from './schedule.js';
 
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371;
@@ -282,7 +282,6 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
         // Leg 2: Transit (Direct or Transfer)
         if (transitPlan.type === 'direct') {
             const bestTransit = transitPlan.line;
-            let profile = 'driving'; // approximating transit speed/route
 
             console.log(`Routing transit leg (${bestTransit.line})`);
 
@@ -296,8 +295,14 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
             }
 
             const avgSpeedKmh = 35;
-            // Estimate wait time based on schedule frequency
-            const waitTimeSeconds = estimateWaitTime(bestTransit.line, queryTime);
+
+            // Calculate when user arrives at station (access time from leg 1)
+            const accessTimeSeconds = legs[0].duration;
+            const arrivalAtStation = new Date(queryTime.getTime() + accessTimeSeconds * 1000);
+
+            // Get actual departure time from GTFS (or estimated wait time)
+            const departureInfo = await getNextDeparture(bestTransit.line, arrivalAtStation, entryStation.name);
+            const waitTimeSeconds = departureInfo.waitSeconds;
             const transitDuration = (transitDistance / avgSpeedKmh) * 3600 + waitTimeSeconds;
 
             legs.push({
@@ -310,6 +315,9 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
                 distance: transitDistance,
                 duration: transitDuration,
                 waitTime: waitTimeSeconds,
+                departureTime: departureInfo.departureTime || null,
+                headsign: departureInfo.headsign || null,
+                isRealtimeSchedule: !departureInfo.isEstimate,
                 stations: bestTransit.segment
             });
         } else if (transitPlan.type === 'transfer') {
@@ -334,10 +342,26 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
             }
 
             const avgSpeedKmh = 35;
-            // Estimate wait time for first leg + transfer wait for second leg
-            const waitTime1 = estimateWaitTime(leg1.line, queryTime);
-            const waitTime2 = estimateWaitTime(leg2.line, queryTime);
-            const totalWaitTime = waitTime1 + waitTime2;
+
+            // Calculate when user arrives at first station
+            const accessTimeSeconds = legs[0].duration;
+            const arrivalAtEntry = new Date(queryTime.getTime() + accessTimeSeconds * 1000);
+
+            // Get actual departure for first leg
+            const departureInfo1 = await getNextDeparture(leg1.line, arrivalAtEntry, entryStation.name);
+
+            // Calculate arrival at hub (travel time for leg1)
+            let leg1Distance = 0;
+            for (let i = 0; i < leg1.segment.length - 1; i++) {
+                leg1Distance += getDistance(leg1.segment[i].lat, leg1.segment[i].lon, leg1.segment[i + 1].lat, leg1.segment[i + 1].lon);
+            }
+            const leg1TravelTime = (leg1Distance / avgSpeedKmh) * 3600;
+            const arrivalAtHub = new Date(arrivalAtEntry.getTime() + (departureInfo1.waitSeconds + leg1TravelTime) * 1000);
+
+            // Get actual departure for second leg from hub
+            const departureInfo2 = await getNextDeparture(leg2.line, arrivalAtHub, hub.name);
+
+            const totalWaitTime = departureInfo1.waitSeconds + departureInfo2.waitSeconds;
             const transitDuration = (transitDistance / avgSpeedKmh) * 3600 + totalWaitTime;
 
             legs.push({
@@ -353,6 +377,9 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
                 distance: transitDistance,
                 duration: transitDuration,
                 waitTime: totalWaitTime,
+                departureTime: departureInfo1.departureTime || null,
+                headsign: departureInfo1.headsign || null,
+                isRealtimeSchedule: !departureInfo1.isEstimate && !departureInfo2.isEstimate,
                 stations: allStations
             });
         }

@@ -443,8 +443,22 @@ export function setupUI() {
       return 'Caution';
     };
 
-    const formatWaitTime = (seconds) => {
+    const formatWaitTime = (leg) => {
+      const seconds = leg.waitTime;
       const minutes = Math.round(seconds / 60);
+
+      // Show actual departure time if available from GTFS
+      if (leg.departureTime && leg.isRealtimeSchedule) {
+        const timeStr = leg.departureTime.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+        if (minutes < 1) return `Departing now (${timeStr})`;
+        if (minutes <= 15) return `${minutes} min (${timeStr})`;
+        return `Next at ${timeStr}`;
+      }
+
+      // Fallback to estimated wait
       if (minutes < 1) return 'arriving';
       return `~${minutes} min wait`;
     };
@@ -458,7 +472,7 @@ export function setupUI() {
               <span class="leg-mode">${getInstruction(leg)}</span>
               <span class="leg-details">${leg.distance.toFixed(1)} km • ${formatDuration(leg.duration)}${
                 leg.waitTime && leg.mode === 'transit'
-                  ? ` <span class="leg-wait">(${formatWaitTime(leg.waitTime)})</span>`
+                  ? ` <span class="leg-wait ${leg.isRealtimeSchedule ? 'schedule-time' : ''}">(${formatWaitTime(leg)})${leg.headsign ? ` <span class="headsign">toward ${leg.headsign}</span>` : ''}</span>`
                   : ''
               }${
                 leg.safety && leg.mode === 'bike'

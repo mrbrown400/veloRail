@@ -638,6 +638,29 @@ input.using-geolocation:focus {
     font-style: italic;
 }
 
+/* Schedule-based time (from GTFS) */
+.leg-wait.schedule-time {
+    color: #4ade80;
+    font-style: normal;
+}
+
+.leg-wait.schedule-time::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #4ade80;
+    border-radius: 50%;
+    margin-right: 4px;
+}
+
+/* Headsign display */
+.headsign {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-left: 4px;
+}
+
 /* ===== Utility Classes ===== */
 .hidden {
     display: none !important;

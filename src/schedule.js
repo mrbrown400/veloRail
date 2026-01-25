@@ -1,7 +1,9 @@
 // Schedule module for time-aware routing
 // Handles operating hours checks and wait time estimation
+// Now with GTFS integration for actual departure times
 
 import { TRANSIT_LINES } from './transit_data.js';
+import { getWaitTimeForStation, isGTFSQueryable } from './gtfs/gtfs_query.js';
 
 /**
  * Get the day type for a given date
@@ -174,6 +176,39 @@ export function estimateWaitTime(lineName, queryTime) {
 export function getLineSchedule(lineName) {
     const line = TRANSIT_LINES[lineName];
     return line?.schedule || null;
+}
+
+/**
+ * Get next departure information - uses GTFS when available, falls back to frequency
+ * @param {string} lineName - Name of the transit line
+ * @param {Date} arrivalTime - When user arrives at station
+ * @param {string} stationName - Station name for GTFS lookup
+ * @returns {Promise<{waitSeconds, departureTime?, headsign?, isEstimate}>}
+ */
+export async function getNextDeparture(lineName, arrivalTime, stationName) {
+    // Try GTFS first
+    try {
+        if (await isGTFSQueryable()) {
+            const gtfsResult = await getWaitTimeForStation(stationName, arrivalTime);
+            if (gtfsResult) {
+                return {
+                    waitSeconds: gtfsResult.waitSeconds,
+                    departureTime: gtfsResult.departureTime,
+                    headsign: gtfsResult.headsign,
+                    routeId: gtfsResult.routeId,
+                    isEstimate: false
+                };
+            }
+        }
+    } catch (error) {
+        console.warn('[Schedule] GTFS query failed, using frequency estimate:', error);
+    }
+
+    // Fallback to frequency-based estimate
+    return {
+        waitSeconds: estimateWaitTime(lineName, arrivalTime),
+        isEstimate: true
+    };
 }
 
 /**
