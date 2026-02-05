@@ -1,9 +1,13 @@
 // Schedule module for time-aware routing
 // Handles operating hours checks and wait time estimation
 // Now with GTFS integration for actual departure times
+// And GTFS-RT integration for real-time delay data
 
 import { TRANSIT_LINES } from './transit_data.js';
-import { getWaitTimeForStation, isGTFSQueryable } from './gtfs/gtfs_query.js';
+import { getWaitTimeForStation, isGTFSQueryable, getNextDepartures } from './gtfs/gtfs_query.js';
+import { getGTFSStopId } from './gtfs/stop_mapping.js';
+import { applyRealtimeToScheduled, formatDelay, getDelayStatus } from './realtime/trip_updates.js';
+import { hasRealtimeData } from './realtime/realtime_store.js';
 
 /**
  * Get the day type for a given date
@@ -180,23 +184,63 @@ export function getLineSchedule(lineName) {
 
 /**
  * Get next departure information - uses GTFS when available, falls back to frequency
+ * Now with GTFS-RT real-time delay integration
  * @param {string} lineName - Name of the transit line
  * @param {Date} arrivalTime - When user arrives at station
  * @param {string} stationName - Station name for GTFS lookup
- * @returns {Promise<{waitSeconds, departureTime?, headsign?, isEstimate}>}
+ * @returns {Promise<{waitSeconds, departureTime?, headsign?, isEstimate, isRealtime?, delaySeconds?, delayText?, delayStatus?}>}
  */
 export async function getNextDeparture(lineName, arrivalTime, stationName) {
     // Try GTFS first
     try {
         if (await isGTFSQueryable()) {
-            const gtfsResult = await getWaitTimeForStation(stationName, arrivalTime);
-            if (gtfsResult) {
+            const stopId = await getGTFSStopId(stationName);
+            const departures = await getNextDepartures(stopId, arrivalTime, 1, 'metro_rail');
+
+            if (departures && departures.length > 0) {
+                const scheduled = departures[0];
+
+                // Apply real-time data if available
+                if (hasRealtimeData() && stopId) {
+                    const withRealtime = applyRealtimeToScheduled({
+                        tripId: scheduled.tripId,
+                        departureTime: scheduled.departureTime,
+                        headsign: scheduled.headsign,
+                        routeId: scheduled.routeId
+                    }, stopId);
+
+                    if (withRealtime.isRealtime) {
+                        const waitSeconds = Math.max(0, (withRealtime.departureTime - arrivalTime) / 1000);
+                        return {
+                            waitSeconds,
+                            departureTime: withRealtime.departureTime,
+                            scheduledDepartureTime: withRealtime.scheduledDepartureTime,
+                            headsign: withRealtime.headsign,
+                            routeId: withRealtime.routeId,
+                            tripId: withRealtime.tripId,
+                            isEstimate: false,
+                            isRealtime: true,
+                            delaySeconds: withRealtime.delaySeconds,
+                            delayText: formatDelay(withRealtime.delaySeconds),
+                            delayStatus: getDelayStatus(withRealtime.delaySeconds),
+                            isCanceled: withRealtime.isCanceled
+                        };
+                    }
+                }
+
+                // No real-time data, return static GTFS
+                const waitSeconds = Math.max(0, (scheduled.departureTime - arrivalTime) / 1000);
                 return {
-                    waitSeconds: gtfsResult.waitSeconds,
-                    departureTime: gtfsResult.departureTime,
-                    headsign: gtfsResult.headsign,
-                    routeId: gtfsResult.routeId,
-                    isEstimate: false
+                    waitSeconds,
+                    departureTime: scheduled.departureTime,
+                    headsign: scheduled.headsign,
+                    routeId: scheduled.routeId,
+                    tripId: scheduled.tripId,
+                    isEstimate: false,
+                    isRealtime: false,
+                    delaySeconds: null,
+                    delayText: null,
+                    delayStatus: null
                 };
             }
         }
@@ -207,7 +251,11 @@ export async function getNextDeparture(lineName, arrivalTime, stationName) {
     // Fallback to frequency-based estimate
     return {
         waitSeconds: estimateWaitTime(lineName, arrivalTime),
-        isEstimate: true
+        isEstimate: true,
+        isRealtime: false,
+        delaySeconds: null,
+        delayText: null,
+        delayStatus: null
     };
 }
 

@@ -9,6 +9,10 @@ let map;
 // Cache for bus route geometries (fetched once, reused on re-renders)
 const busRouteCache = new Map();
 
+// Vehicle tracking state
+let vehicleMarker = null;
+let vehicleAnimationFrame = null;
+
 // Layer groups for toggle control
 const layerGroups = {
     metroRail: null,
@@ -478,4 +482,164 @@ export function drawRoute(routeData) {
     });
 
     map.fitBounds(bounds, { padding: [50, 50] });
+}
+
+// ==================== Vehicle Tracking ====================
+
+/**
+ * Create a vehicle marker icon
+ * @param {string} type - 'train' or 'bus'
+ * @param {number} bearing - Direction in degrees (optional)
+ * @param {string} color - Line color
+ * @returns {L.DivIcon}
+ */
+function createVehicleIcon(type = 'train', bearing = null, color = '#3b82f6') {
+    const icon = type === 'train' ? '\u{1F686}' : '\u{1F68C}'; // Train or bus emoji
+    const rotation = bearing !== null ? `transform: rotate(${bearing}deg);` : '';
+
+    return L.divIcon({
+        className: 'vehicle-marker',
+        html: `
+            <div class="vehicle-marker-container" style="${rotation}">
+                <div class="vehicle-marker-pulse" style="background-color: ${color};"></div>
+                <div class="vehicle-marker-icon" style="background-color: ${color};">
+                    <span>${icon}</span>
+                </div>
+            </div>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+    });
+}
+
+/**
+ * Show a vehicle on the map
+ * @param {Object} position - Vehicle position data
+ * @param {string} type - 'train' or 'bus'
+ * @param {string} color - Line color
+ */
+export function showVehicleMarker(position, type = 'train', color = '#3b82f6') {
+    if (!map || !position) return;
+
+    const { latitude, longitude, bearing, label, currentStatus, vehicleId } = position;
+
+    // Create popup content
+    const statusText = currentStatus === 'STOPPED_AT' ? 'At station'
+        : currentStatus === 'INCOMING_AT' ? 'Arriving'
+        : 'In transit';
+
+    const popupContent = `
+        <div class="vehicle-popup">
+            <strong>${type === 'train' ? 'Train' : 'Bus'} ${label || vehicleId || ''}</strong>
+            <div class="vehicle-status">${statusText}</div>
+        </div>
+    `;
+
+    if (vehicleMarker) {
+        // Animate to new position
+        animateVehicleMarker(latitude, longitude, bearing, color, type);
+    } else {
+        // Create new marker
+        vehicleMarker = L.marker([latitude, longitude], {
+            icon: createVehicleIcon(type, bearing, color),
+            zIndexOffset: 1000
+        }).addTo(map);
+
+        vehicleMarker.bindPopup(popupContent);
+    }
+
+    // Update popup content
+    vehicleMarker.setPopupContent(popupContent);
+}
+
+/**
+ * Animate vehicle marker to new position
+ * @param {number} lat - Target latitude
+ * @param {number} lng - Target longitude
+ * @param {number} bearing - Direction in degrees
+ * @param {string} color - Line color
+ * @param {string} type - 'train' or 'bus'
+ */
+function animateVehicleMarker(lat, lng, bearing, color, type) {
+    if (!vehicleMarker) return;
+
+    // Cancel any existing animation
+    if (vehicleAnimationFrame) {
+        cancelAnimationFrame(vehicleAnimationFrame);
+    }
+
+    const startLatLng = vehicleMarker.getLatLng();
+    const endLatLng = L.latLng(lat, lng);
+    const duration = 1000; // 1 second animation
+    const startTime = performance.now();
+
+    function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Ease out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        const newLat = startLatLng.lat + (endLatLng.lat - startLatLng.lat) * eased;
+        const newLng = startLatLng.lng + (endLatLng.lng - startLatLng.lng) * eased;
+
+        vehicleMarker.setLatLng([newLat, newLng]);
+
+        // Update icon with bearing
+        if (bearing !== null) {
+            vehicleMarker.setIcon(createVehicleIcon(type, bearing, color));
+        }
+
+        if (progress < 1) {
+            vehicleAnimationFrame = requestAnimationFrame(animate);
+        }
+    }
+
+    vehicleAnimationFrame = requestAnimationFrame(animate);
+}
+
+/**
+ * Remove vehicle marker from map
+ */
+export function hideVehicleMarker() {
+    if (vehicleAnimationFrame) {
+        cancelAnimationFrame(vehicleAnimationFrame);
+        vehicleAnimationFrame = null;
+    }
+
+    if (vehicleMarker && map) {
+        map.removeLayer(vehicleMarker);
+        vehicleMarker = null;
+    }
+}
+
+/**
+ * Update vehicle marker position (called by realtime store)
+ * @param {Object} position - Vehicle position data
+ * @param {string} type - 'train' or 'bus'
+ * @param {string} color - Line color
+ */
+export function updateVehiclePosition(position, type = 'train', color = '#3b82f6') {
+    if (!position) {
+        hideVehicleMarker();
+        return;
+    }
+
+    showVehicleMarker(position, type, color);
+}
+
+/**
+ * Check if a vehicle is currently being tracked on the map
+ * @returns {boolean}
+ */
+export function isVehicleTracked() {
+    return vehicleMarker !== null;
+}
+
+/**
+ * Get the map instance (for external use)
+ * @returns {L.Map|null}
+ */
+export function getMap() {
+    return map;
 }

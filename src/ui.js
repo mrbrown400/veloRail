@@ -1,8 +1,9 @@
 // UI event listeners and DOM manipulation
 import { compareRoutes } from './routing.js';
-import { drawRoute, toggleLayerGroup, invalidateMapSize, refreshTransitMap } from './map.js';
+import { drawRoute, toggleLayerGroup, invalidateMapSize, refreshTransitMap, showVehicleMarker, hideVehicleMarker } from './map.js';
 import { requestGeolocation, getCurrentLocationState } from './geolocation.js';
 import { toggleBikeOverlay } from './bike_network.js';
+import { trackVehicle, untrackVehicle, onVehicleUpdate, hasVehiclePositions, getTrackedVehiclePosition } from './realtime/realtime_store.js';
 
 // UI State
 let uiState = {
@@ -17,7 +18,10 @@ let uiState = {
     metroBrt: true,
     ladot: true,
     silverStreak: true
-  }
+  },
+  // Vehicle tracking
+  trackedTransitLeg: null,    // Current transit leg being tracked
+  vehicleUnsubscribe: null    // Cleanup function for vehicle updates
 };
 
 export function setupUI() {
@@ -285,8 +289,113 @@ export function setupUI() {
     resultsSidebar.classList.remove('visible');
     document.getElementById('app').classList.remove('sidebar-open');
     uiState.sidebarOpen = false;
+    // Stop vehicle tracking
+    stopVehicleTracking();
     // Invalidate map size after animation
     setTimeout(() => invalidateMapSize(), 350);
+  }
+
+  // --- Vehicle Tracking ---
+
+  function startVehicleTrackingForRoute(routeData) {
+    // Stop any existing tracking
+    stopVehicleTracking();
+
+    // Find first transit leg
+    const transitLeg = routeData.legs.find(leg => leg.mode === 'transit');
+    if (!transitLeg) return;
+
+    uiState.trackedTransitLeg = transitLeg;
+
+    // Start tracking with trip ID or route ID
+    const tripId = transitLeg.tripId || null;
+    const routeId = transitLeg.routeId || null;
+
+    if (tripId || routeId) {
+      trackVehicle(tripId, routeId);
+
+      // Subscribe to vehicle updates
+      uiState.vehicleUnsubscribe = onVehicleUpdate((position) => {
+        if (position) {
+          const type = transitLeg.mode === 'transit_bus' ? 'bus' : 'train';
+          const color = transitLeg.color || '#3b82f6';
+          showVehicleMarker(position, type, color);
+          updateVehicleStatusDisplay(position, transitLeg);
+        }
+      });
+
+      // Show initial position if available
+      const initialPosition = getTrackedVehiclePosition();
+      if (initialPosition) {
+        const type = transitLeg.mode === 'transit_bus' ? 'bus' : 'train';
+        const color = transitLeg.color || '#3b82f6';
+        showVehicleMarker(initialPosition, type, color);
+      }
+    }
+  }
+
+  function stopVehicleTracking() {
+    if (uiState.vehicleUnsubscribe) {
+      uiState.vehicleUnsubscribe();
+      uiState.vehicleUnsubscribe = null;
+    }
+    uiState.trackedTransitLeg = null;
+    untrackVehicle();
+    hideVehicleMarker();
+
+    // Clear vehicle status display
+    const statusEl = document.getElementById('vehicle-tracking-status');
+    if (statusEl) {
+      statusEl.remove();
+    }
+  }
+
+  function updateVehicleStatusDisplay(position, transitLeg) {
+    let statusEl = document.getElementById('vehicle-tracking-status');
+
+    if (!statusEl) {
+      // Create status element
+      statusEl = document.createElement('div');
+      statusEl.id = 'vehicle-tracking-status';
+      statusEl.className = 'vehicle-tracking-status';
+
+      // Insert after route options
+      const activeRouteDetails = document.getElementById('active-route-details');
+      if (activeRouteDetails) {
+        activeRouteDetails.parentNode.insertBefore(statusEl, activeRouteDetails);
+      }
+    }
+
+    // Build status text
+    const statusText = position.currentStatus === 'STOPPED_AT' ? 'at station'
+      : position.currentStatus === 'INCOMING_AT' ? 'arriving at station'
+      : 'in transit';
+
+    const vehicleLabel = position.label || position.vehicleId || '';
+    const lineInfo = transitLeg.line ? `${transitLeg.line} Line` : 'Your train';
+
+    // Calculate stops away if we have stop sequence info
+    let stopsAwayText = '';
+    if (position.currentStopSequence && transitLeg.boardingStopSequence) {
+      const stopsAway = transitLeg.boardingStopSequence - position.currentStopSequence;
+      if (stopsAway > 0) {
+        stopsAwayText = `<span class="stops-away">${stopsAway} stop${stopsAway !== 1 ? 's' : ''} away</span>`;
+      } else if (stopsAway === 0) {
+        stopsAwayText = `<span class="stops-away arriving">Arriving at your stop!</span>`;
+      }
+    }
+
+    statusEl.innerHTML = `
+      <div class="vehicle-tracking-header">
+        <span class="tracking-icon">\u{1F4CD}</span>
+        <span class="tracking-label">Live Tracking</span>
+      </div>
+      <div class="vehicle-tracking-info">
+        <strong>${lineInfo}</strong> ${vehicleLabel ? `(${vehicleLabel})` : ''}
+        <span class="vehicle-status-text">${statusText}</span>
+        ${stopsAwayText}
+      </div>
+    `;
   }
 
   // --- Search Flow ---
@@ -344,7 +453,11 @@ export function setupUI() {
 
       // Draw primary route on map
       const primaryRoute = comparisonResults[0];
-      if (primaryRoute) drawRoute(primaryRoute);
+      if (primaryRoute) {
+        drawRoute(primaryRoute);
+        // Start vehicle tracking for this route
+        startVehicleTrackingForRoute(primaryRoute);
+      }
 
       // Render route options in sidebar
       routeDetails.innerHTML = `
@@ -375,6 +488,8 @@ export function setupUI() {
           const selectedRoute = comparisonResults[idx];
           drawRoute(selectedRoute);
           document.getElementById('active-route-details').innerHTML = renderRouteDetails(selectedRoute);
+          // Update vehicle tracking for new route
+          startVehicleTrackingForRoute(selectedRoute);
         });
       });
 
@@ -448,14 +563,27 @@ export function setupUI() {
       const minutes = Math.round(seconds / 60);
 
       // Show actual departure time if available from GTFS
-      if (leg.departureTime && leg.isRealtimeSchedule) {
+      if (leg.departureTime && (leg.isRealtimeSchedule || leg.isRealtime)) {
         const timeStr = leg.departureTime.toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit'
         });
-        if (minutes < 1) return `Departing now (${timeStr})`;
-        if (minutes <= 15) return `${minutes} min (${timeStr})`;
-        return `Next at ${timeStr}`;
+
+        // Build delay indicator if real-time data available
+        let delayIndicator = '';
+        if (leg.isRealtime && leg.delayText) {
+          const delayClass = leg.delayStatus === 'late' ? 'delay-late'
+            : leg.delayStatus === 'early' ? 'delay-early'
+            : 'delay-ontime';
+          delayIndicator = ` <span class="${delayClass}">${leg.delayText}</span>`;
+        }
+
+        // Build live badge for real-time data
+        const liveBadge = leg.isRealtime ? '<span class="live-badge">LIVE</span>' : '';
+
+        if (minutes < 1) return `${liveBadge}Departing now (${timeStr})${delayIndicator}`;
+        if (minutes <= 15) return `${liveBadge}${minutes} min (${timeStr})${delayIndicator}`;
+        return `${liveBadge}Next at ${timeStr}${delayIndicator}`;
       }
 
       // Fallback to estimated wait
