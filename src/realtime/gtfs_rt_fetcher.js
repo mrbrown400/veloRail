@@ -22,11 +22,9 @@ export async function fetchSwiftlyTripUpdates() {
     }
 
     try {
-        const response = await fetch(CONFIG.SWIFTLY_TRIP_UPDATES_URL, {
-            headers: {
-                'Authorization': `apikey ${CONFIG.SWIFTLY_API_KEY}`
-            }
-        });
+        // Swiftly uses query param for API key, not Authorization header
+        const url = `${CONFIG.SWIFTLY_TRIP_UPDATES_URL}?apiKey=${CONFIG.SWIFTLY_API_KEY}`;
+        const response = await fetch(url);
 
         if (!response.ok) {
             console.warn(`[Realtime] Swiftly fetch failed: ${response.status}`);

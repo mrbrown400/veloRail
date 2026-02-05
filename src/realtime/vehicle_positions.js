@@ -19,11 +19,9 @@ export async function fetchSwiftlyVehiclePositions() {
     }
 
     try {
-        const response = await fetch(CONFIG.SWIFTLY_VEHICLE_POSITIONS_URL, {
-            headers: {
-                'Authorization': `apikey ${CONFIG.SWIFTLY_API_KEY}`
-            }
-        });
+        // Swiftly uses query param for API key, not Authorization header
+        const url = `${CONFIG.SWIFTLY_VEHICLE_POSITIONS_URL}?apiKey=${CONFIG.SWIFTLY_API_KEY}`;
+        const response = await fetch(url);
 
         if (!response.ok) {
             console.warn(`[Realtime] Swiftly vehicle positions fetch failed: ${response.status}`);
