@@ -120,6 +120,7 @@ export const STATIONS = [
     { name: "Westchester/Veterans", lat: 33.9452, lon: -118.3689, lines: ["K Line"] },
     { name: "Aviation/Century", lat: 33.9312, lon: -118.3887, lines: ["K Line", "Green"] },
     { name: "LAX Transit Center", lat: 33.9425, lon: -118.3890, lines: ["K Line", "LAX FlyAway - Union Station", "LAX FlyAway - Van Nuys", "LAX People Mover"] },
+    { name: "LAX Terminals", lat: 33.9425, lon: -118.4020, lines: ["LAX FlyAway - Union Station", "LAX FlyAway - Van Nuys"] },
 
     // ========== G LINE (ORANGE BRT) ==========
     { name: "Laurel Canyon", lat: 34.1706, lon: -118.3965, lines: ["Orange"] },

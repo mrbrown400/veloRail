@@ -513,6 +513,7 @@ export const TRANSIT_LINES = {
     },
 
     // LAX FlyAway Bus Service
+    // Routes simplified to origin + LAX arrival area (OSRM handles road routing)
     "LAX FlyAway - Union Station": {
         color: "#00629B", // FlyAway blue
         gtfsRouteId: null, // Operated by LAWA, separate from Metro GTFS
@@ -528,14 +529,8 @@ export const TRANSIT_LINES = {
         },
         stations: [
             { name: "Union Station", lat: 34.0561, lon: -118.2375 },
-            { name: "LAX Terminal 1", lat: 33.9545, lon: -118.3986 },
-            { name: "LAX Terminal 2", lat: 33.9533, lon: -118.3980 },
-            { name: "LAX Terminal 3", lat: 33.9527, lon: -118.3973 },
-            { name: "LAX Terminal 4", lat: 33.9523, lon: -118.3956 },
-            { name: "LAX Terminal 5", lat: 33.9519, lon: -118.3936 },
-            { name: "LAX Terminal 6", lat: 33.9516, lon: -118.3916 },
-            { name: "LAX Terminal 7/8", lat: 33.9510, lon: -118.3890 },
-            { name: "LAX Terminal B (TBIT)", lat: 33.9485, lon: -118.3895 }
+            // Route follows I-10 W → I-110 S → I-105 W → Sepulveda
+            { name: "LAX Terminals", lat: 33.9425, lon: -118.4020 }
         ]
     },
     "LAX FlyAway - Van Nuys": {
@@ -553,14 +548,8 @@ export const TRANSIT_LINES = {
         },
         stations: [
             { name: "Van Nuys FlyAway Terminal", lat: 34.1935, lon: -118.4702 },
-            { name: "LAX Terminal 1", lat: 33.9545, lon: -118.3986 },
-            { name: "LAX Terminal 2", lat: 33.9533, lon: -118.3980 },
-            { name: "LAX Terminal 3", lat: 33.9527, lon: -118.3973 },
-            { name: "LAX Terminal 4", lat: 33.9523, lon: -118.3956 },
-            { name: "LAX Terminal 5", lat: 33.9519, lon: -118.3936 },
-            { name: "LAX Terminal 6", lat: 33.9516, lon: -118.3916 },
-            { name: "LAX Terminal 7/8", lat: 33.9510, lon: -118.3890 },
-            { name: "LAX Terminal B (TBIT)", lat: 33.9485, lon: -118.3895 }
+            // Route follows I-405 S to LAX
+            { name: "LAX Terminals", lat: 33.9425, lon: -118.4020 }
         ]
     },
 

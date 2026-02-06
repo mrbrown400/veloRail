@@ -140,8 +140,10 @@ async function renderTransitMap(queryTime = null) {
         const isSilverStreak = lineName === 'Foothill Silver Streak';
         const isMetrolink = lineName.startsWith('Metrolink');
         const isAmtrak = lineName.startsWith('Amtrak');
+        const isFlyAway = lineName.startsWith('LAX FlyAway');
+        const isPeopleMover = lineName === 'LAX People Mover';
 
-        if (isLADOT) {
+        if (isLADOT || isFlyAway) {
             ladotLines.push({ name: lineName, ...line });
         } else if (isSilverStreak) {
             silverStreakLines.push({ name: lineName, ...line });
@@ -149,6 +151,9 @@ async function renderTransitMap(queryTime = null) {
             metroBrtLines.push({ name: lineName, ...line });
         } else if (isMetrolink || isAmtrak) {
             otherLines.push({ name: lineName, ...line });
+        } else if (isPeopleMover) {
+            // Skip People Mover for now (testing status)
+            return;
         } else {
             metroRailLines.push({ name: lineName, ...line });
         }
