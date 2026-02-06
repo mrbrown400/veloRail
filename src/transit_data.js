@@ -211,7 +211,9 @@ export const TRANSIT_LINES = {
             { name: "Downtown Inglewood", lat: 33.9618, lon: -118.3508 },
             { name: "Westchester/Veterans", lat: 33.9452, lon: -118.3689 },
             // Connection to C Line
-            { name: "Aviation/Century", lat: 33.9312, lon: -118.3887 }
+            { name: "Aviation/Century", lat: 33.9312, lon: -118.3887 },
+            // LAX Transit Center (opened 2024)
+            { name: "LAX Transit Center", lat: 33.9425, lon: -118.3890 }
         ]
     },
     "Orange": { // G Line (BRT)
@@ -508,6 +510,85 @@ export const TRANSIT_LINES = {
             }
         },
         stations: [{ name: "Union Station", lat: 34.0561, lon: -118.2375 }, { name: "Bunker Hill (Grand/3rd)", lat: 34.0530, lon: -118.2510 }]
+    },
+
+    // LAX FlyAway Bus Service
+    "LAX FlyAway - Union Station": {
+        color: "#00629B", // FlyAway blue
+        gtfsRouteId: null, // Operated by LAWA, separate from Metro GTFS
+        schedule: {
+            type: "airport_shuttle",
+            frequency_peak: 30,
+            frequency_offpeak: 30,
+            operating_hours: {
+                weekday: { start: "00:00", end: "23:59" }, // 24/7 operation
+                saturday: { start: "00:00", end: "23:59" },
+                sunday: { start: "00:00", end: "23:59" }
+            }
+        },
+        stations: [
+            { name: "Union Station", lat: 34.0561, lon: -118.2375 },
+            { name: "LAX Terminal 1", lat: 33.9545, lon: -118.3986 },
+            { name: "LAX Terminal 2", lat: 33.9533, lon: -118.3980 },
+            { name: "LAX Terminal 3", lat: 33.9527, lon: -118.3973 },
+            { name: "LAX Terminal 4", lat: 33.9523, lon: -118.3956 },
+            { name: "LAX Terminal 5", lat: 33.9519, lon: -118.3936 },
+            { name: "LAX Terminal 6", lat: 33.9516, lon: -118.3916 },
+            { name: "LAX Terminal 7/8", lat: 33.9510, lon: -118.3890 },
+            { name: "LAX Terminal B (TBIT)", lat: 33.9485, lon: -118.3895 }
+        ]
+    },
+    "LAX FlyAway - Van Nuys": {
+        color: "#00629B", // FlyAway blue
+        gtfsRouteId: null,
+        schedule: {
+            type: "airport_shuttle",
+            frequency_peak: 30,
+            frequency_offpeak: 45,
+            operating_hours: {
+                weekday: { start: "05:00", end: "00:00" },
+                saturday: { start: "05:00", end: "00:00" },
+                sunday: { start: "05:00", end: "00:00" }
+            }
+        },
+        stations: [
+            { name: "Van Nuys FlyAway Terminal", lat: 34.1935, lon: -118.4702 },
+            { name: "LAX Terminal 1", lat: 33.9545, lon: -118.3986 },
+            { name: "LAX Terminal 2", lat: 33.9533, lon: -118.3980 },
+            { name: "LAX Terminal 3", lat: 33.9527, lon: -118.3973 },
+            { name: "LAX Terminal 4", lat: 33.9523, lon: -118.3956 },
+            { name: "LAX Terminal 5", lat: 33.9519, lon: -118.3936 },
+            { name: "LAX Terminal 6", lat: 33.9516, lon: -118.3916 },
+            { name: "LAX Terminal 7/8", lat: 33.9510, lon: -118.3890 },
+            { name: "LAX Terminal B (TBIT)", lat: 33.9485, lon: -118.3895 }
+        ]
+    },
+
+    // LAX Automated People Mover (APM) - Currently in testing
+    "LAX People Mover": {
+        color: "#006341", // LAX green
+        gtfsRouteId: null,
+        status: "testing", // testing | operating
+        expectedOpening: "2025",
+        schedule: {
+            type: "people_mover",
+            frequency_peak: 2, // Every 2 minutes when operating
+            frequency_offpeak: 4,
+            operating_hours: {
+                weekday: { start: "00:00", end: "23:59" }, // 24/7 when operational
+                saturday: { start: "00:00", end: "23:59" },
+                sunday: { start: "00:00", end: "23:59" }
+            }
+        },
+        stations: [
+            { name: "LAX Transit Center", lat: 33.9425, lon: -118.3890 },
+            { name: "LAX Economy Parking", lat: 33.9468, lon: -118.3855 },
+            { name: "LAX Terminal 1", lat: 33.9545, lon: -118.3986 },
+            { name: "LAX Terminal 2/3", lat: 33.9530, lon: -118.3977 },
+            { name: "LAX Terminal 4/5", lat: 33.9521, lon: -118.3946 },
+            { name: "LAX Terminal 6/7/8", lat: 33.9513, lon: -118.3903 },
+            { name: "LAX Terminal B (TBIT)", lat: 33.9485, lon: -118.3895 }
+        ]
     },
 
     // Metrolink Commuter Rail Lines

@@ -39,15 +39,47 @@ function getAllStations(departureTime = null) {
     return all;
 }
 
-function findNearestStation(lat, lon, departureTime = null) {
+// Priority order for station types (lower = higher priority)
+const STATION_TYPE_PRIORITY = {
+    'rail': 1,
+    'brt': 2,
+    'commuter_rail': 3,
+    'intercity_rail': 3,
+    'people_mover': 4,
+    'airport_shuttle': 5,
+    'commuter_express': 6,
+    'shuttle': 7
+};
+
+function getLinePriority(lineName) {
+    const line = TRANSIT_LINES[lineName];
+    if (!line || !line.schedule) return 10;
+    return STATION_TYPE_PRIORITY[line.schedule.type] || 10;
+}
+
+function findNearestStation(lat, lon, departureTime = null, preferRail = true) {
     let nearest = null;
     let minDist = Infinity;
+    let minPriority = Infinity;
     const stations = getAllStations(departureTime);
+
+    // Tolerance for preferring higher-priority stations (rail over shuttle)
+    // Use larger tolerance (3km) to prefer rail connections even for airport destinations
+    const PRIORITY_TOLERANCE_KM = 3.0;
 
     for (const station of stations) {
         const dist = getDistance(lat, lon, station.lat, station.lon);
-        if (dist < minDist) {
+        const priority = preferRail ? getLinePriority(station.line) : 10;
+
+        // Choose this station if:
+        // 1. It's closer AND same or better priority, OR
+        // 2. It has significantly better priority (rail vs shuttle) within tolerance
+        const isCloserWithSamePriority = dist < minDist && priority <= minPriority;
+        const isBetterPriorityWithinTolerance = dist < minDist + PRIORITY_TOLERANCE_KM && priority < minPriority;
+
+        if (isCloserWithSamePriority || isBetterPriorityWithinTolerance) {
             minDist = dist;
+            minPriority = priority;
             nearest = { ...station, distance: dist };
         }
     }
@@ -213,15 +245,104 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
     const commonRoutes = getCommonLines(entryStation, exitStation, queryTime);
     let transitPlan = null;
 
+
     if (commonRoutes.length > 0) {
         transitPlan = { type: 'direct', line: commonRoutes[0] };
     } else {
         // Try finding a transfer hub
-        const hubs = ["Union Station", "7th St/Metro Center"];
+        // Comprehensive list of ALL transfer stations in LA Metro network
+        const hubs = [
+            // ========== MAJOR DOWNTOWN HUBS ==========
+            "Union Station",            // B, D, A, J Lines + Metrolink + Amtrak + FlyAway
+            "7th St/Metro Center",      // B, D, A, E, J Lines + Foothill Silver Streak
+
+            // ========== RAIL-TO-RAIL TRANSFERS ==========
+            // B/D Line shared stations
+            "Wilshire/Vermont",         // B Line ↔ D Line
+            "Civic Center/Grand Park",  // B Line ↔ J Line (Silver)
+            "Pershing Square",          // B Line ↔ J Line (Silver)
+
+            // A/E Line shared stations (former Gold/Expo merge)
+            "Little Tokyo/Arts District", // A Line ↔ E Line
+            "Pico",                     // A Line ↔ E Line
+
+            // K Line connections
+            "Expo/Crenshaw",            // E Line ↔ K Line
+            "Aviation/Century",         // K Line ↔ C Line
+
+            // A/C Line connections
+            "Willowbrook/Rosa Parks",   // A Line ↔ C Line
+
+            // ========== RAIL-TO-BRT TRANSFERS ==========
+            "North Hollywood",          // B Line ↔ G Line (Orange BRT)
+            "Harbor Freeway",           // C Line ↔ J Line (Silver BRT)
+
+            // ========== METROLINK/AMTRAK CONNECTIONS ==========
+            // San Fernando Valley
+            "Chatsworth",               // G Line ↔ Metrolink Ventura ↔ Amtrak
+            "Van Nuys",                 // G Line ↔ Metrolink Ventura ↔ Amtrak
+            "Burbank Downtown",         // Metrolink Ventura ↔ Antelope Valley
+            "Burbank Airport North",    // Metrolink Ventura ↔ Antelope Valley
+            "Glendale",                 // Metrolink Ventura ↔ Antelope Valley ↔ Amtrak
+
+            // East LA / San Gabriel Valley
+            "El Monte",                 // J Line ↔ Metrolink San Bernardino
+            "Cal State LA",             // J Line ↔ Metrolink San Bernardino
+
+            // South Bay / Gateway Cities
+            "Norwalk",                  // C Line terminus (walk to Metrolink Norwalk/Santa Fe Springs)
+            "Commerce",                 // Metrolink hub (multiple lines)
+
+            // Orange County connections
+            "Fullerton",                // Metrolink Riverside ↔ OC ↔ 91/Perris ↔ Amtrak
+            "Buena Park",               // Metrolink Riverside ↔ OC ↔ 91/Perris ↔ Amtrak
+            "Anaheim",                  // Metrolink OC ↔ Amtrak
+            "Orange",                   // Metrolink Riverside ↔ OC ↔ Amtrak
+            "Santa Ana",                // Metrolink Riverside ↔ OC ↔ Amtrak
+            "Tustin",                   // Metrolink Riverside ↔ OC
+            "Irvine",                   // Metrolink Riverside ↔ OC ↔ Amtrak
+            "Norwalk/Santa Fe Springs", // Metrolink Riverside ↔ OC ↔ 91/Perris ↔ Amtrak
+
+            // Inland Empire connections
+            "Riverside Downtown",       // Metrolink Riverside ↔ 91/Perris Valley
+            "Riverside La Sierra",      // Metrolink Riverside ↔ 91/Perris Valley
+            "Corona North Main",        // Metrolink Riverside ↔ 91/Perris Valley
+            "Corona West",              // Metrolink Riverside ↔ 91/Perris Valley
+
+            // ========== LAX CONNECTIONS ==========
+            "LAX Transit Center",       // K Line ↔ FlyAway ↔ People Mover
+            "Aviation/LAX",             // C Line (near K Line Aviation/Century)
+
+            // ========== ADDITIONAL BRT/COMMUTER TRANSFERS ==========
+            "Culver City",              // E Line ↔ CE 437
+            "Warner Center",            // G Line ↔ CE 422
+            "Universal City/Studio City", // B Line ↔ CE 422
+            "Encino Park & Ride",       // CE 423 ↔ CE 549 ↔ CE 573 ↔ CE 574
+            "Harbor Gateway",           // J Line ↔ CE 438
+            "Douglas",                  // C Line ↔ CE 439 (El Segundo)
+
+            // ========== WALK TRANSFERS (stations close together) ==========
+            "Del Mar",                  // A Line ↔ CE 549 (Pasadena)
+            "37th St/USC",              // J Line (near Jefferson/USC on E Line)
+            "Jefferson/USC"             // E Line (near 37th St/USC on J Line)
+        ];
         const stations = (await import('./stations.js')).STATIONS;
 
         for (const hubName of hubs) {
-            const hub = stations.find(s => s.name === hubName);
+            // First check STATIONS list
+            let hub = stations.find(s => s.name === hubName);
+
+            // If not in STATIONS, find it from TRANSIT_LINES
+            if (!hub) {
+                for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
+                    const station = data.stations.find(s => s.name === hubName);
+                    if (station) {
+                        hub = { ...station, line: lineName };
+                        break;
+                    }
+                }
+            }
+
             if (hub) {
                 const leg1 = getCommonLines(entryStation, hub, queryTime);
                 const leg2 = getCommonLines(hub, exitStation, queryTime);

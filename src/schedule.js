@@ -97,6 +97,11 @@ export function isLineOperating(lineName, queryTime) {
         return true;
     }
 
+    // Check for lines that are not yet operational (testing, under construction, etc.)
+    if (line.status === 'testing' || line.status === 'under_construction' || line.status === 'planned') {
+        return false;
+    }
+
     const dayType = getDayType(queryTime);
     const timeStr = formatTime(queryTime);
     const hours = line.schedule.operating_hours[dayType];
@@ -117,6 +122,17 @@ export function isLineOperating(lineName, queryTime) {
     }
 
     return false;
+}
+
+/**
+ * Get the operational status of a line
+ * @param {string} lineName - Name of the transit line
+ * @returns {'operating' | 'testing' | 'under_construction' | 'planned' | 'unknown'}
+ */
+export function getLineStatus(lineName) {
+    const line = TRANSIT_LINES[lineName];
+    if (!line) return 'unknown';
+    return line.status || 'operating';
 }
 
 /**

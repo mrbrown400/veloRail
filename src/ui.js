@@ -563,7 +563,11 @@ export function setupUI() {
     if (!routeData) return '';
 
     const getInstruction = (leg) => {
-      if (leg.mode === 'transit') return `Take ${leg.line} Line to ${leg.to.name}`;
+      if (leg.mode === 'transit') {
+        // Avoid "K Line Line" - only append "Line" if not already present
+        const lineName = leg.line.endsWith('Line') ? leg.line : `${leg.line} Line`;
+        return `Take ${lineName} to ${leg.to.name}`;
+      }
       if (leg.mode === 'bike') return `Bike to ${leg.to.name || 'Destination'}`;
       if (leg.mode === 'walk') return `Walk to ${leg.to.name || 'Destination'}`;
       if (leg.mode === 'transit_bus') return `Take Bus (or Walk) to ${leg.to.name || 'Destination'}`;

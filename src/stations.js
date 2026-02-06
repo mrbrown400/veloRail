@@ -1,27 +1,171 @@
 
-// key stations for LA Metro Rail and BRT (Orange/Silver)
-// A simplified list for the PoC
+// Key stations for LA Metro Rail, BRT, and Commuter Rail
+// Updated to reflect current 2024/2025 system with comprehensive transfer connections
 export const STATIONS = [
-    // Red/Purple Line
-    { name: "Union Station", lat: 34.0561, lon: -118.2375, lines: ["Red", "Purple", "Gold", "Silver"] },
-    { name: "7th St/Metro Center", lat: 34.0486, lon: -118.2588, lines: ["Red", "Purple", "Blue", "Expo", "Gold"] },
-    { name: "North Hollywood", lat: 34.1685, lon: -118.3765, lines: ["Red", "Orange"] },
-    { name: "Universal City/Studio City", lat: 34.1389, lon: -118.3625, lines: ["Red"] },
+    // ========== MAJOR HUBS ==========
+    { name: "Union Station", lat: 34.0561, lon: -118.2375, lines: ["Red", "Purple", "Blue", "Silver", "Foothill Silver Streak", "LAX FlyAway - Union Station", "Metrolink Ventura", "Metrolink Antelope Valley", "Metrolink San Bernardino", "Metrolink Riverside", "Metrolink Orange County", "Metrolink 91/Perris Valley", "Amtrak Pacific Surfliner"] },
+    { name: "7th St/Metro Center", lat: 34.0486, lon: -118.2588, lines: ["Red", "Purple", "Blue", "Expo", "Silver", "Foothill Silver Streak"] },
+
+    // ========== B LINE (RED) ==========
+    { name: "Civic Center/Grand Park", lat: 34.0549, lon: -118.2460, lines: ["Red", "Silver"] },
+    { name: "Pershing Square", lat: 34.0493, lon: -118.2513, lines: ["Red", "Silver"] },
+    { name: "Westlake/MacArthur Park", lat: 34.0564, lon: -118.2749, lines: ["Red"] },
+    { name: "Wilshire/Vermont", lat: 34.0617, lon: -118.2917, lines: ["Red", "Purple"] },
+    { name: "Vermont/Beverly", lat: 34.0765, lon: -118.2917, lines: ["Red"] },
+    { name: "Vermont/Santa Monica", lat: 34.0907, lon: -118.2922, lines: ["Red"] },
+    { name: "Vermont/Sunset", lat: 34.0984, lon: -118.2923, lines: ["Red"] },
+    { name: "Hollywood/Western", lat: 34.1016, lon: -118.3088, lines: ["Red"] },
+    { name: "Hollywood/Vine", lat: 34.1017, lon: -118.3253, lines: ["Red"] },
     { name: "Hollywood/Highland", lat: 34.1017, lon: -118.3389, lines: ["Red"] },
-    // Expo Line
-    { name: "Downtown Santa Monica", lat: 34.0138, lon: -118.4954, lines: ["Expo"] },
-    { name: "Culver City", lat: 34.0284, lon: -118.3887, lines: ["Expo"] },
-    { name: "USC/Jefferson", lat: 34.0219, lon: -118.2783, lines: ["Expo"] },
-    // Blue Line
-    { name: "Downtown Long Beach", lat: 33.7681, lon: -118.1929, lines: ["Blue"] },
+    { name: "Universal City/Studio City", lat: 34.1389, lon: -118.3625, lines: ["Red", "LADOT CE 422"] },
+    { name: "North Hollywood", lat: 34.1685, lon: -118.3765, lines: ["Red", "Orange"] },
+
+    // ========== D LINE (PURPLE) ==========
+    { name: "Wilshire/Normandie", lat: 34.0618, lon: -118.3014, lines: ["Purple"] },
+    { name: "Wilshire/Western", lat: 34.0618, lon: -118.3088, lines: ["Purple"] },
+
+    // ========== A LINE (BLUE) ==========
+    // Foothill Extension
+    { name: "APU/Citrus College", lat: 34.1369, lon: -117.8901, lines: ["Blue"] },
+    { name: "Azusa Downtown", lat: 34.1358, lon: -117.9061, lines: ["Blue"] },
+    { name: "Irwindale", lat: 34.1290, lon: -117.9336, lines: ["Blue"] },
+    { name: "Duarte/City of Hope", lat: 34.1326, lon: -117.9680, lines: ["Blue"] },
+    { name: "Monrovia", lat: 34.1331, lon: -118.0033, lines: ["Blue"] },
+    { name: "Arcadia", lat: 34.1425, lon: -118.0288, lines: ["Blue"] },
+    { name: "Sierra Madre Villa", lat: 34.1478, lon: -118.0813, lines: ["Blue"] },
+    { name: "Allen", lat: 34.1518, lon: -118.1132, lines: ["Blue"] },
+    { name: "Lake", lat: 34.1519, lon: -118.1324, lines: ["Blue"] },
+    { name: "Memorial Park", lat: 34.1476, lon: -118.1479, lines: ["Blue"] },
+    { name: "Del Mar", lat: 34.1426, lon: -118.1488, lines: ["Blue", "LADOT CE 549"] },
+    { name: "Fillmore", lat: 34.1331, lon: -118.1482, lines: ["Blue"] },
+    { name: "South Pasadena", lat: 34.1157, lon: -118.1573, lines: ["Blue"] },
+    { name: "Highland Park", lat: 34.1112, lon: -118.1926, lines: ["Blue"] },
+    { name: "Southwest Museum", lat: 34.0983, lon: -118.2067, lines: ["Blue"] },
+    { name: "Heritage Square", lat: 34.0871, lon: -118.2126, lines: ["Blue"] },
+    { name: "Lincoln/Cypress", lat: 34.0813, lon: -118.2199, lines: ["Blue"] },
+    { name: "Chinatown", lat: 34.0635, lon: -118.2357, lines: ["Blue"] },
+    // Shared with E Line
+    { name: "Little Tokyo/Arts District", lat: 34.0487, lon: -118.2387, lines: ["Blue", "Expo"] },
+    { name: "Pico", lat: 34.0407, lon: -118.2661, lines: ["Blue", "Expo"] },
+    // Original Blue Line south
+    { name: "Grand/LATTC", lat: 34.0332, lon: -118.2693, lines: ["Blue"] },
+    { name: "San Pedro St", lat: 34.0267, lon: -118.2555, lines: ["Blue"] },
+    { name: "Washington", lat: 34.0196, lon: -118.2430, lines: ["Blue"] },
+    { name: "Vernon", lat: 34.0040, lon: -118.2429, lines: ["Blue"] },
+    { name: "Slauson", lat: 33.9892, lon: -118.2428, lines: ["Blue"] },
+    { name: "Florence", lat: 33.9745, lon: -118.2427, lines: ["Blue"] },
+    { name: "Firestone", lat: 33.9596, lon: -118.2426, lines: ["Blue"] },
+    { name: "103rd St/Watts Towers", lat: 33.9427, lon: -118.2425, lines: ["Blue"] },
     { name: "Willowbrook/Rosa Parks", lat: 33.9281, lon: -118.2384, lines: ["Blue", "Green"] },
-    // Gold Line
-    { name: "APU/Citrus College", lat: 34.1362, lon: -117.8926, lines: ["Gold"] },
-    { name: "Pasadena (Del Mar)", lat: 34.1432, lon: -118.1481, lines: ["Gold"] },
-    // Orange Line (BRT)
-    { name: "Chatsworth", lat: 34.2569, lon: -118.5986, lines: ["Orange"] },
-    { name: "Van Nuys", lat: 34.1849, lon: -118.4485, lines: ["Orange"] },
-    // Silver Line (BRT)
-    { name: "El Monte", lat: 34.0734, lon: -118.0465, lines: ["Silver"] },
-    { name: "Harbor Gateway", lat: 33.8967, lon: -118.2831, lines: ["Silver"] }
+    { name: "Compton", lat: 33.8959, lon: -118.2242, lines: ["Blue"] },
+    { name: "Artesia", lat: 33.8760, lon: -118.2215, lines: ["Blue"] },
+    { name: "Del Amo", lat: 33.8471, lon: -118.2111, lines: ["Blue"] },
+    { name: "Wardlow", lat: 33.8188, lon: -118.1963, lines: ["Blue"] },
+    { name: "Willow St", lat: 33.8055, lon: -118.1889, lines: ["Blue"] },
+    { name: "PCH", lat: 33.7892, lon: -118.1895, lines: ["Blue"] },
+    { name: "Anaheim St", lat: 33.7820, lon: -118.1893, lines: ["Blue"] },
+    { name: "5th St", lat: 33.7725, lon: -118.1903, lines: ["Blue"] },
+    { name: "1st St", lat: 33.7686, lon: -118.1901, lines: ["Blue"] },
+    { name: "Downtown Long Beach", lat: 33.7681, lon: -118.1929, lines: ["Blue"] },
+
+    // ========== E LINE (EXPO) ==========
+    // Eastside Extension
+    { name: "Atlantic", lat: 34.0334, lon: -118.1540, lines: ["Expo"] },
+    { name: "East LA Civic Center", lat: 34.0332, lon: -118.1614, lines: ["Expo"] },
+    { name: "Maravilla", lat: 34.0331, lon: -118.1684, lines: ["Expo"] },
+    { name: "Indiana", lat: 34.0343, lon: -118.1922, lines: ["Expo"] },
+    { name: "Soto", lat: 34.0440, lon: -118.2106, lines: ["Expo"] },
+    { name: "Mariachi Plaza", lat: 34.0473, lon: -118.2198, lines: ["Expo"] },
+    { name: "Pico/Aliso", lat: 34.0478, lon: -118.2262, lines: ["Expo"] },
+    // Original Expo Line west
+    { name: "LATTC/Ortho Inst", lat: 34.0298, lon: -118.2737, lines: ["Expo"] },
+    { name: "Jefferson/USC", lat: 34.0219, lon: -118.2783, lines: ["Expo", "Silver"] },
+    { name: "Expo Park/USC", lat: 34.0182, lon: -118.2861, lines: ["Expo"] },
+    { name: "Expo/Vermont", lat: 34.0182, lon: -118.2915, lines: ["Expo"] },
+    { name: "Expo/Western", lat: 34.0183, lon: -118.3090, lines: ["Expo"] },
+    { name: "Expo/Crenshaw", lat: 34.0223, lon: -118.3353, lines: ["Expo", "K Line"] },
+    { name: "Farmdale", lat: 34.0239, lon: -118.3562, lines: ["Expo"] },
+    { name: "Expo/La Brea", lat: 34.0253, lon: -118.3634, lines: ["Expo"] },
+    { name: "La Cienega/Jefferson", lat: 34.0267, lon: -118.3734, lines: ["Expo"] },
+    { name: "Culver City", lat: 34.0284, lon: -118.3887, lines: ["Expo", "LADOT CE 437"] },
+    { name: "Palms", lat: 34.0291, lon: -118.4116, lines: ["Expo"] },
+    { name: "Westwood/Rancho Park", lat: 34.0371, lon: -118.4239, lines: ["Expo"] },
+    { name: "Expo/Sepulveda", lat: 34.0368, lon: -118.4395, lines: ["Expo"] },
+    { name: "Expo/Bundy", lat: 34.0315, lon: -118.4533, lines: ["Expo"] },
+    { name: "26th St/Bergamot", lat: 34.0280, lon: -118.4699, lines: ["Expo"] },
+    { name: "17th St/SMC", lat: 34.0232, lon: -118.4812, lines: ["Expo"] },
+    { name: "Downtown Santa Monica", lat: 34.0138, lon: -118.4954, lines: ["Expo"] },
+
+    // ========== C LINE (GREEN) ==========
+    { name: "Norwalk", lat: 33.9008, lon: -118.0827, lines: ["Green"] },
+    { name: "Lakewood Blvd", lat: 33.9160, lon: -118.1180, lines: ["Green"] },
+    { name: "Long Beach Blvd", lat: 33.9238, lon: -118.1884, lines: ["Green"] },
+    { name: "Avalon", lat: 33.9272, lon: -118.2294, lines: ["Green"] },
+    { name: "Harbor Freeway", lat: 33.9287, lon: -118.2891, lines: ["Green", "Silver"] },
+    { name: "Vermont/Athens", lat: 33.9290, lon: -118.2917, lines: ["Green"] },
+    { name: "Crenshaw", lat: 33.9294, lon: -118.3308, lines: ["Green"] },
+    { name: "Hawthorne/Lennox", lat: 33.9268, lon: -118.3582, lines: ["Green"] },
+    { name: "Aviation/LAX", lat: 33.9312, lon: -118.3887, lines: ["Green"] },
+    { name: "Mariposa", lat: 33.9218, lon: -118.3879, lines: ["Green"] },
+    { name: "El Segundo", lat: 33.9160, lon: -118.3870, lines: ["Green"] },
+    { name: "Douglas", lat: 33.9056, lon: -118.3862, lines: ["Green", "LADOT CE 439"] },
+    { name: "Redondo Beach", lat: 33.8936, lon: -118.3698, lines: ["Green"] },
+
+    // ========== K LINE (CRENSHAW/LAX) ==========
+    { name: "Martin Luther King Jr.", lat: 34.0101, lon: -118.3353, lines: ["K Line"] },
+    { name: "Leimert Park", lat: 34.0046, lon: -118.3328, lines: ["K Line"] },
+    { name: "Hyde Park", lat: 33.9882, lon: -118.3323, lines: ["K Line"] },
+    { name: "Fairview Heights", lat: 33.9740, lon: -118.3356, lines: ["K Line"] },
+    { name: "Downtown Inglewood", lat: 33.9618, lon: -118.3508, lines: ["K Line"] },
+    { name: "Westchester/Veterans", lat: 33.9452, lon: -118.3689, lines: ["K Line"] },
+    { name: "Aviation/Century", lat: 33.9312, lon: -118.3887, lines: ["K Line", "Green"] },
+    { name: "LAX Transit Center", lat: 33.9425, lon: -118.3890, lines: ["K Line", "LAX FlyAway - Union Station", "LAX FlyAway - Van Nuys", "LAX People Mover"] },
+
+    // ========== G LINE (ORANGE BRT) ==========
+    { name: "Laurel Canyon", lat: 34.1706, lon: -118.3965, lines: ["Orange"] },
+    { name: "Valley College", lat: 34.1738, lon: -118.4180, lines: ["Orange"] },
+    { name: "Woodman", lat: 34.1770, lon: -118.4385, lines: ["Orange"] },
+    { name: "Van Nuys", lat: 34.1849, lon: -118.4485, lines: ["Orange", "Metrolink Ventura", "Amtrak Pacific Surfliner"] },
+    { name: "Sepulveda", lat: 34.1873, lon: -118.4674, lines: ["Orange"] },
+    { name: "Woodley", lat: 34.1876, lon: -118.4811, lines: ["Orange"] },
+    { name: "Balboa", lat: 34.1895, lon: -118.5028, lines: ["Orange"] },
+    { name: "Reseda", lat: 34.1915, lon: -118.5367, lines: ["Orange"] },
+    { name: "Tampa", lat: 34.1917, lon: -118.5539, lines: ["Orange"] },
+    { name: "Pierce College", lat: 34.1892, lon: -118.5714, lines: ["Orange"] },
+    { name: "De Soto", lat: 34.1856, lon: -118.5888, lines: ["Orange"] },
+    { name: "Canoga", lat: 34.1904, lon: -118.5975, lines: ["Orange"] },
+    { name: "Warner Center", lat: 34.1918, lon: -118.6053, lines: ["Orange", "LADOT CE 422"] },
+    { name: "Chatsworth", lat: 34.2569, lon: -118.5986, lines: ["Orange", "Metrolink Ventura", "Amtrak Pacific Surfliner"] },
+
+    // ========== J LINE (SILVER BRT) ==========
+    { name: "El Monte", lat: 34.0734, lon: -118.0465, lines: ["Silver", "Metrolink San Bernardino"] },
+    { name: "Cal State LA", lat: 34.0620, lon: -118.1705, lines: ["Silver", "Metrolink San Bernardino"] },
+    { name: "LAC+USC Medical Center", lat: 34.0583, lon: -118.2095, lines: ["Silver"] },
+    { name: "37th St/USC", lat: 34.0207, lon: -118.2773, lines: ["Silver"] },
+    { name: "Manchester", lat: 33.9603, lon: -118.2783, lines: ["Silver"] },
+    { name: "Rosecrans", lat: 33.9038, lon: -118.2842, lines: ["Silver"] },
+    { name: "Harbor Gateway", lat: 33.8967, lon: -118.2831, lines: ["Silver", "LADOT CE 438"] },
+    { name: "Carson", lat: 33.8340, lon: -118.2618, lines: ["Silver"] },
+
+    // ========== METROLINK TRANSFER STATIONS ==========
+    { name: "Burbank Downtown", lat: 34.1808, lon: -118.3089, lines: ["Metrolink Ventura", "Metrolink Antelope Valley"] },
+    { name: "Burbank Airport North", lat: 34.1967, lon: -118.3556, lines: ["Metrolink Ventura", "Metrolink Antelope Valley", "Amtrak Pacific Surfliner"] },
+    { name: "Glendale", lat: 34.1478, lon: -118.2553, lines: ["Metrolink Ventura", "Metrolink Antelope Valley", "Amtrak Pacific Surfliner"] },
+    { name: "Commerce", lat: 34.0003, lon: -118.1597, lines: ["Metrolink San Bernardino", "Metrolink Riverside", "Metrolink Orange County", "Metrolink 91/Perris Valley", "Amtrak Pacific Surfliner"] },
+    { name: "Norwalk/Santa Fe Springs", lat: 33.9056, lon: -118.0681, lines: ["Metrolink Riverside", "Metrolink Orange County", "Metrolink 91/Perris Valley", "Amtrak Pacific Surfliner"] },
+    { name: "Fullerton", lat: 33.8703, lon: -117.9253, lines: ["Metrolink Riverside", "Metrolink Orange County", "Metrolink 91/Perris Valley", "Amtrak Pacific Surfliner"] },
+    { name: "Buena Park", lat: 33.8486, lon: -117.9944, lines: ["Metrolink Riverside", "Metrolink Orange County", "Metrolink 91/Perris Valley", "Amtrak Pacific Surfliner"] },
+    { name: "Anaheim", lat: 33.8328, lon: -117.9139, lines: ["Metrolink Orange County", "Amtrak Pacific Surfliner"] },
+    { name: "Orange", lat: 33.8044, lon: -117.8533, lines: ["Metrolink Riverside", "Metrolink Orange County", "Amtrak Pacific Surfliner"] },
+    { name: "Santa Ana", lat: 33.7456, lon: -117.8689, lines: ["Metrolink Riverside", "Metrolink Orange County", "Amtrak Pacific Surfliner"] },
+    { name: "Tustin", lat: 33.7339, lon: -117.8253, lines: ["Metrolink Riverside", "Metrolink Orange County"] },
+    { name: "Irvine", lat: 33.6569, lon: -117.7378, lines: ["Metrolink Riverside", "Metrolink Orange County", "Amtrak Pacific Surfliner"] },
+    { name: "Riverside Downtown", lat: 33.9781, lon: -117.3764, lines: ["Metrolink Riverside", "Metrolink 91/Perris Valley"] },
+    { name: "Riverside La Sierra", lat: 33.9375, lon: -117.4558, lines: ["Metrolink Riverside", "Metrolink 91/Perris Valley"] },
+    { name: "Corona North Main", lat: 33.8911, lon: -117.5628, lines: ["Metrolink Riverside", "Metrolink 91/Perris Valley"] },
+    { name: "Corona West", lat: 33.8669, lon: -117.5989, lines: ["Metrolink Riverside", "Metrolink 91/Perris Valley"] },
+
+    // ========== COMMUTER EXPRESS TRANSFER POINTS ==========
+    { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988, lines: ["LADOT CE 423", "LADOT CE 549", "LADOT CE 573", "LADOT CE 574"] },
+    { name: "Van Nuys FlyAway Terminal", lat: 34.1935, lon: -118.4702, lines: ["LAX FlyAway - Van Nuys"] }
 ];
