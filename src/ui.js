@@ -4,6 +4,7 @@ import { drawRoute, toggleLayerGroup, invalidateMapSize, refreshTransitMap, show
 import { requestGeolocation, getCurrentLocationState } from './geolocation.js';
 import { toggleBikeOverlay } from './bike_network.js';
 import { trackVehicle, untrackVehicle, onVehicleUpdate, hasVehiclePositions, getTrackedVehiclePosition } from './realtime/realtime_store.js';
+import { searchPlaces, getPlaceIcon, debounce } from './geocoding.js';
 
 // UI State
 let uiState = {
@@ -21,7 +22,15 @@ let uiState = {
   },
   // Vehicle tracking
   trackedTransitLeg: null,    // Current transit leg being tracked
-  vehicleUnsubscribe: null    // Cleanup function for vehicle updates
+  vehicleUnsubscribe: null,   // Cleanup function for vehicle updates
+  // Autocomplete state
+  autocomplete: {
+    activeInput: null,        // Currently focused input element
+    activeDropdown: null,     // Currently active dropdown element
+    highlightedIndex: -1,     // Currently highlighted item index
+    results: [],              // Current search results
+    selectedPlace: null       // Selected place with coordinates
+  }
 };
 
 export function setupUI() {
@@ -83,6 +92,10 @@ export function setupUI() {
   if (closeSidebarBtn) {
     closeSidebarBtn.addEventListener('click', hideResultsSidebar);
   }
+
+  // Setup autocomplete for destination inputs
+  setupAutocomplete(endInput, document.getElementById('end-dropdown'));
+  setupAutocomplete(endInputExpanded, document.getElementById('end-expanded-dropdown'));
 
   // --- Geolocation ---
 
@@ -410,6 +423,19 @@ export function setupUI() {
       return;
     }
 
+    // Use selected place coordinates if available, otherwise use text for geocoding
+    let endValue;
+    if (uiState.autocomplete.selectedPlace) {
+      // Use coordinates directly from autocomplete selection
+      endValue = {
+        lat: uiState.autocomplete.selectedPlace.lat,
+        lon: uiState.autocomplete.selectedPlace.lon
+      };
+    } else {
+      // Fall back to text-based geocoding
+      endValue = destinationValue;
+    }
+
     // Determine start location
     let startValue;
     if (uiState.mode === 'collapsed') {
@@ -442,7 +468,7 @@ export function setupUI() {
       const safetyPreference = safetySelect ? safetySelect.value : 'balanced';
       const modeFilter = modeSelect ? modeSelect.value : 'all';
       const departureTime = getDepartureTime();
-      const comparisonResults = await compareRoutes(startValue, destinationValue, safetyPreference, modeFilter, departureTime);
+      const comparisonResults = await compareRoutes(startValue, endValue, safetyPreference, modeFilter, departureTime);
 
       // Expand search UI if not already
       if (!uiState.hasSearched && uiState.mode === 'collapsed') {
@@ -620,5 +646,219 @@ export function setupUI() {
     if (mode === 'transit_bus') return '🚌';
     if (mode === 'walk') return '🚶';
     return '📍';
+  }
+
+  // --- Autocomplete ---
+
+  function setupAutocomplete(inputEl, dropdownEl) {
+    if (!inputEl || !dropdownEl) return;
+
+    // Create debounced search function
+    const debouncedSearch = debounce(async (query, signal) => {
+      return await searchPlaces(query, { limit: 5 }, signal);
+    }, 300);
+
+    // Input event - trigger search
+    inputEl.addEventListener('input', async (e) => {
+      const query = e.target.value.trim();
+
+      // Clear selected place when user types
+      if (uiState.autocomplete.selectedPlace &&
+          uiState.autocomplete.activeInput === inputEl) {
+        uiState.autocomplete.selectedPlace = null;
+      }
+
+      // Minimum 2 characters to search
+      if (query.length < 2) {
+        hideDropdown(dropdownEl);
+        return;
+      }
+
+      // Show loading state
+      showLoading(dropdownEl);
+
+      try {
+        const results = await debouncedSearch(query);
+
+        // Store results in state
+        uiState.autocomplete.results = results;
+        uiState.autocomplete.highlightedIndex = -1;
+
+        if (results.length === 0) {
+          showNoResults(dropdownEl);
+        } else {
+          renderResults(dropdownEl, results);
+        }
+      } catch (error) {
+        console.error('Autocomplete error:', error);
+        showError(dropdownEl);
+      }
+    });
+
+    // Focus event - show dropdown if there are results
+    inputEl.addEventListener('focus', () => {
+      uiState.autocomplete.activeInput = inputEl;
+      uiState.autocomplete.activeDropdown = dropdownEl;
+
+      // Show existing results if any
+      if (uiState.autocomplete.results.length > 0 && inputEl.value.length >= 2) {
+        renderResults(dropdownEl, uiState.autocomplete.results);
+      }
+    });
+
+    // Blur event - hide dropdown (with delay for click handling)
+    inputEl.addEventListener('blur', () => {
+      setTimeout(() => {
+        hideDropdown(dropdownEl);
+      }, 200);
+    });
+
+    // Keyboard navigation
+    inputEl.addEventListener('keydown', (e) => {
+      const results = uiState.autocomplete.results;
+      let idx = uiState.autocomplete.highlightedIndex;
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          idx = Math.min(idx + 1, results.length - 1);
+          uiState.autocomplete.highlightedIndex = idx;
+          updateHighlight(dropdownEl, idx);
+          break;
+
+        case 'ArrowUp':
+          e.preventDefault();
+          idx = Math.max(idx - 1, -1);
+          uiState.autocomplete.highlightedIndex = idx;
+          updateHighlight(dropdownEl, idx);
+          break;
+
+        case 'Enter':
+          if (idx >= 0 && idx < results.length) {
+            e.preventDefault();
+            selectPlace(inputEl, dropdownEl, results[idx]);
+          }
+          break;
+
+        case 'Escape':
+          e.preventDefault();
+          hideDropdown(dropdownEl);
+          inputEl.blur();
+          break;
+
+        case 'Tab':
+          if (idx >= 0 && idx < results.length) {
+            selectPlace(inputEl, dropdownEl, results[idx]);
+          }
+          break;
+      }
+    });
+
+    // Click handler for dropdown items (using event delegation)
+    dropdownEl.addEventListener('mousedown', (e) => {
+      const item = e.target.closest('.autocomplete-item');
+      if (item) {
+        e.preventDefault();
+        const idx = parseInt(item.dataset.index, 10);
+        const place = uiState.autocomplete.results[idx];
+        if (place) {
+          selectPlace(inputEl, dropdownEl, place);
+        }
+      }
+    });
+  }
+
+  function selectPlace(inputEl, dropdownEl, place) {
+    // Build display name
+    const displayName = place.address
+      ? `${place.name}, ${place.address}`
+      : place.name;
+
+    // Update input value
+    inputEl.value = displayName;
+
+    // Store selected place with coordinates
+    uiState.autocomplete.selectedPlace = {
+      name: displayName,
+      lat: place.lat,
+      lon: place.lon
+    };
+
+    // Clear results and hide dropdown
+    uiState.autocomplete.results = [];
+    uiState.autocomplete.highlightedIndex = -1;
+    hideDropdown(dropdownEl);
+
+    // Sync value to the other destination input if needed
+    syncDestinationInputs(inputEl.id, displayName);
+  }
+
+  function syncDestinationInputs(sourceId, value) {
+    // Keep both destination inputs in sync
+    if (sourceId === 'end') {
+      endInputExpanded.value = value;
+    } else if (sourceId === 'end-expanded') {
+      endInput.value = value;
+    }
+  }
+
+  function showLoading(dropdownEl) {
+    dropdownEl.innerHTML = `
+      <div class="autocomplete-loading">Searching...</div>
+    `;
+    dropdownEl.classList.add('visible');
+  }
+
+  function showNoResults(dropdownEl) {
+    dropdownEl.innerHTML = `
+      <div class="autocomplete-no-results">No results found</div>
+    `;
+    dropdownEl.classList.add('visible');
+  }
+
+  function showError(dropdownEl) {
+    dropdownEl.innerHTML = `
+      <div class="autocomplete-error">Search failed. Try again.</div>
+    `;
+    dropdownEl.classList.add('visible');
+  }
+
+  function hideDropdown(dropdownEl) {
+    dropdownEl.classList.remove('visible');
+  }
+
+  function renderResults(dropdownEl, results) {
+    dropdownEl.innerHTML = results.map((place, index) => `
+      <div class="autocomplete-item" data-index="${index}" data-lat="${place.lat}" data-lon="${place.lon}">
+        <span class="item-icon">${getPlaceIcon(place.type)}</span>
+        <div class="item-text">
+          <span class="item-name">${escapeHtml(place.name)}</span>
+          <span class="item-address">${escapeHtml(place.address)}</span>
+        </div>
+      </div>
+    `).join('');
+    dropdownEl.classList.add('visible');
+  }
+
+  function updateHighlight(dropdownEl, idx) {
+    const items = dropdownEl.querySelectorAll('.autocomplete-item');
+    items.forEach((item, i) => {
+      item.classList.toggle('highlighted', i === idx);
+    });
+
+    // Scroll highlighted item into view
+    if (idx >= 0 && items[idx]) {
+      items[idx].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 }
