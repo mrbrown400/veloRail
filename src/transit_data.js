@@ -5,6 +5,7 @@
 export const TRANSIT_LINES = {
     "Red": { // B Line
         color: "#E31837",
+        gtfsRouteId: "802", // LA Metro GTFS route_id for B Line
         schedule: {
             type: "rail",
             frequency_peak: 6,
@@ -34,6 +35,7 @@ export const TRANSIT_LINES = {
     },
     "Purple": { // D Line
         color: "#A05DA5",
+        gtfsRouteId: "805", // LA Metro GTFS route_id for D Line
         schedule: {
             type: "rail",
             frequency_peak: 6,
@@ -54,6 +56,7 @@ export const TRANSIT_LINES = {
     },
     "Blue": { // A Line (Long Beach to Azusa)
         color: "#0072CE",
+        gtfsRouteId: "801", // LA Metro GTFS route_id for A Line
         schedule: {
             type: "rail",
             frequency_peak: 6,
@@ -113,6 +116,7 @@ export const TRANSIT_LINES = {
     },
     "Expo": { // E Line (Santa Monica to East LA)
         color: "#EAC71B",
+        gtfsRouteId: "804", // LA Metro GTFS route_id for E Line
         schedule: {
             type: "rail",
             frequency_peak: 6,
@@ -157,6 +161,7 @@ export const TRANSIT_LINES = {
     },
     "Green": { // C Line (Norwalk to Redondo Beach/K Line)
         color: "#58A738",
+        gtfsRouteId: "803", // LA Metro GTFS route_id for C Line
         schedule: {
             type: "rail",
             frequency_peak: 8,
@@ -186,6 +191,7 @@ export const TRANSIT_LINES = {
     },
     "K Line": { // Crenshaw/LAX
         color: "#E56DB1", // Pinkish
+        gtfsRouteId: "807", // LA Metro GTFS route_id for K Line
         schedule: {
             type: "rail",
             frequency_peak: 8,

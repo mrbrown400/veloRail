@@ -371,7 +371,6 @@ export function setupUI() {
       : position.currentStatus === 'INCOMING_AT' ? 'arriving at station'
       : 'in transit';
 
-    const vehicleLabel = position.label || position.vehicleId || '';
     const lineInfo = transitLeg.line ? `${transitLeg.line} Line` : 'Your train';
 
     // Calculate stops away if we have stop sequence info
@@ -391,7 +390,7 @@ export function setupUI() {
         <span class="tracking-label">Live Tracking</span>
       </div>
       <div class="vehicle-tracking-info">
-        <strong>${lineInfo}</strong> ${vehicleLabel ? `(${vehicleLabel})` : ''}
+        <strong>${lineInfo}</strong>
         <span class="vehicle-status-text">${statusText}</span>
         ${stopsAwayText}
       </div>

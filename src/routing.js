@@ -85,6 +85,7 @@ function getCommonLines(s1, s2, departureTime = null) {
             routes.push({
                 line: lineName,
                 color: data.color,
+                gtfsRouteId: data.gtfsRouteId || null,
                 segment: segment
             });
         }
@@ -308,6 +309,7 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
             legs.push({
                 mode: 'transit',
                 line: bestTransit.line,
+                routeId: bestTransit.gtfsRouteId || null,
                 color: bestTransit.color,
                 from: entryStation,
                 to: exitStation,
@@ -324,23 +326,6 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
             const { hub, leg1, leg2 } = transitPlan;
             console.log(`Routing transit transfer: ${entryStation.name} -> ${hub.name} -> ${exitStation.name}`);
 
-            // Build full station list from both segments
-            // leg1.segment goes from entry to hub, leg2.segment goes from hub to exit
-            // Avoid duplicating the hub station
-            const allStations = [...leg1.segment];
-            // Add leg2 stations, skipping the first one if it's the hub (to avoid duplicate)
-            const leg2StationsToAdd = leg2.segment[0].name === hub.name ? leg2.segment.slice(1) : leg2.segment;
-            allStations.push(...leg2StationsToAdd);
-
-            // Build coordinates from all stations
-            const transitCoordinates = allStations.map(s => [s.lon, s.lat]);
-
-            // Calculate actual distance along the route
-            let transitDistance = 0;
-            for (let i = 0; i < allStations.length - 1; i++) {
-                transitDistance += getDistance(allStations[i].lat, allStations[i].lon, allStations[i + 1].lat, allStations[i + 1].lon);
-            }
-
             const avgSpeedKmh = 35;
 
             // Calculate when user arrives at first station
@@ -350,37 +335,69 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
             // Get actual departure for first leg
             const departureInfo1 = await getNextDeparture(leg1.line, arrivalAtEntry, entryStation.name);
 
-            // Calculate arrival at hub (travel time for leg1)
+            // Calculate leg1 distance and duration
             let leg1Distance = 0;
             for (let i = 0; i < leg1.segment.length - 1; i++) {
                 leg1Distance += getDistance(leg1.segment[i].lat, leg1.segment[i].lon, leg1.segment[i + 1].lat, leg1.segment[i + 1].lon);
             }
             const leg1TravelTime = (leg1Distance / avgSpeedKmh) * 3600;
+            const leg1Coordinates = leg1.segment.map(s => [s.lon, s.lat]);
+
+            // First transit leg: entry station → hub
+            legs.push({
+                mode: 'transit',
+                line: leg1.line,
+                routeId: leg1.gtfsRouteId || null,
+                color: leg1.color,
+                from: entryStation,
+                to: hub,
+                geometry: {
+                    type: "LineString",
+                    coordinates: leg1Coordinates
+                },
+                distance: leg1Distance,
+                duration: leg1TravelTime + departureInfo1.waitSeconds,
+                waitTime: departureInfo1.waitSeconds,
+                departureTime: departureInfo1.departureTime || null,
+                headsign: departureInfo1.headsign || null,
+                isRealtimeSchedule: !departureInfo1.isEstimate,
+                stations: leg1.segment
+            });
+
+            // Calculate arrival at hub
             const arrivalAtHub = new Date(arrivalAtEntry.getTime() + (departureInfo1.waitSeconds + leg1TravelTime) * 1000);
 
             // Get actual departure for second leg from hub
             const departureInfo2 = await getNextDeparture(leg2.line, arrivalAtHub, hub.name);
 
-            const totalWaitTime = departureInfo1.waitSeconds + departureInfo2.waitSeconds;
-            const transitDuration = (transitDistance / avgSpeedKmh) * 3600 + totalWaitTime;
+            // Calculate leg2 distance and duration
+            let leg2Distance = 0;
+            for (let i = 0; i < leg2.segment.length - 1; i++) {
+                leg2Distance += getDistance(leg2.segment[i].lat, leg2.segment[i].lon, leg2.segment[i + 1].lat, leg2.segment[i + 1].lon);
+            }
+            const leg2TravelTime = (leg2Distance / avgSpeedKmh) * 3600;
+            const leg2Coordinates = leg2.segment.map(s => [s.lon, s.lat]);
 
+            // Second transit leg: hub → exit station
             legs.push({
                 mode: 'transit',
-                line: `${leg1.line} / ${leg2.line}`,
-                color: leg1.color, // Use first leg color
-                from: entryStation,
+                line: leg2.line,
+                routeId: leg2.gtfsRouteId || null,
+                color: leg2.color,
+                from: hub,
                 to: exitStation,
                 geometry: {
                     type: "LineString",
-                    coordinates: transitCoordinates
+                    coordinates: leg2Coordinates
                 },
-                distance: transitDistance,
-                duration: transitDuration,
-                waitTime: totalWaitTime,
-                departureTime: departureInfo1.departureTime || null,
-                headsign: departureInfo1.headsign || null,
-                isRealtimeSchedule: !departureInfo1.isEstimate && !departureInfo2.isEstimate,
-                stations: allStations
+                distance: leg2Distance,
+                duration: leg2TravelTime + departureInfo2.waitSeconds,
+                waitTime: departureInfo2.waitSeconds,
+                departureTime: departureInfo2.departureTime || null,
+                headsign: departureInfo2.headsign || null,
+                isRealtimeSchedule: !departureInfo2.isEstimate,
+                stations: leg2.segment,
+                isTransfer: true // Mark as transfer leg for UI
             });
         }
 
