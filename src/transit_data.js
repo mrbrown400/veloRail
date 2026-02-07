@@ -544,7 +544,7 @@ export const TRANSIT_LINES = {
     },
 
     // LAX FlyAway Bus Service
-    // Routes simplified to origin + LAX arrival area (OSRM handles road routing)
+    // Routes include freeway waypoints for accurate path display
     "LAX FlyAway - Union Station": {
         color: "#00629B", // FlyAway blue
         gtfsRouteId: null, // Operated by LAWA, separate from Metro GTFS
@@ -560,7 +560,16 @@ export const TRANSIT_LINES = {
         },
         stations: [
             { name: "Union Station", lat: 34.0561, lon: -118.2375 },
-            // Route follows I-10 W → I-110 S → I-105 W → Sepulveda
+            // Route follows US-101 S → I-110 S → I-105 W → Sepulveda
+            { name: "I-110 at US-101", lat: 34.0515, lon: -118.2560, waypoint: true },
+            { name: "I-110 at I-10", lat: 34.0420, lon: -118.2680, waypoint: true },
+            { name: "I-110 at Adams", lat: 34.0180, lon: -118.2740, waypoint: true },
+            { name: "I-110 at Florence", lat: 33.9720, lon: -118.2770, waypoint: true },
+            { name: "I-110/I-105 Interchange", lat: 33.9300, lon: -118.2770, waypoint: true },
+            { name: "I-105 at Crenshaw", lat: 33.9300, lon: -118.3300, waypoint: true },
+            { name: "I-105 at La Cienega", lat: 33.9300, lon: -118.3700, waypoint: true },
+            { name: "I-105 at Sepulveda", lat: 33.9300, lon: -118.3950, waypoint: true },
+            { name: "LAX Transit Center", lat: 33.9425, lon: -118.3890 },
             { name: "LAX Terminals", lat: 33.9425, lon: -118.4020 }
         ]
     },
@@ -580,6 +589,17 @@ export const TRANSIT_LINES = {
         stations: [
             { name: "Van Nuys FlyAway Terminal", lat: 34.1935, lon: -118.4702 },
             // Route follows I-405 S to LAX
+            { name: "I-405 at Burbank Blvd", lat: 34.1720, lon: -118.4670, waypoint: true },
+            { name: "I-405 at Ventura Blvd", lat: 34.1500, lon: -118.4700, waypoint: true },
+            { name: "I-405 at Mulholland Dr", lat: 34.1280, lon: -118.4720, waypoint: true },
+            { name: "I-405 at Getty Center", lat: 34.0850, lon: -118.4750, waypoint: true },
+            { name: "I-405 at Wilshire", lat: 34.0500, lon: -118.4650, waypoint: true },
+            { name: "I-405 at Santa Monica Blvd", lat: 34.0350, lon: -118.4550, waypoint: true },
+            { name: "I-405 at I-10", lat: 34.0250, lon: -118.4480, waypoint: true },
+            { name: "I-405 at Culver Blvd", lat: 33.9950, lon: -118.4300, waypoint: true },
+            { name: "I-405 at Howard Hughes", lat: 33.9700, lon: -118.4150, waypoint: true },
+            { name: "I-405 at El Segundo", lat: 33.9350, lon: -118.3980, waypoint: true },
+            { name: "LAX Transit Center", lat: 33.9425, lon: -118.3890 },
             { name: "LAX Terminals", lat: 33.9425, lon: -118.4020 }
         ]
     },
@@ -614,7 +634,8 @@ export const TRANSIT_LINES = {
     // ========== FUTURE TRANSIT LINES ==========
 
     // Sepulveda Transit Corridor - LPA Approved Jan 2026
-    // Automated heavy rail, fully tunneled (single-bore), ~13 miles, 7 stations
+    // Automated heavy rail, fully tunneled (single-bore), ~13 miles, 8 stations
+    // Source: https://www.metro.net/projects/sepulvedacorridor/
     "Sepulveda Transit Corridor": {
         color: "#FF6B00", // Placeholder orange - TBD by Metro
         gtfsRouteId: null,
@@ -631,13 +652,14 @@ export const TRANSIT_LINES = {
             }
         },
         stations: [
-            { name: "Van Nuys Metrolink", lat: 34.1897, lon: -118.4495, note: "Transfer to Metrolink" },
+            { name: "Van Nuys Metrolink", lat: 34.1897, lon: -118.4495, note: "Northern terminus - Transfer to Metrolink" },
+            { name: "Sherman Way", lat: 34.2010, lon: -118.4489, note: "Underground station" },
             { name: "Van Nuys", lat: 34.1849, lon: -118.4485, note: "Transfer to G Line & East SFV LRT" },
             { name: "Ventura Blvd", lat: 34.1430, lon: -118.4500 },
             { name: "UCLA Gateway Plaza", lat: 34.0705, lon: -118.4440 },
             { name: "Westwood/UCLA", lat: 34.0630, lon: -118.4450, note: "Transfer to D Line Extension" },
             { name: "Santa Monica Blvd", lat: 34.0450, lon: -118.4420 },
-            { name: "Expo/Sepulveda", lat: 34.0368, lon: -118.4395, note: "Transfer to E Line" }
+            { name: "Expo/Sepulveda", lat: 34.0368, lon: -118.4395, note: "Southern terminus - Transfer to E Line" }
         ]
     },
 
@@ -666,7 +688,9 @@ export const TRANSIT_LINES = {
     },
 
     // East San Fernando Valley Light Rail - Under Construction
-    // At-grade light rail in Van Nuys Blvd median
+    // At-grade light rail in Van Nuys Blvd median, 6.7 miles, 11 stations
+    // Interlined with Sepulveda Transit Corridor from Van Nuys to Van Nuys Metrolink
+    // Source: https://www.metro.net/projects/east-sfv/
     "East San Fernando Valley": {
         color: "#FDB913", // Gold/yellow placeholder
         gtfsRouteId: null,
@@ -683,17 +707,17 @@ export const TRANSIT_LINES = {
             }
         },
         stations: [
+            // Southern terminus at G Line, ordered south to north
             { name: "Van Nuys", lat: 34.1849, lon: -118.4485, note: "Transfer to G Line & Sepulveda Transit Corridor" },
-            { name: "Van Nuys Blvd/Victory", lat: 34.1750, lon: -118.4489 },
-            { name: "Van Nuys Blvd/Vanowen", lat: 34.1930, lon: -118.4489 },
-            { name: "Van Nuys Blvd/Sherman Way", lat: 34.2010, lon: -118.4489 },
-            { name: "Van Nuys Blvd/Roscoe", lat: 34.2210, lon: -118.4489 },
+            { name: "Van Nuys Metrolink", lat: 34.1897, lon: -118.4495, note: "Interlined with Sepulveda - Transfer to Metrolink" },
+            { name: "Sherman Way", lat: 34.2010, lon: -118.4489, note: "Interlined with Sepulveda" },
+            { name: "Roscoe Blvd", lat: 34.2210, lon: -118.4489 },
             { name: "Panorama City", lat: 34.2260, lon: -118.4489 },
-            { name: "Van Nuys Blvd/Nordhoff", lat: 34.2350, lon: -118.4489 },
-            { name: "Van Nuys Blvd/San Fernando", lat: 34.2550, lon: -118.4489 },
+            { name: "Nordhoff St", lat: 34.2350, lon: -118.4489 },
+            { name: "San Fernando Rd", lat: 34.2550, lon: -118.4489 },
             { name: "Sylmar/San Fernando", lat: 34.2700, lon: -118.4489 },
             { name: "Pacoima", lat: 34.2760, lon: -118.4300 },
-            { name: "Sylmar Metrolink", lat: 34.2830, lon: -118.4120, note: "Transfer to Metrolink" }
+            { name: "Sylmar Metrolink", lat: 34.2830, lon: -118.4120, note: "Northern terminus - Transfer to Metrolink" }
         ]
     },
 

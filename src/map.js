@@ -2,12 +2,9 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { TRANSIT_LINES } from './transit_data.js';
 import { initBikeOverlay } from './bike_network.js';
-import { getOSRMRoute } from './osrm.js';
 import { isLineOperating } from './schedule.js';
 
 let map;
-// Cache for bus route geometries (fetched once, reused on re-renders)
-const busRouteCache = new Map();
 
 // Vehicle tracking state
 let vehicleMarker = null;
@@ -74,7 +71,7 @@ export function toggleLayerGroup(groupName, visible) {
 }
 
 // Refresh transit map with new departure time
-export async function refreshTransitMap(queryTime = null, includeFuture = false) {
+export function refreshTransitMap(queryTime = null, includeFuture = false) {
     if (!map) return;
 
     // Update future toggle state
@@ -89,34 +86,73 @@ export async function refreshTransitMap(queryTime = null, includeFuture = false)
     });
 
     // Re-render with new time
-    await renderTransitMap(queryTime);
+    renderTransitMap(queryTime);
 }
 
-// Fetch road-following route for a bus line
-async function fetchBusRouteGeometry(lineName, stations) {
-    if (busRouteCache.has(lineName)) {
-        return busRouteCache.get(lineName);
+// Generate stylized route geometry (LA Metro map style)
+// Uses smooth curves between stations instead of exact road paths or straight lines
+function generateStylizedRoute(stations) {
+    if (stations.length < 2) {
+        return stations.map(s => [s.lat, s.lon]);
     }
 
-    try {
-        const waypoints = stations.map(s => ({ lat: s.lat, lon: s.lon }));
-        const route = await getOSRMRoute(waypoints, 'driving');
+    const coords = [];
+    const tension = 0.3; // Controls curve smoothness (0 = straight, 1 = very curved)
 
-        if (route && route.geometry && route.geometry.coordinates) {
-            const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-            busRouteCache.set(lineName, coords);
-            return coords;
+    for (let i = 0; i < stations.length; i++) {
+        const curr = stations[i];
+        const prev = stations[i - 1];
+        const next = stations[i + 1];
+
+        if (i === 0) {
+            // First point - just add it
+            coords.push([curr.lat, curr.lon]);
+        } else if (i === stations.length - 1) {
+            // Last point - add curve to it
+            const midLat = (prev.lat + curr.lat) / 2;
+            const midLon = (prev.lon + curr.lon) / 2;
+
+            // Add a slight curve point
+            const perpLat = (curr.lon - prev.lon) * tension * 0.1;
+            const perpLon = -(curr.lat - prev.lat) * tension * 0.1;
+
+            coords.push([midLat + perpLat, midLon + perpLon]);
+            coords.push([curr.lat, curr.lon]);
+        } else {
+            // Middle points - create smooth curves
+            const midLat = (prev.lat + curr.lat) / 2;
+            const midLon = (prev.lon + curr.lon) / 2;
+
+            // Calculate direction change for curve
+            const dir1Lat = curr.lat - prev.lat;
+            const dir1Lon = curr.lon - prev.lon;
+            const dir2Lat = next.lat - curr.lat;
+            const dir2Lon = next.lon - curr.lon;
+
+            // Cross product to determine curve direction
+            const cross = dir1Lat * dir2Lon - dir1Lon * dir2Lat;
+            const curveFactor = Math.sign(cross) * tension * 0.05;
+
+            // Add curve control point
+            const perpLat = (curr.lon - prev.lon) * curveFactor;
+            const perpLon = -(curr.lat - prev.lat) * curveFactor;
+
+            coords.push([midLat + perpLat, midLon + perpLon]);
+            coords.push([curr.lat, curr.lon]);
         }
-    } catch (err) {
-        console.warn(`Failed to fetch route for ${lineName}:`, err);
     }
 
-    const fallback = stations.map(s => [s.lat, s.lon]);
-    busRouteCache.set(lineName, fallback);
-    return fallback;
+    return coords;
 }
 
-async function renderTransitMap(queryTime = null) {
+// Get centered station coordinates (middle of road instead of specific side)
+function getCenteredStationCoords(station) {
+    // For bus stations, we return the coordinates as-is
+    // The station data should already be at road centerlines
+    return { lat: station.lat, lon: station.lon };
+}
+
+function renderTransitMap(queryTime = null) {
     if (!map) return;
 
     // Use current time if not specified
@@ -174,35 +210,14 @@ async function renderTransitMap(queryTime = null) {
         }
     });
 
-    // Fetch route geometries for routed lines
-    const allRoutedLines = [...ladotLines, ...silverStreakLines, ...metroBrtLines, ...otherLines];
-    const batchSize = 5;
-    const batchDelay = 200;
-    const routeResults = [];
-
-    for (let i = 0; i < allRoutedLines.length; i += batchSize) {
-        const batch = allRoutedLines.slice(i, i + batchSize);
-        const batchPromises = batch.map(line =>
-            fetchBusRouteGeometry(line.name, line.stations)
-                .then(coords => ({ line, coords }))
-                .catch(err => {
-                    console.warn(`Failed to fetch route for ${line.name}:`, err);
-                    return { line, coords: line.stations.map(s => [s.lat, s.lon]) };
-                })
-        );
-
-        const batchResults = await Promise.all(batchPromises);
-        routeResults.push(...batchResults);
-
-        if (i + batchSize < allRoutedLines.length) {
-            await new Promise(resolve => setTimeout(resolve, batchDelay));
-        }
-    }
-
+    // Generate stylized route geometries (LA Metro map style - no road fetching needed)
+    const allStylizedLines = [...ladotLines, ...silverStreakLines, ...metroBrtLines, ...otherLines];
     const routeMap = new Map();
-    routeResults.forEach(({ line, coords }) => {
+
+    for (const line of allStylizedLines) {
+        const coords = generateStylizedRoute(line.stations);
         routeMap.set(line.name, coords);
-    });
+    }
 
     // Render other lines (Metrolink, Amtrak) to layer group
     for (const line of otherLines) {
@@ -243,7 +258,8 @@ async function renderTransitMap(queryTime = null) {
         });
         layerGroups.ladot.addLayer(polyline);
 
-        line.stations.forEach(s => {
+        // Skip waypoints when adding station markers
+        line.stations.filter(s => !s.waypoint).forEach(s => {
             const marker = L.circleMarker([s.lat, s.lon], {
                 color: '#4a90d9',
                 fillColor: '#ffffff',

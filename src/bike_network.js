@@ -15,8 +15,8 @@ export async function initBikeOverlay(map) {
     mapInstance = map;
     console.log('Initializing Bike Network Overlay...');
 
-    // Create layer group for bike paths
-    bikeLayerGroup = L.layerGroup().addTo(map);
+    // Create layer group for bike paths (not added to map - toggle controls visibility)
+    bikeLayerGroup = L.layerGroup();
 
     // Split into multiple smaller bounding boxes to avoid API timeout
     const regions = [

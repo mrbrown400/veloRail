@@ -14,11 +14,12 @@ let uiState = {
   hasSearched: false,
   sidebarOpen: false,
   layers: {
-    bike: true,
+    bike: false,              // Bike lanes off by default
     metroRail: true,
     metroBrt: true,
     ladot: true,
     silverStreak: true,
+    metrolink: true,          // Metrolink/Amtrak lines
     future: false             // Toggle for future transit lines
   },
   // Vehicle tracking
@@ -290,6 +291,11 @@ export function setupUI() {
     document.getElementById('layer-silver-streak').addEventListener('change', (e) => {
       uiState.layers.silverStreak = e.target.checked;
       toggleLayerGroup('silverStreak', e.target.checked);
+    });
+
+    document.getElementById('layer-metrolink').addEventListener('change', (e) => {
+      uiState.layers.metrolink = e.target.checked;
+      toggleLayerGroup('otherLines', e.target.checked);
     });
 
     // Future lines toggle
