@@ -88,13 +88,21 @@ function isInPeakWindow(timeStr, hours) {
  * Check if a specific line is operating at the given time
  * @param {string} lineName - Name of the transit line
  * @param {Date} queryTime - Time to check
+ * @param {Object} options - Options
+ * @param {boolean} options.includeFuture - If true, include future lines (testing, under_construction, planned)
  * @returns {boolean}
  */
-export function isLineOperating(lineName, queryTime) {
+export function isLineOperating(lineName, queryTime, options = {}) {
+    const { includeFuture = false } = options;
     const line = TRANSIT_LINES[lineName];
     if (!line || !line.schedule) {
         // Lines without schedule data are assumed to always operate
         return true;
+    }
+
+    // Check for lines that are not yet operational (testing, under construction, etc.)
+    if (line.status === 'testing' || line.status === 'under_construction' || line.status === 'planned') {
+        return includeFuture; // Show if future toggle is on
     }
 
     const dayType = getDayType(queryTime);
@@ -117,6 +125,17 @@ export function isLineOperating(lineName, queryTime) {
     }
 
     return false;
+}
+
+/**
+ * Get the operational status of a line
+ * @param {string} lineName - Name of the transit line
+ * @returns {'operating' | 'testing' | 'under_construction' | 'planned' | 'unknown'}
+ */
+export function getLineStatus(lineName) {
+    const line = TRANSIT_LINES[lineName];
+    if (!line) return 'unknown';
+    return line.status || 'operating';
 }
 
 /**

@@ -25,29 +25,70 @@ function deg2rad(deg) {
 
 // Flatten all stations from all lines for searching
 // Optional departureTime filters to only operating lines
-function getAllStations(departureTime = null) {
+// Optional includeFuture includes future lines (under_construction, planned, testing)
+function getAllStations(departureTime = null, includeFuture = false) {
     let all = [];
     for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
-        // Skip lines not operating at the query time
-        if (departureTime && !isLineOperating(lineName, departureTime)) {
+        // Skip lines not operating at the query time (unless includeFuture)
+        if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture })) {
             continue;
         }
         data.stations.forEach(s => {
-            all.push({ ...s, line: lineName, color: data.color });
+            all.push({
+                ...s,
+                line: lineName,
+                color: data.color,
+                lineStatus: data.status || 'operating',
+                expectedOpening: s.expectedOpening || data.expectedOpening || null
+            });
         });
     }
     return all;
 }
 
-function findNearestStation(lat, lon, departureTime = null) {
+// Priority order for station types (lower = higher priority)
+const STATION_TYPE_PRIORITY = {
+    'rail': 1,
+    'heavy_rail': 1,      // Sepulveda Transit Corridor
+    'light_rail': 1,      // East SFV LRT, K Line, etc.
+    'brt': 2,
+    'commuter_rail': 3,
+    'intercity_rail': 3,
+    'people_mover': 4,
+    'airport_shuttle': 5,
+    'commuter_express': 6,
+    'shuttle': 7
+};
+
+function getLinePriority(lineName) {
+    const line = TRANSIT_LINES[lineName];
+    if (!line || !line.schedule) return 10;
+    return STATION_TYPE_PRIORITY[line.schedule.type] || 10;
+}
+
+function findNearestStation(lat, lon, departureTime = null, preferRail = true, includeFuture = false) {
     let nearest = null;
     let minDist = Infinity;
-    const stations = getAllStations(departureTime);
+    let minPriority = Infinity;
+    const stations = getAllStations(departureTime, includeFuture);
+
+    // Tolerance for preferring higher-priority stations (rail over shuttle)
+    // Use larger tolerance (3km) to prefer rail connections even for airport destinations
+    const PRIORITY_TOLERANCE_KM = 3.0;
 
     for (const station of stations) {
         const dist = getDistance(lat, lon, station.lat, station.lon);
-        if (dist < minDist) {
+        const priority = preferRail ? getLinePriority(station.line) : 10;
+
+        // Choose this station if:
+        // 1. It's closer AND same or better priority, OR
+        // 2. It has significantly better priority (rail vs shuttle) within tolerance
+        const isCloserWithSamePriority = dist < minDist && priority <= minPriority;
+        const isBetterPriorityWithinTolerance = dist < minDist + PRIORITY_TOLERANCE_KM && priority < minPriority;
+
+        if (isCloserWithSamePriority || isBetterPriorityWithinTolerance) {
             minDist = dist;
+            minPriority = priority;
             nearest = { ...station, distance: dist };
         }
     }
@@ -56,7 +97,8 @@ function findNearestStation(lat, lon, departureTime = null) {
 
 // Identify shared lines between two stations
 // Optional departureTime filters to only operating lines
-function getCommonLines(s1, s2, departureTime = null) {
+// Optional includeFuture includes future lines
+function getCommonLines(s1, s2, departureTime = null, includeFuture = false) {
     // s1 and s2 might be on different lines physically, but we're simplifying.
     // In our data, stations don't list ALL lines they are on in the object (simplified),
     // but names match.
@@ -66,8 +108,8 @@ function getCommonLines(s1, s2, departureTime = null) {
     let routes = [];
 
     for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
-        // Skip lines not operating at the query time
-        if (departureTime && !isLineOperating(lineName, departureTime)) {
+        // Skip lines not operating at the query time (unless includeFuture)
+        if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture })) {
             continue;
         }
 
@@ -86,18 +128,186 @@ function getCommonLines(s1, s2, departureTime = null) {
                 line: lineName,
                 color: data.color,
                 gtfsRouteId: data.gtfsRouteId || null,
-                segment: segment
+                segment: segment,
+                lineStatus: data.status || 'operating',
+                expectedOpening: data.expectedOpening || null
             });
         }
     }
     return routes;
 }
 
+// Find the best transfer point between two stations dynamically
+// This replaces the hardcoded hub list - transfers can happen at ANY shared station
+// or between nearby stations on different lines
+function findBestTransfer(entryStation, exitStation, departureTime = null, includeFuture = false) {
+    const MAX_WALK_TRANSFER_KM = 0.8; // Max distance for walk transfer between nearby stations
 
-export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', safetyPreference = 'balanced', departureTime = null) {
+    // Get all lines serving the entry station
+    const entryLines = getLinesForStation(entryStation.name, departureTime, includeFuture);
+    // Get all lines serving the exit station
+    const exitLines = getLinesForStation(exitStation.name, departureTime, includeFuture);
+
+    if (entryLines.length === 0 || exitLines.length === 0) {
+        return null;
+    }
+
+    let bestTransfer = null;
+    let bestScore = Infinity; // Lower is better (total stations traveled)
+
+    // For each combination of entry line and exit line, find transfer points
+    for (const entryLine of entryLines) {
+        for (const exitLine of exitLines) {
+            if (entryLine === exitLine) continue; // Same line = direct route, handled elsewhere
+
+            // Find shared stations between these two lines (same-station transfers)
+            const sharedStations = findSharedStations(entryLine, exitLine, departureTime, includeFuture);
+
+            for (const transferStation of sharedStations) {
+                const leg1Routes = getCommonLines(entryStation, transferStation, departureTime, includeFuture);
+                const leg2Routes = getCommonLines(transferStation, exitStation, departureTime, includeFuture);
+
+                if (leg1Routes.length > 0 && leg2Routes.length > 0) {
+                    // Prefer future lines if includeFuture is set
+                    let leg1 = leg1Routes[0];
+                    let leg2 = leg2Routes[0];
+
+                    if (includeFuture) {
+                        const futureLeg1 = leg1Routes.find(r => r.lineStatus && r.lineStatus !== 'operating');
+                        const futureLeg2 = leg2Routes.find(r => r.lineStatus && r.lineStatus !== 'operating');
+                        if (futureLeg1) leg1 = futureLeg1;
+                        if (futureLeg2) leg2 = futureLeg2;
+                    }
+
+                    // Score by total stations (fewer is better)
+                    const score = leg1.segment.length + leg2.segment.length;
+
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestTransfer = {
+                            transferStation,
+                            leg1,
+                            leg2,
+                            type: 'same-station'
+                        };
+                    }
+                }
+            }
+
+            // Also find nearby stations for walk/bike transfers
+            const nearbyTransfers = findNearbyStationPairs(entryLine, exitLine, MAX_WALK_TRANSFER_KM, departureTime, includeFuture);
+
+            for (const { station1, station2, distance } of nearbyTransfers) {
+                const leg1Routes = getCommonLines(entryStation, station1, departureTime, includeFuture);
+                const leg2Routes = getCommonLines(station2, exitStation, departureTime, includeFuture);
+
+                if (leg1Routes.length > 0 && leg2Routes.length > 0) {
+                    let leg1 = leg1Routes[0];
+                    let leg2 = leg2Routes[0];
+
+                    if (includeFuture) {
+                        const futureLeg1 = leg1Routes.find(r => r.lineStatus && r.lineStatus !== 'operating');
+                        const futureLeg2 = leg2Routes.find(r => r.lineStatus && r.lineStatus !== 'operating');
+                        if (futureLeg1) leg1 = futureLeg1;
+                        if (futureLeg2) leg2 = futureLeg2;
+                    }
+
+                    // Score with penalty for walk transfer distance
+                    const walkPenalty = distance * 5; // ~5 stations equivalent per km walked
+                    const score = leg1.segment.length + leg2.segment.length + walkPenalty;
+
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestTransfer = {
+                            transferStation: station1, // Use first station as the "hub"
+                            transferStation2: station2, // Second station for walk transfer
+                            leg1,
+                            leg2,
+                            walkDistance: distance,
+                            type: 'walk-transfer'
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    return bestTransfer;
+}
+
+// Get all lines that serve a given station
+function getLinesForStation(stationName, departureTime = null, includeFuture = false) {
+    const lines = [];
+
+    for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
+        if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture })) {
+            continue;
+        }
+
+        const hasStation = data.stations.some(s => s.name === stationName);
+        if (hasStation) {
+            lines.push(lineName);
+        }
+    }
+
+    return lines;
+}
+
+// Find stations that exist on both lines (same-station transfers)
+function findSharedStations(line1Name, line2Name, departureTime = null, includeFuture = false) {
+    const line1 = TRANSIT_LINES[line1Name];
+    const line2 = TRANSIT_LINES[line2Name];
+
+    if (!line1 || !line2) return [];
+
+    const sharedStations = [];
+    const line1StationNames = new Set(line1.stations.map(s => s.name));
+
+    for (const station of line2.stations) {
+        if (line1StationNames.has(station.name)) {
+            sharedStations.push(station);
+        }
+    }
+
+    return sharedStations;
+}
+
+// Find pairs of nearby stations on different lines for walk/bike transfers
+function findNearbyStationPairs(line1Name, line2Name, maxDistanceKm, departureTime = null, includeFuture = false) {
+    const line1 = TRANSIT_LINES[line1Name];
+    const line2 = TRANSIT_LINES[line2Name];
+
+    if (!line1 || !line2) return [];
+
+    const nearbyPairs = [];
+
+    for (const s1 of line1.stations) {
+        for (const s2 of line2.stations) {
+            // Skip if same station name (that's a same-station transfer)
+            if (s1.name === s2.name) continue;
+
+            const distance = getDistance(s1.lat, s1.lon, s2.lat, s2.lon);
+            if (distance <= maxDistanceKm) {
+                nearbyPairs.push({
+                    station1: s1,
+                    station2: s2,
+                    distance
+                });
+            }
+        }
+    }
+
+    // Sort by distance (closest first)
+    nearbyPairs.sort((a, b) => a.distance - b.distance);
+
+    return nearbyPairs;
+}
+
+
+export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', safetyPreference = 'balanced', departureTime = null, includeFuture = false) {
     // Default to current time if not specified
     const queryTime = departureTime || new Date();
-    console.log(`Calculating route (${travelMode}) for departure at ${queryTime.toLocaleTimeString()}...`);
+    console.log(`Calculating route (${travelMode}${includeFuture ? ', future' : ''}) for departure at ${queryTime.toLocaleTimeString()}...`);
 
     const startLoc = (typeof startAddr === 'string') ? await geocode(startAddr) : startAddr;
     if (!startLoc) throw new Error(`Could not find location: ${startAddr} `);
@@ -130,8 +340,8 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
     const fallbackSpeedMs = fallbackSpeed / 3.6;
     const busPenaltySeconds = isBus ? 600 : 0; // 10 mins penalty for bus
 
-    const entryStation = findNearestStation(startLoc.lat, startLoc.lon, queryTime);
-    const exitStation = findNearestStation(endLoc.lat, endLoc.lon, queryTime);
+    const entryStation = findNearestStation(startLoc.lat, startLoc.lon, queryTime, true, includeFuture);
+    const exitStation = findNearestStation(endLoc.lat, endLoc.lon, queryTime, true, includeFuture);
 
     let legs = [];
 
@@ -210,29 +420,46 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
         return null;
     };
 
-    const commonRoutes = getCommonLines(entryStation, exitStation, queryTime);
+    const commonRoutes = getCommonLines(entryStation, exitStation, queryTime, includeFuture);
     let transitPlan = null;
+    let usedFutureLine = false;
+    let futureLineOpening = null;
 
     if (commonRoutes.length > 0) {
-        transitPlan = { type: 'direct', line: commonRoutes[0] };
+        // Prefer future lines if includeFuture is true and we have future options
+        let selectedRoute = commonRoutes[0];
+        if (includeFuture) {
+            // Check if any route uses a future line
+            const futureRoute = commonRoutes.find(r => r.lineStatus && r.lineStatus !== 'operating');
+            if (futureRoute) {
+                selectedRoute = futureRoute;
+                usedFutureLine = true;
+                futureLineOpening = futureRoute.expectedOpening;
+            }
+        }
+        transitPlan = { type: 'direct', line: selectedRoute };
     } else {
-        // Try finding a transfer hub
-        const hubs = ["Union Station", "7th St/Metro Center"];
-        const stations = (await import('./stations.js')).STATIONS;
+        // Find transfer dynamically - no hardcoded hub list
+        // Look for ANY station that can connect entry and exit lines
+        const transferResult = findBestTransfer(entryStation, exitStation, queryTime, includeFuture);
 
-        for (const hubName of hubs) {
-            const hub = stations.find(s => s.name === hubName);
-            if (hub) {
-                const leg1 = getCommonLines(entryStation, hub, queryTime);
-                const leg2 = getCommonLines(hub, exitStation, queryTime);
-                if (leg1.length > 0 && leg2.length > 0) {
-                    transitPlan = {
-                        type: 'transfer',
-                        hub: hub,
-                        leg1: leg1[0],
-                        leg2: leg2[0]
-                    };
-                    break;
+        if (transferResult) {
+            transitPlan = {
+                type: 'transfer',
+                hub: transferResult.transferStation,
+                leg1: transferResult.leg1,
+                leg2: transferResult.leg2
+            };
+
+            // Track if future lines are used
+            if (transferResult.leg1.lineStatus && transferResult.leg1.lineStatus !== 'operating') {
+                usedFutureLine = true;
+                futureLineOpening = transferResult.leg1.expectedOpening;
+            }
+            if (transferResult.leg2.lineStatus && transferResult.leg2.lineStatus !== 'operating') {
+                usedFutureLine = true;
+                if (!futureLineOpening || (transferResult.leg2.expectedOpening && transferResult.leg2.expectedOpening > futureLineOpening)) {
+                    futureLineOpening = transferResult.leg2.expectedOpening;
                 }
             }
         }
@@ -432,11 +659,13 @@ export async function calculateRoute(startAddr, endAddr, travelMode = 'bike', sa
             `Direct ${travelMode === 'bike' ? 'Bike' : 'Walk'} (${legs[0].distance.toFixed(1)} km)` :
             (transitPlan.type === 'direct' ?
                 `${isBus ? 'Bus' : (travelMode === 'bike' ? 'Bike' : 'Walk')} to ${entryStation.name}, Take ${transitPlan.line.line} Line` :
-                `${isBus ? 'Bus' : (travelMode === 'bike' ? 'Bike' : 'Walk')} to ${entryStation.name}, Take ${transitPlan.leg1.line}/${transitPlan.leg2.line} (Transfer at ${transitPlan.hub.name})`)
+                `${isBus ? 'Bus' : (travelMode === 'bike' ? 'Bike' : 'Walk')} to ${entryStation.name}, Take ${transitPlan.leg1.line}/${transitPlan.leg2.line} (Transfer at ${transitPlan.hub.name})`),
+        isFuture: usedFutureLine,
+        expectedOpening: futureLineOpening
     };
 }
 
-export async function compareRoutes(startInput, endInput, safetyPreference = 'balanced', modeFilter = 'all', departureTime = null) {
+export async function compareRoutes(startInput, endInput, safetyPreference = 'balanced', modeFilter = 'all', departureTime = null, includeFuture = false) {
     // Support both string addresses and coordinate objects (for geolocation)
     const startLoc = (typeof startInput === 'string') ? await geocode(startInput) : startInput;
     const endLoc = (typeof endInput === 'string') ? await geocode(endInput) : endInput;
@@ -519,5 +748,36 @@ export async function compareRoutes(startInput, endInput, safetyPreference = 'ba
     const results = await Promise.all(routePromises);
 
     // Filter out null results (failed routes)
-    return results.filter(route => route !== null);
+    const filteredResults = results.filter(route => route !== null);
+
+    // Add Future Route option if future toggle is on
+    if (includeFuture) {
+        try {
+            // Calculate a route using future lines (prefer bike mode for future routes)
+            const futureRoute = await calculateRoute(startLoc, endLoc, 'bike', safetyPreference, queryTime, true);
+
+            // Only add if the future route actually uses a future line and is different/better
+            if (futureRoute && futureRoute.isFuture) {
+                // Check if future route offers improvement (shorter time or new connection)
+                const bestCurrentTime = filteredResults.length > 0
+                    ? Math.min(...filteredResults.map(r => r.totalDuration))
+                    : Infinity;
+
+                // Include future route if it's faster OR if it provides a new connection
+                const timeSavings = bestCurrentTime - futureRoute.totalDuration;
+
+                filteredResults.push({
+                    ...futureRoute,
+                    label: "Future Route",
+                    isFuture: true,
+                    expectedOpening: futureRoute.expectedOpening,
+                    timeSavings: timeSavings > 0 ? Math.round(timeSavings / 60) : null
+                });
+            }
+        } catch (e) {
+            console.error("Future route calculation failed", e);
+        }
+    }
+
+    return filteredResults;
 }

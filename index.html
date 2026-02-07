@@ -27,8 +27,9 @@
 
         <!-- Collapsed State: Destination Only -->
         <div id="search-collapsed" class="search-state">
-          <div class="input-group">
-            <input type="text" id="end" placeholder="Where to?" />
+          <div class="input-group autocomplete-wrapper">
+            <input type="text" id="end" placeholder="Where to?" autocomplete="off" />
+            <div class="autocomplete-dropdown" id="end-dropdown"></div>
           </div>
           <div id="location-status" class="location-status clickable">
             <span class="status-icon"></span>
@@ -38,9 +39,9 @@
 
         <!-- Expanded State: Both Fields -->
         <div id="search-expanded" class="search-state hidden">
-          <div class="input-group">
+          <div class="input-group autocomplete-wrapper">
             <div class="location-input-wrapper">
-              <input type="text" id="start" placeholder="Your Location" />
+              <input type="text" id="start" placeholder="Your Location" autocomplete="off" />
               <button id="use-location-btn" class="location-btn" type="button" title="Use my location">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="3"></circle>
@@ -48,9 +49,11 @@
                 </svg>
               </button>
             </div>
+            <div class="autocomplete-dropdown" id="start-dropdown"></div>
           </div>
-          <div class="input-group">
-            <input type="text" id="end-expanded" placeholder="Where to?" />
+          <div class="input-group autocomplete-wrapper">
+            <input type="text" id="end-expanded" placeholder="Where to?" autocomplete="off" />
+            <div class="autocomplete-dropdown" id="end-expanded-dropdown"></div>
           </div>
         </div>
 
@@ -116,6 +119,13 @@
           <div class="layer-toggle">
             <label for="layer-silver-streak">Silver Streak</label>
             <input type="checkbox" id="layer-silver-streak" checked />
+          </div>
+          <div class="layer-toggle future-toggle">
+            <label for="layer-future">
+              Future Lines
+              <span class="future-badge">Preview</span>
+            </label>
+            <input type="checkbox" id="layer-future" />
           </div>
         </div>
       </div>

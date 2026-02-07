@@ -47,11 +47,42 @@ export const TRANSIT_LINES = {
             }
         },
         stations: [
+            // Current operating stations only
             { name: "Union Station", lat: 34.0561, lon: -118.2375 },
             { name: "7th St/Metro Center", lat: 34.0486, lon: -118.2588 },
             { name: "Wilshire/Vermont", lat: 34.0617, lon: -118.2917 },
             { name: "Wilshire/Normandie", lat: 34.0618, lon: -118.3014 },
             { name: "Wilshire/Western", lat: 34.0618, lon: -118.3088 }
+        ]
+    },
+    // D Line Extension - Under Construction (separate entry until operational)
+    "D Line Extension": {
+        color: "#A05DA5", // Same purple as D Line
+        gtfsRouteId: null,
+        status: "under_construction",
+        expectedOpening: "2027", // Full extension completion
+        schedule: {
+            type: "rail",
+            frequency_peak: 6,
+            frequency_offpeak: 10,
+            operating_hours: {
+                weekday: { start: "04:30", end: "00:30" },
+                saturday: { start: "04:30", end: "00:30" },
+                sunday: { start: "05:00", end: "00:30" }
+            }
+        },
+        stations: [
+            // Connection point to operating D Line
+            { name: "Wilshire/Western", lat: 34.0618, lon: -118.3088, note: "Transfer to D Line" },
+            // Section 2 - Opening 2025
+            { name: "Wilshire/La Brea", lat: 34.0621, lon: -118.3440, expectedOpening: "2025" },
+            { name: "Wilshire/Fairfax", lat: 34.0623, lon: -118.3614, expectedOpening: "2025" },
+            { name: "Wilshire/La Cienega", lat: 34.0625, lon: -118.3769, expectedOpening: "2025" },
+            // Section 3 - Opening 2027
+            { name: "Wilshire/Rodeo", lat: 34.0627, lon: -118.4003, expectedOpening: "2027" },
+            { name: "Century City/Constellation", lat: 34.0553, lon: -118.4172, expectedOpening: "2027" },
+            { name: "Westwood/UCLA", lat: 34.0630, lon: -118.4450, expectedOpening: "2027" },
+            { name: "Westwood/VA Hospital", lat: 34.0505, lon: -118.4527, expectedOpening: "2027" }
         ]
     },
     "Blue": { // A Line (Long Beach to Azusa)
@@ -211,7 +242,9 @@ export const TRANSIT_LINES = {
             { name: "Downtown Inglewood", lat: 33.9618, lon: -118.3508 },
             { name: "Westchester/Veterans", lat: 33.9452, lon: -118.3689 },
             // Connection to C Line
-            { name: "Aviation/Century", lat: 33.9312, lon: -118.3887 }
+            { name: "Aviation/Century", lat: 33.9312, lon: -118.3887 },
+            // LAX Transit Center (opened 2024)
+            { name: "LAX Transit Center", lat: 33.9425, lon: -118.3890 }
         ]
     },
     "Orange": { // G Line (BRT)
@@ -508,6 +541,160 @@ export const TRANSIT_LINES = {
             }
         },
         stations: [{ name: "Union Station", lat: 34.0561, lon: -118.2375 }, { name: "Bunker Hill (Grand/3rd)", lat: 34.0530, lon: -118.2510 }]
+    },
+
+    // LAX FlyAway Bus Service
+    // Routes simplified to origin + LAX arrival area (OSRM handles road routing)
+    "LAX FlyAway - Union Station": {
+        color: "#00629B", // FlyAway blue
+        gtfsRouteId: null, // Operated by LAWA, separate from Metro GTFS
+        schedule: {
+            type: "airport_shuttle",
+            frequency_peak: 30,
+            frequency_offpeak: 30,
+            operating_hours: {
+                weekday: { start: "00:00", end: "23:59" }, // 24/7 operation
+                saturday: { start: "00:00", end: "23:59" },
+                sunday: { start: "00:00", end: "23:59" }
+            }
+        },
+        stations: [
+            { name: "Union Station", lat: 34.0561, lon: -118.2375 },
+            // Route follows I-10 W → I-110 S → I-105 W → Sepulveda
+            { name: "LAX Terminals", lat: 33.9425, lon: -118.4020 }
+        ]
+    },
+    "LAX FlyAway - Van Nuys": {
+        color: "#00629B", // FlyAway blue
+        gtfsRouteId: null,
+        schedule: {
+            type: "airport_shuttle",
+            frequency_peak: 30,
+            frequency_offpeak: 45,
+            operating_hours: {
+                weekday: { start: "05:00", end: "00:00" },
+                saturday: { start: "05:00", end: "00:00" },
+                sunday: { start: "05:00", end: "00:00" }
+            }
+        },
+        stations: [
+            { name: "Van Nuys FlyAway Terminal", lat: 34.1935, lon: -118.4702 },
+            // Route follows I-405 S to LAX
+            { name: "LAX Terminals", lat: 33.9425, lon: -118.4020 }
+        ]
+    },
+
+    // LAX Automated People Mover (APM) - Currently in testing
+    "LAX People Mover": {
+        color: "#006341", // LAX green
+        gtfsRouteId: null,
+        status: "testing", // testing | operating
+        expectedOpening: "2026-06", // June 2026 (delayed from Jan 2026)
+        schedule: {
+            type: "people_mover",
+            frequency_peak: 2, // Every 2 minutes when operating
+            frequency_offpeak: 4,
+            operating_hours: {
+                weekday: { start: "00:00", end: "23:59" }, // 24/7 when operational
+                saturday: { start: "00:00", end: "23:59" },
+                sunday: { start: "00:00", end: "23:59" }
+            }
+        },
+        stations: [
+            { name: "LAX Transit Center", lat: 33.9425, lon: -118.3890 },
+            { name: "LAX Economy Parking", lat: 33.9468, lon: -118.3855 },
+            { name: "LAX Terminal 1", lat: 33.9545, lon: -118.3986 },
+            { name: "LAX Terminal 2/3", lat: 33.9530, lon: -118.3977 },
+            { name: "LAX Terminal 4/5", lat: 33.9521, lon: -118.3946 },
+            { name: "LAX Terminal 6/7/8", lat: 33.9513, lon: -118.3903 },
+            { name: "LAX Terminal B (TBIT)", lat: 33.9485, lon: -118.3895 }
+        ]
+    },
+
+    // ========== FUTURE TRANSIT LINES ==========
+
+    // Sepulveda Transit Corridor - LPA Approved Jan 2026
+    // Automated heavy rail, fully tunneled (single-bore), ~13 miles, 7 stations
+    "Sepulveda Transit Corridor": {
+        color: "#FF6B00", // Placeholder orange - TBD by Metro
+        gtfsRouteId: null,
+        status: "planned",
+        expectedOpening: "2040", // Phased, IOS (G Line to D Line) earlier
+        schedule: {
+            type: "heavy_rail",
+            frequency_peak: 2.5, // 2.5-minute headways
+            frequency_offpeak: 5,
+            operating_hours: {
+                weekday: { start: "05:00", end: "00:00" },
+                saturday: { start: "05:00", end: "00:00" },
+                sunday: { start: "06:00", end: "00:00" }
+            }
+        },
+        stations: [
+            { name: "Van Nuys Metrolink", lat: 34.1897, lon: -118.4495, note: "Transfer to Metrolink" },
+            { name: "Van Nuys", lat: 34.1849, lon: -118.4485, note: "Transfer to G Line & East SFV LRT" },
+            { name: "Ventura Blvd", lat: 34.1430, lon: -118.4500 },
+            { name: "UCLA Gateway Plaza", lat: 34.0705, lon: -118.4440 },
+            { name: "Westwood/UCLA", lat: 34.0630, lon: -118.4450, note: "Transfer to D Line Extension" },
+            { name: "Santa Monica Blvd", lat: 34.0450, lon: -118.4420 },
+            { name: "Expo/Sepulveda", lat: 34.0368, lon: -118.4395, note: "Transfer to E Line" }
+        ]
+    },
+
+    // C Line Extension to Torrance - LPA Approved Jan 2026
+    // Elevated light rail on Hawthorne Boulevard (Alternative 3)
+    "C Line Extension": {
+        color: "#58A738", // Same as C Line green
+        gtfsRouteId: null,
+        status: "planned",
+        expectedOpening: "2036",
+        schedule: {
+            type: "light_rail",
+            frequency_peak: 6,
+            frequency_offpeak: 10,
+            operating_hours: {
+                weekday: { start: "04:30", end: "00:30" },
+                saturday: { start: "04:30", end: "00:30" },
+                sunday: { start: "05:00", end: "00:30" }
+            }
+        },
+        stations: [
+            { name: "Redondo Beach", lat: 33.8936, lon: -118.3698, note: "Transfer to existing C Line" },
+            { name: "182nd Street", lat: 33.8700, lon: -118.3520 },
+            { name: "Torrance Transit Center", lat: 33.8317, lon: -118.3405 }
+        ]
+    },
+
+    // East San Fernando Valley Light Rail - Under Construction
+    // At-grade light rail in Van Nuys Blvd median
+    "East San Fernando Valley": {
+        color: "#FDB913", // Gold/yellow placeholder
+        gtfsRouteId: null,
+        status: "under_construction",
+        expectedOpening: "2031",
+        schedule: {
+            type: "light_rail",
+            frequency_peak: 6,
+            frequency_offpeak: 10,
+            operating_hours: {
+                weekday: { start: "04:30", end: "00:30" },
+                saturday: { start: "04:30", end: "00:30" },
+                sunday: { start: "05:00", end: "00:30" }
+            }
+        },
+        stations: [
+            { name: "Van Nuys", lat: 34.1849, lon: -118.4485, note: "Transfer to G Line & Sepulveda Transit Corridor" },
+            { name: "Van Nuys Blvd/Victory", lat: 34.1750, lon: -118.4489 },
+            { name: "Van Nuys Blvd/Vanowen", lat: 34.1930, lon: -118.4489 },
+            { name: "Van Nuys Blvd/Sherman Way", lat: 34.2010, lon: -118.4489 },
+            { name: "Van Nuys Blvd/Roscoe", lat: 34.2210, lon: -118.4489 },
+            { name: "Panorama City", lat: 34.2260, lon: -118.4489 },
+            { name: "Van Nuys Blvd/Nordhoff", lat: 34.2350, lon: -118.4489 },
+            { name: "Van Nuys Blvd/San Fernando", lat: 34.2550, lon: -118.4489 },
+            { name: "Sylmar/San Fernando", lat: 34.2700, lon: -118.4489 },
+            { name: "Pacoima", lat: 34.2760, lon: -118.4300 },
+            { name: "Sylmar Metrolink", lat: 34.2830, lon: -118.4120, note: "Transfer to Metrolink" }
+        ]
     },
 
     // Metrolink Commuter Rail Lines
