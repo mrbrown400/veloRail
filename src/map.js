@@ -220,149 +220,93 @@ function renderTransitMap(queryTime = null) {
     }
 
     // Render other lines (Metrolink, Amtrak) to layer group
+    // Google Maps style: no station dots, just the route line
     for (const line of otherLines) {
         const coords = routeMap.get(line.name);
 
         const polyline = L.polyline(coords, {
             color: line.color,
-            weight: 2.5,
-            opacity: 0.4,
+            weight: 3,
+            opacity: 0.6,
             lineCap: 'round',
             lineJoin: 'round'
         });
         layerGroups.otherLines.addLayer(polyline);
-
-        line.stations.forEach(s => {
-            const marker = L.circleMarker([s.lat, s.lon], {
-                color: line.color,
-                fillColor: '#ffffff',
-                fillOpacity: 0.6,
-                radius: 2.5,
-                weight: 1.5,
-                opacity: 0.5
-            });
-            layerGroups.otherLines.addLayer(marker);
-        });
     }
 
     // Render LADOT lines to layer group
+    // Google Maps style: no station dots, just the route line
     for (const line of ladotLines) {
         const coords = routeMap.get(line.name);
 
         const polyline = L.polyline(coords, {
             color: '#4a90d9',
-            weight: 2.5,
-            opacity: 0.35,
+            weight: 3,
+            opacity: 0.5,
             lineCap: 'round',
             lineJoin: 'round'
         });
         layerGroups.ladot.addLayer(polyline);
-
-        // Skip waypoints when adding station markers
-        line.stations.filter(s => !s.waypoint).forEach(s => {
-            const marker = L.circleMarker([s.lat, s.lon], {
-                color: '#4a90d9',
-                fillColor: '#ffffff',
-                fillOpacity: 0.6,
-                radius: 2.5,
-                weight: 1.5,
-                opacity: 0.4
-            });
-            layerGroups.ladot.addLayer(marker);
-        });
     }
 
     // Render Silver Streak to layer group
+    // Google Maps style: no station dots, just the route line
     for (const line of silverStreakLines) {
         const coords = routeMap.get(line.name);
 
         const polyline = L.polyline(coords, {
             color: line.color,
-            weight: 2.5,
-            opacity: 0.35,
+            weight: 3,
+            opacity: 0.5,
             lineCap: 'round',
             lineJoin: 'round'
         });
         layerGroups.silverStreak.addLayer(polyline);
-
-        line.stations.forEach(s => {
-            const marker = L.circleMarker([s.lat, s.lon], {
-                color: line.color,
-                fillColor: '#ffffff',
-                fillOpacity: 0.6,
-                radius: 2.5,
-                weight: 1.5,
-                opacity: 0.4
-            });
-            layerGroups.silverStreak.addLayer(marker);
-        });
     }
 
     // Render BRT lines to layer group
+    // Google Maps style: no station dots, just the route line
     for (const line of metroBrtLines) {
         const coords = routeMap.get(line.name);
 
         const polyline = L.polyline(coords, {
             color: line.color,
-            weight: 2.5,
-            opacity: 0.35,
+            weight: 3,
+            opacity: 0.6,
             lineCap: 'round',
             lineJoin: 'round'
         });
         layerGroups.metroBrt.addLayer(polyline);
-
-        line.stations.forEach(s => {
-            const marker = L.circleMarker([s.lat, s.lon], {
-                color: line.color,
-                fillColor: '#ffffff',
-                fillOpacity: 0.6,
-                radius: 2.5,
-                weight: 1.5,
-                opacity: 0.4
-            });
-            layerGroups.metroBrt.addLayer(marker);
-        });
     }
 
     // Render Metro Rail lines to layer group
+    // Google Maps style: no station dots, just solid colored lines
     for (const line of metroRailLines) {
         const coords = line.stations.map(s => [s.lat, s.lon]);
 
-        // Outer casing
+        // Outer casing for visual depth
         const casing = L.polyline(coords, {
             color: '#0d0d15',
-            weight: 7,
-            opacity: 0.5,
+            weight: 6,
+            opacity: 0.4,
             lineCap: 'round',
             lineJoin: 'round'
         });
         layerGroups.metroRail.addLayer(casing);
 
-        // Main line
+        // Main colored line
         const mainLine = L.polyline(coords, {
             color: line.color,
             weight: 4,
-            opacity: 0.6,
+            opacity: 0.85,
             lineCap: 'round',
             lineJoin: 'round'
         });
         layerGroups.metroRail.addLayer(mainLine);
-
-        // Station markers
-        line.stations.forEach(s => {
-            const marker = L.circleMarker([s.lat, s.lon], {
-                color: line.color,
-                fillColor: '#ffffff',
-                fillOpacity: 0.7,
-                radius: 3.5,
-                weight: 2,
-                opacity: 0.6
-            });
-            layerGroups.metroRail.addLayer(marker);
-        });
     }
 
     // Render Future Lines with dashed styling
+    // Google Maps style: no station dots, just dashed lines for future/planned routes
     for (const line of futureLines) {
         const coords = line.stations.map(s => [s.lat, s.lon]);
 
@@ -371,13 +315,12 @@ function renderTransitMap(queryTime = null) {
         // planned: more sparse dash 4,8 with 50% opacity
         const isPlanned = line.status === 'planned';
         const dashArray = isPlanned ? '4, 8' : '8, 4';
-        const lineOpacity = isPlanned ? 0.5 : 0.7;
-        const stationOpacity = isPlanned ? 0.4 : 0.6;
+        const lineOpacity = isPlanned ? 0.6 : 0.75;
 
         // Outer casing (lighter for future lines)
         const casing = L.polyline(coords, {
             color: '#0d0d15',
-            weight: 6,
+            weight: 5,
             opacity: 0.3,
             lineCap: 'round',
             lineJoin: 'round',
@@ -395,28 +338,6 @@ function renderTransitMap(queryTime = null) {
             dashArray: dashArray
         });
         layerGroups.futureLines.addLayer(mainLine);
-
-        // Station markers (smaller for future)
-        line.stations.forEach(s => {
-            const marker = L.circleMarker([s.lat, s.lon], {
-                color: line.color,
-                fillColor: '#ffffff',
-                fillOpacity: stationOpacity,
-                radius: 3,
-                weight: 1.5,
-                opacity: stationOpacity
-            });
-
-            // Add popup with expected opening info
-            const openingInfo = s.expectedOpening || line.expectedOpening;
-            const statusLabel = line.status === 'planned' ? 'Planned' :
-                               line.status === 'under_construction' ? 'Under Construction' :
-                               line.status === 'testing' ? 'Testing' : '';
-            const popupContent = `<strong>${s.name}</strong><br>${line.name}<br><em>${statusLabel}${openingInfo ? ` - Opening ${openingInfo}` : ''}</em>`;
-            marker.bindPopup(popupContent);
-
-            layerGroups.futureLines.addLayer(marker);
-        });
     }
 
     // Add all layer groups to map (all visible by default)
