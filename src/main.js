@@ -4,12 +4,20 @@ import { setupUI } from './ui.js'
 import { initGTFS, getGTFSStatus } from './gtfs/gtfs_loader.js'
 import { initRealtimeStore, getStoreStatus } from './realtime/realtime_store.js'
 import { isRealtimeConfigured } from './realtime/gtfs_rt_fetcher.js'
+import { initNetworkUpdates } from './network_updates.js'
 
 // HTML is handled in index.html, JS only initializes logic
 console.log('App initializing...');
 
 initMap('map-container');
 setupUI();
+
+// Initialize network updates (check for transit line status changes)
+initNetworkUpdates().then(() => {
+  console.log('[NetworkUpdates] Update check complete');
+}).catch(error => {
+  console.warn('[NetworkUpdates] Update check failed:', error);
+});
 
 // Initialize GTFS data in background (non-blocking)
 initGTFS().then(() => {

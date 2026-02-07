@@ -19,8 +19,12 @@ const layerGroups = {
     metroBrt: null,
     ladot: null,
     silverStreak: null,
-    otherLines: null  // Metrolink, Amtrak
+    otherLines: null,  // Metrolink, Amtrak
+    futureLines: null  // Future transit lines (under construction, planned)
 };
+
+// UI state reference (will be set by refreshTransitMap)
+let futureToggleState = false;
 
 export function initMap(elementId) {
     // Initialize map centered on Los Angeles
@@ -70,8 +74,11 @@ export function toggleLayerGroup(groupName, visible) {
 }
 
 // Refresh transit map with new departure time
-export async function refreshTransitMap(queryTime = null) {
+export async function refreshTransitMap(queryTime = null, includeFuture = false) {
     if (!map) return;
+
+    // Update future toggle state
+    futureToggleState = includeFuture;
 
     // Clear existing layer groups from map
     Object.values(layerGroups).forEach(group => {
@@ -121,17 +128,22 @@ async function renderTransitMap(queryTime = null) {
     layerGroups.ladot = L.layerGroup();
     layerGroups.silverStreak = L.layerGroup();
     layerGroups.otherLines = L.layerGroup();
+    layerGroups.futureLines = L.layerGroup();
 
-    // Categorize lines - only include operating lines
+    // Categorize lines - only include operating lines (or future if toggle is on)
     const metroRailLines = [];
     const metroBrtLines = [];
     const ladotLines = [];
     const silverStreakLines = [];
     const otherLines = []; // Metrolink, Amtrak
+    const futureLines = []; // Future transit lines
 
     Object.entries(TRANSIT_LINES).forEach(([lineName, line]) => {
-        // Skip lines not operating at current time
-        if (!isLineOperating(lineName, currentTime)) {
+        // Check if line is a future line
+        const isFutureLine = line.status === 'testing' || line.status === 'under_construction' || line.status === 'planned';
+
+        // Skip lines not operating at current time (unless future toggle is on for future lines)
+        if (!isLineOperating(lineName, currentTime, { includeFuture: futureToggleState })) {
             return;
         }
 
@@ -143,7 +155,10 @@ async function renderTransitMap(queryTime = null) {
         const isFlyAway = lineName.startsWith('LAX FlyAway');
         const isPeopleMover = lineName === 'LAX People Mover';
 
-        if (isLADOT || isFlyAway) {
+        // Route future lines to their own layer group
+        if (isFutureLine) {
+            futureLines.push({ name: lineName, ...line });
+        } else if (isLADOT || isFlyAway) {
             ladotLines.push({ name: lineName, ...line });
         } else if (isSilverStreak) {
             silverStreakLines.push({ name: lineName, ...line });
@@ -152,7 +167,7 @@ async function renderTransitMap(queryTime = null) {
         } else if (isMetrolink || isAmtrak) {
             otherLines.push({ name: lineName, ...line });
         } else if (isPeopleMover) {
-            // Skip People Mover for now (testing status)
+            // Skip People Mover for now (testing status) - handled above as future line
             return;
         } else {
             metroRailLines.push({ name: lineName, ...line });
@@ -331,12 +346,74 @@ async function renderTransitMap(queryTime = null) {
         });
     }
 
+    // Render Future Lines with dashed styling
+    for (const line of futureLines) {
+        const coords = line.stations.map(s => [s.lat, s.lon]);
+
+        // Determine dash pattern based on status
+        // under_construction: dashed 8,4 with 70% opacity
+        // planned: more sparse dash 4,8 with 50% opacity
+        const isPlanned = line.status === 'planned';
+        const dashArray = isPlanned ? '4, 8' : '8, 4';
+        const lineOpacity = isPlanned ? 0.5 : 0.7;
+        const stationOpacity = isPlanned ? 0.4 : 0.6;
+
+        // Outer casing (lighter for future lines)
+        const casing = L.polyline(coords, {
+            color: '#0d0d15',
+            weight: 6,
+            opacity: 0.3,
+            lineCap: 'round',
+            lineJoin: 'round',
+            dashArray: dashArray
+        });
+        layerGroups.futureLines.addLayer(casing);
+
+        // Main dashed line
+        const mainLine = L.polyline(coords, {
+            color: line.color,
+            weight: 3.5,
+            opacity: lineOpacity,
+            lineCap: 'round',
+            lineJoin: 'round',
+            dashArray: dashArray
+        });
+        layerGroups.futureLines.addLayer(mainLine);
+
+        // Station markers (smaller for future)
+        line.stations.forEach(s => {
+            const marker = L.circleMarker([s.lat, s.lon], {
+                color: line.color,
+                fillColor: '#ffffff',
+                fillOpacity: stationOpacity,
+                radius: 3,
+                weight: 1.5,
+                opacity: stationOpacity
+            });
+
+            // Add popup with expected opening info
+            const openingInfo = s.expectedOpening || line.expectedOpening;
+            const statusLabel = line.status === 'planned' ? 'Planned' :
+                               line.status === 'under_construction' ? 'Under Construction' :
+                               line.status === 'testing' ? 'Testing' : '';
+            const popupContent = `<strong>${s.name}</strong><br>${line.name}<br><em>${statusLabel}${openingInfo ? ` - Opening ${openingInfo}` : ''}</em>`;
+            marker.bindPopup(popupContent);
+
+            layerGroups.futureLines.addLayer(marker);
+        });
+    }
+
     // Add all layer groups to map (all visible by default)
     layerGroups.otherLines.addTo(map);
     layerGroups.ladot.addTo(map);
     layerGroups.silverStreak.addTo(map);
     layerGroups.metroBrt.addTo(map);
     layerGroups.metroRail.addTo(map);
+
+    // Add future lines layer if toggle is on
+    if (futureToggleState) {
+        layerGroups.futureLines.addTo(map);
+    }
 }
 
 

@@ -18,7 +18,8 @@ let uiState = {
     metroRail: true,
     metroBrt: true,
     ladot: true,
-    silverStreak: true
+    silverStreak: true,
+    future: false             // Toggle for future transit lines
   },
   // Vehicle tracking
   trackedTransitLeg: null,    // Current transit leg being tracked
@@ -29,7 +30,8 @@ let uiState = {
     activeDropdown: null,     // Currently active dropdown element
     highlightedIndex: -1,     // Currently highlighted item index
     results: [],              // Current search results
-    selectedPlace: null       // Selected place with coordinates
+    selectedPlace: null,      // Selected destination place with coordinates
+    selectedStartPlace: null  // Selected start place with coordinates
   }
 };
 
@@ -94,8 +96,11 @@ export function setupUI() {
   }
 
   // Setup autocomplete for destination inputs
-  setupAutocomplete(endInput, document.getElementById('end-dropdown'));
-  setupAutocomplete(endInputExpanded, document.getElementById('end-expanded-dropdown'));
+  setupAutocomplete(endInput, document.getElementById('end-dropdown'), 'destination');
+  setupAutocomplete(endInputExpanded, document.getElementById('end-expanded-dropdown'), 'destination');
+
+  // Setup autocomplete for start input
+  setupAutocomplete(startInput, document.getElementById('start-dropdown'), 'start');
 
   // --- Geolocation ---
 
@@ -286,6 +291,22 @@ export function setupUI() {
       uiState.layers.silverStreak = e.target.checked;
       toggleLayerGroup('silverStreak', e.target.checked);
     });
+
+    // Future lines toggle
+    const futureToggle = document.getElementById('layer-future');
+    if (futureToggle) {
+      futureToggle.addEventListener('change', (e) => {
+        uiState.layers.future = e.target.checked;
+        // Refresh transit map with future toggle state
+        const selectedRadio = document.querySelector('input[name="departure-time"]:checked');
+        const customTimeInput = document.getElementById('custom-time');
+        let queryTime = new Date();
+        if (selectedRadio && selectedRadio.value === 'depart' && customTimeInput && customTimeInput.value) {
+          queryTime = new Date(customTimeInput.value);
+        }
+        refreshTransitMap(queryTime, e.target.checked);
+      });
+    }
   }
 
   // --- Sidebar Management ---
@@ -450,6 +471,12 @@ export function setupUI() {
     } else {
       if (uiState.isUsingGeolocation && uiState.startLocation && startInput.value === 'Your Location') {
         startValue = uiState.startLocation;
+      } else if (uiState.autocomplete.selectedStartPlace) {
+        // Use coordinates directly from autocomplete selection
+        startValue = {
+          lat: uiState.autocomplete.selectedStartPlace.lat,
+          lon: uiState.autocomplete.selectedStartPlace.lon
+        };
       } else {
         startValue = startInput.value;
         if (!startValue) {
@@ -468,7 +495,8 @@ export function setupUI() {
       const safetyPreference = safetySelect ? safetySelect.value : 'balanced';
       const modeFilter = modeSelect ? modeSelect.value : 'all';
       const departureTime = getDepartureTime();
-      const comparisonResults = await compareRoutes(startValue, endValue, safetyPreference, modeFilter, departureTime);
+      const includeFuture = uiState.layers.future;
+      const comparisonResults = await compareRoutes(startValue, endValue, safetyPreference, modeFilter, departureTime, includeFuture);
 
       // Expand search UI if not already
       if (!uiState.hasSearched && uiState.mode === 'collapsed') {
@@ -488,14 +516,35 @@ export function setupUI() {
       routeDetails.innerHTML = `
         <h2>Route Options</h2>
         <div class="route-options">
-          ${comparisonResults.map((route, index) => `
-            <div class="route-option ${index === 0 ? 'selected' : ''}" data-index="${index}">
-              <div class="option-header">
-                <span class="option-label">${route.label}</span>
-                <span class="option-time">${route.formattedDuration}</span>
+          ${comparisonResults.map((route, index) => {
+            if (route.isFuture) {
+              // Special styling for future routes
+              return `
+                <div class="route-option future-route-option" data-index="${index}">
+                  <div class="future-route-banner">
+                    <span class="future-icon">🚧</span>
+                    <span class="future-label">Future Route Preview</span>
+                  </div>
+                  <div class="option-header">
+                    <span class="option-label">${route.label}</span>
+                    <span class="option-time future-time">${route.formattedDuration}</span>
+                  </div>
+                  <div class="future-route-info">
+                    <span class="future-opening">Available ${route.expectedOpening || 'TBD'}</span>
+                    ${route.timeSavings ? `<span class="future-savings">Save ~${route.timeSavings} min</span>` : ''}
+                  </div>
+                </div>
+              `;
+            }
+            return `
+              <div class="route-option ${index === 0 ? 'selected' : ''}" data-index="${index}">
+                <div class="option-header">
+                  <span class="option-label">${route.label}</span>
+                  <span class="option-time">${route.formattedDuration}</span>
+                </div>
               </div>
-            </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
         <div id="active-route-details">
           ${renderRouteDetails(primaryRoute)}
@@ -654,7 +703,7 @@ export function setupUI() {
 
   // --- Autocomplete ---
 
-  function setupAutocomplete(inputEl, dropdownEl) {
+  function setupAutocomplete(inputEl, dropdownEl, type = 'destination') {
     if (!inputEl || !dropdownEl) return;
 
     // Create debounced search function
@@ -667,9 +716,19 @@ export function setupUI() {
       const query = e.target.value.trim();
 
       // Clear selected place when user types
-      if (uiState.autocomplete.selectedPlace &&
-          uiState.autocomplete.activeInput === inputEl) {
-        uiState.autocomplete.selectedPlace = null;
+      if (type === 'start') {
+        if (uiState.autocomplete.selectedStartPlace &&
+            uiState.autocomplete.activeInput === inputEl) {
+          uiState.autocomplete.selectedStartPlace = null;
+          // Also clear geolocation state since user is typing a custom location
+          uiState.isUsingGeolocation = false;
+          inputEl.classList.remove('using-geolocation');
+        }
+      } else {
+        if (uiState.autocomplete.selectedPlace &&
+            uiState.autocomplete.activeInput === inputEl) {
+          uiState.autocomplete.selectedPlace = null;
+        }
       }
 
       // Minimum 2 characters to search
@@ -740,7 +799,7 @@ export function setupUI() {
         case 'Enter':
           if (idx >= 0 && idx < results.length) {
             e.preventDefault();
-            selectPlace(inputEl, dropdownEl, results[idx]);
+            selectPlace(inputEl, dropdownEl, results[idx], type);
           }
           break;
 
@@ -752,7 +811,7 @@ export function setupUI() {
 
         case 'Tab':
           if (idx >= 0 && idx < results.length) {
-            selectPlace(inputEl, dropdownEl, results[idx]);
+            selectPlace(inputEl, dropdownEl, results[idx], type);
           }
           break;
       }
@@ -766,13 +825,13 @@ export function setupUI() {
         const idx = parseInt(item.dataset.index, 10);
         const place = uiState.autocomplete.results[idx];
         if (place) {
-          selectPlace(inputEl, dropdownEl, place);
+          selectPlace(inputEl, dropdownEl, place, type);
         }
       }
     });
   }
 
-  function selectPlace(inputEl, dropdownEl, place) {
+  function selectPlace(inputEl, dropdownEl, place, type = 'destination') {
     // Build display name
     const displayName = place.address
       ? `${place.name}, ${place.address}`
@@ -782,19 +841,28 @@ export function setupUI() {
     inputEl.value = displayName;
 
     // Store selected place with coordinates
-    uiState.autocomplete.selectedPlace = {
+    const placeData = {
       name: displayName,
       lat: place.lat,
       lon: place.lon
     };
 
+    if (type === 'start') {
+      uiState.autocomplete.selectedStartPlace = placeData;
+      // Clear geolocation since user selected a custom location
+      uiState.isUsingGeolocation = false;
+      uiState.startLocation = null;
+      inputEl.classList.remove('using-geolocation');
+    } else {
+      uiState.autocomplete.selectedPlace = placeData;
+      // Sync value to the other destination input if needed
+      syncDestinationInputs(inputEl.id, displayName);
+    }
+
     // Clear results and hide dropdown
     uiState.autocomplete.results = [];
     uiState.autocomplete.highlightedIndex = -1;
     hideDropdown(dropdownEl);
-
-    // Sync value to the other destination input if needed
-    syncDestinationInputs(inputEl.id, displayName);
   }
 
   function syncDestinationInputs(sourceId, value) {

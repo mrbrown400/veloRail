@@ -22,7 +22,16 @@ export const STATIONS = [
 
     // ========== D LINE (PURPLE) ==========
     { name: "Wilshire/Normandie", lat: 34.0618, lon: -118.3014, lines: ["Purple"] },
-    { name: "Wilshire/Western", lat: 34.0618, lon: -118.3088, lines: ["Purple"] },
+    { name: "Wilshire/Western", lat: 34.0618, lon: -118.3088, lines: ["Purple", "D Line Extension"] },
+    // D Line Extension - Section 2 (Under Construction, 2025)
+    { name: "Wilshire/La Brea", lat: 34.0621, lon: -118.3440, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2025" },
+    { name: "Wilshire/Fairfax", lat: 34.0623, lon: -118.3614, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2025" },
+    { name: "Wilshire/La Cienega", lat: 34.0625, lon: -118.3769, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2025" },
+    // D Line Extension - Section 3 (Under Construction, 2027)
+    { name: "Wilshire/Rodeo", lat: 34.0627, lon: -118.4003, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2027" },
+    { name: "Century City/Constellation", lat: 34.0553, lon: -118.4172, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2027" },
+    { name: "Westwood/UCLA", lat: 34.0630, lon: -118.4450, lines: ["D Line Extension", "Sepulveda Transit Corridor"], status: "under_construction", expectedOpening: "2027" },
+    { name: "Westwood/VA Hospital", lat: 34.0505, lon: -118.4527, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2027" },
 
     // ========== A LINE (BLUE) ==========
     // Foothill Extension
@@ -126,7 +135,7 @@ export const STATIONS = [
     { name: "Laurel Canyon", lat: 34.1706, lon: -118.3965, lines: ["Orange"] },
     { name: "Valley College", lat: 34.1738, lon: -118.4180, lines: ["Orange"] },
     { name: "Woodman", lat: 34.1770, lon: -118.4385, lines: ["Orange"] },
-    { name: "Van Nuys", lat: 34.1849, lon: -118.4485, lines: ["Orange", "Metrolink Ventura", "Amtrak Pacific Surfliner"] },
+    { name: "Van Nuys", lat: 34.1849, lon: -118.4485, lines: ["Orange", "Metrolink Ventura", "Amtrak Pacific Surfliner", "Sepulveda Transit Corridor", "East San Fernando Valley"] },
     { name: "Sepulveda", lat: 34.1873, lon: -118.4674, lines: ["Orange"] },
     { name: "Woodley", lat: 34.1876, lon: -118.4811, lines: ["Orange"] },
     { name: "Balboa", lat: 34.1895, lon: -118.5028, lines: ["Orange"] },
@@ -168,5 +177,31 @@ export const STATIONS = [
 
     // ========== COMMUTER EXPRESS TRANSFER POINTS ==========
     { name: "Encino Park & Ride", lat: 34.1614, lon: -118.4988, lines: ["LADOT CE 423", "LADOT CE 549", "LADOT CE 573", "LADOT CE 574"] },
-    { name: "Van Nuys FlyAway Terminal", lat: 34.1935, lon: -118.4702, lines: ["LAX FlyAway - Van Nuys"] }
+    { name: "Van Nuys FlyAway Terminal", lat: 34.1935, lon: -118.4702, lines: ["LAX FlyAway - Van Nuys"] },
+
+    // ========== FUTURE TRANSIT LINES ==========
+
+    // Sepulveda Transit Corridor (Planned, 2040)
+    // Note: "Van Nuys" station is defined above with Orange line, includes Sepulveda Transit Corridor
+    { name: "Van Nuys Metrolink", lat: 34.1897, lon: -118.4495, lines: ["Sepulveda Transit Corridor", "Metrolink Ventura"], status: "planned", expectedOpening: "2040" },
+    { name: "Ventura Blvd", lat: 34.1430, lon: -118.4500, lines: ["Sepulveda Transit Corridor"], status: "planned", expectedOpening: "2040" },
+    { name: "UCLA Gateway Plaza", lat: 34.0705, lon: -118.4440, lines: ["Sepulveda Transit Corridor"], status: "planned", expectedOpening: "2040" },
+    { name: "Santa Monica Blvd", lat: 34.0450, lon: -118.4420, lines: ["Sepulveda Transit Corridor"], status: "planned", expectedOpening: "2040" },
+
+    // C Line Extension to Torrance (Planned, 2036)
+    { name: "182nd Street", lat: 33.8700, lon: -118.3520, lines: ["C Line Extension"], status: "planned", expectedOpening: "2036" },
+    { name: "Torrance Transit Center", lat: 33.8317, lon: -118.3405, lines: ["C Line Extension"], status: "planned", expectedOpening: "2036" },
+
+    // East San Fernando Valley Light Rail (Under Construction, 2031)
+    // Note: "Van Nuys" station is defined above with Orange line, includes East San Fernando Valley
+    { name: "Van Nuys Blvd/Victory", lat: 34.1750, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
+    { name: "Van Nuys Blvd/Vanowen", lat: 34.1930, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
+    { name: "Van Nuys Blvd/Sherman Way", lat: 34.2010, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
+    { name: "Van Nuys Blvd/Roscoe", lat: 34.2210, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
+    { name: "Panorama City", lat: 34.2260, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
+    { name: "Van Nuys Blvd/Nordhoff", lat: 34.2350, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
+    { name: "Van Nuys Blvd/San Fernando", lat: 34.2550, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
+    { name: "Sylmar/San Fernando", lat: 34.2700, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
+    { name: "Pacoima", lat: 34.2760, lon: -118.4300, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
+    { name: "Sylmar Metrolink", lat: 34.2830, lon: -118.4120, lines: ["East San Fernando Valley", "Metrolink Antelope Valley"], status: "under_construction", expectedOpening: "2031" }
 ];
