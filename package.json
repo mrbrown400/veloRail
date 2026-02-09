@@ -12,9 +12,9 @@
     "vite": "^7.2.4"
   },
   "dependencies": {
+    "@googlemaps/js-api-loader": "^2.0.2",
     "gtfs-rt-bindings": "^4.9.0",
     "idb": "^8.0.3",
-    "jszip": "^3.10.1",
-    "leaflet": "^1.9.4"
+    "jszip": "^3.10.1"
   }
 }

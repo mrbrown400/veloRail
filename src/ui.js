@@ -1,10 +1,9 @@
 // UI event listeners and DOM manipulation
 import { compareRoutes } from './routing.js';
-import { drawRoute, toggleLayerGroup, invalidateMapSize, refreshTransitMap, showVehicleMarker, hideVehicleMarker } from './map.js';
+import { drawRoute, invalidateMapSize, showVehicleMarker, hideVehicleMarker } from './google_map.js';
 import { requestGeolocation, getCurrentLocationState } from './geolocation.js';
-import { toggleBikeOverlay } from './bike_network.js';
 import { trackVehicle, untrackVehicle, onVehicleUpdate, hasVehiclePositions, getTrackedVehiclePosition } from './realtime/realtime_store.js';
-import { searchPlaces, getPlaceIcon, debounce } from './geocoding.js';
+import { searchPlaces, getPlaceIcon, debounce, getPlaceDetails } from './geocoding.js';
 
 // UI State
 let uiState = {
@@ -13,15 +12,6 @@ let uiState = {
   isUsingGeolocation: false,
   hasSearched: false,
   sidebarOpen: false,
-  layers: {
-    bike: false,              // Bike lanes off by default
-    metroRail: true,
-    metroBrt: true,
-    ladot: true,
-    silverStreak: true,
-    metrolink: true,          // Metrolink/Amtrak lines
-    future: false             // Toggle for future transit lines
-  },
   // Vehicle tracking
   trackedTransitLeg: null,    // Current transit leg being tracked
   vehicleUnsubscribe: null,   // Cleanup function for vehicle updates
@@ -57,10 +47,6 @@ export function setupUI() {
   const timeRadios = document.querySelectorAll('input[name="departure-time"]');
   const customTimeInput = document.getElementById('custom-time');
 
-  // DOM Elements - Layers
-  const layersBtn = document.getElementById('layers-btn');
-  const layersPanel = document.getElementById('layers-panel');
-
   // DOM Elements - Results Sidebar
   const resultsSidebar = document.getElementById('results-sidebar');
   const closeSidebarBtn = document.getElementById('close-sidebar');
@@ -87,9 +73,6 @@ export function setupUI() {
 
   // Time selector
   setupTimeSelector();
-
-  // Layers panel
-  setupLayersControl();
 
   // Sidebar
   if (closeSidebarBtn) {
@@ -206,15 +189,6 @@ export function setupUI() {
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     customTimeInput.value = now.toISOString().slice(0, 16);
 
-    // Debounce timer for map refresh
-    let refreshTimer = null;
-    const debouncedRefresh = (time) => {
-      if (refreshTimer) clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => {
-        refreshTransitMap(time);
-      }, 300);
-    };
-
     // Handle radio button changes
     timeRadios.forEach(radio => {
       radio.addEventListener('change', () => {
@@ -224,21 +198,10 @@ export function setupUI() {
           const now = new Date();
           now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
           customTimeInput.value = now.toISOString().slice(0, 16);
-          // Refresh map with custom time (debounced)
-          debouncedRefresh(new Date(customTimeInput.value));
         } else {
           customTimeInput.classList.add('hidden');
-          // Refresh map with current time (debounced)
-          debouncedRefresh(new Date());
         }
       });
-    });
-
-    // Handle custom time input changes
-    customTimeInput.addEventListener('change', () => {
-      if (customTimeInput.value) {
-        debouncedRefresh(new Date(customTimeInput.value));
-      }
     });
   }
 
@@ -248,71 +211,6 @@ export function setupUI() {
       return new Date(customTimeInput.value);
     }
     return new Date(); // "Leave now" - use current time
-  }
-
-  // --- Layers Control ---
-
-  function setupLayersControl() {
-    // Toggle panel visibility
-    layersBtn.addEventListener('click', () => {
-      layersPanel.classList.toggle('hidden');
-    });
-
-    // Close panel when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!layersPanel.classList.contains('hidden') &&
-          !layersPanel.contains(e.target) &&
-          !layersBtn.contains(e.target)) {
-        layersPanel.classList.add('hidden');
-      }
-    });
-
-    // Layer toggle handlers
-    document.getElementById('layer-bike').addEventListener('change', (e) => {
-      uiState.layers.bike = e.target.checked;
-      toggleBikeOverlay(e.target.checked);
-    });
-
-    document.getElementById('layer-metro-rail').addEventListener('change', (e) => {
-      uiState.layers.metroRail = e.target.checked;
-      toggleLayerGroup('metroRail', e.target.checked);
-    });
-
-    document.getElementById('layer-metro-brt').addEventListener('change', (e) => {
-      uiState.layers.metroBrt = e.target.checked;
-      toggleLayerGroup('metroBrt', e.target.checked);
-    });
-
-    document.getElementById('layer-ladot').addEventListener('change', (e) => {
-      uiState.layers.ladot = e.target.checked;
-      toggleLayerGroup('ladot', e.target.checked);
-    });
-
-    document.getElementById('layer-silver-streak').addEventListener('change', (e) => {
-      uiState.layers.silverStreak = e.target.checked;
-      toggleLayerGroup('silverStreak', e.target.checked);
-    });
-
-    document.getElementById('layer-metrolink').addEventListener('change', (e) => {
-      uiState.layers.metrolink = e.target.checked;
-      toggleLayerGroup('otherLines', e.target.checked);
-    });
-
-    // Future lines toggle
-    const futureToggle = document.getElementById('layer-future');
-    if (futureToggle) {
-      futureToggle.addEventListener('change', (e) => {
-        uiState.layers.future = e.target.checked;
-        // Refresh transit map with future toggle state
-        const selectedRadio = document.querySelector('input[name="departure-time"]:checked');
-        const customTimeInput = document.getElementById('custom-time');
-        let queryTime = new Date();
-        if (selectedRadio && selectedRadio.value === 'depart' && customTimeInput && customTimeInput.value) {
-          queryTime = new Date(customTimeInput.value);
-        }
-        refreshTransitMap(queryTime, e.target.checked);
-      });
-    }
   }
 
   // --- Sidebar Management ---
@@ -501,8 +399,7 @@ export function setupUI() {
       const safetyPreference = safetySelect ? safetySelect.value : 'balanced';
       const modeFilter = modeSelect ? modeSelect.value : 'all';
       const departureTime = getDepartureTime();
-      const includeFuture = uiState.layers.future;
-      const comparisonResults = await compareRoutes(startValue, endValue, safetyPreference, modeFilter, departureTime, includeFuture);
+      const comparisonResults = await compareRoutes(startValue, endValue, safetyPreference, modeFilter, departureTime, false);
 
       // Expand search UI if not already
       if (!uiState.hasSearched && uiState.mode === 'collapsed') {
@@ -837,7 +734,7 @@ export function setupUI() {
     });
   }
 
-  function selectPlace(inputEl, dropdownEl, place, type = 'destination') {
+  async function selectPlace(inputEl, dropdownEl, place, type = 'destination') {
     // Build display name
     const displayName = place.address
       ? `${place.name}, ${place.address}`
@@ -846,11 +743,21 @@ export function setupUI() {
     // Update input value
     inputEl.value = displayName;
 
+    // If place doesn't have coordinates (Google Places autocomplete), fetch them
+    let finalPlace = place;
+    if (place.lat === null || place.lon === null) {
+      try {
+        finalPlace = await getPlaceDetails(place);
+      } catch (error) {
+        console.error('Failed to get place coordinates:', error);
+      }
+    }
+
     // Store selected place with coordinates
     const placeData = {
       name: displayName,
-      lat: place.lat,
-      lon: place.lon
+      lat: finalPlace.lat,
+      lon: finalPlace.lon
     };
 
     if (type === 'start') {

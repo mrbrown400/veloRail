@@ -1,6 +1,6 @@
 import { geocode } from './geocoding.js';
 import { TRANSIT_LINES } from './transit_data.js';
-import { getBikeRoute, getOSRMRoute } from './osrm.js';
+import { getBikeRoute, getOSRMRoute } from './google_directions.js';
 import { getRouteElevation } from './elevation.js';
 import { getORSBikeRoute } from './ors.js';
 import { calculateRouteSafetyScore } from './bike_safety.js';

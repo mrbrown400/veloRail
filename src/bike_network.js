@@ -1,10 +1,11 @@
-
-import L from 'leaflet';
+// Bike Network Overlay for Google Maps
+// Fetches bike paths from Overpass API and displays on map
 
 // Prevent multiple initializations (HMR protection)
 let bikeOverlayInitialized = false;
-let bikeLayerGroup = null;
+let bikePolylines = [];
 let mapInstance = null;
+let bikeOverlayVisible = false;
 
 export async function initBikeOverlay(map) {
     if (bikeOverlayInitialized) {
@@ -14,9 +15,6 @@ export async function initBikeOverlay(map) {
     bikeOverlayInitialized = true;
     mapInstance = map;
     console.log('Initializing Bike Network Overlay...');
-
-    // Create layer group for bike paths (not added to map - toggle controls visibility)
-    bikeLayerGroup = L.layerGroup();
 
     // Split into multiple smaller bounding boxes to avoid API timeout
     const regions = [
@@ -57,17 +55,18 @@ export async function initBikeOverlay(map) {
             if (!data.elements) return;
             console.log(`Fetched ${data.elements.length} bike paths for ${region.name}`);
 
-            // Render bike paths to layer group
+            // Create Google Maps polylines for bike paths
             data.elements.forEach(element => {
                 if (element.type === 'way' && element.geometry) {
-                    const latlngs = element.geometry.map(pt => [pt.lat, pt.lon]);
-                    const polyline = L.polyline(latlngs, {
-                        color: '#4ade80',
-                        weight: 1,
-                        opacity: 0.2,
-                        className: 'bike-path-overlay'
+                    const path = element.geometry.map(pt => ({ lat: pt.lat, lng: pt.lon }));
+                    const polyline = new google.maps.Polyline({
+                        path: path,
+                        strokeColor: '#4ade80',
+                        strokeWeight: 1,
+                        strokeOpacity: 0.2,
+                        map: bikeOverlayVisible ? mapInstance : null
                     });
-                    bikeLayerGroup.addLayer(polyline);
+                    bikePolylines.push(polyline);
                 }
             });
         } catch (err) {
@@ -82,15 +81,11 @@ export async function initBikeOverlay(map) {
 
 // Toggle bike overlay visibility
 export function toggleBikeOverlay(visible) {
-    if (!bikeLayerGroup || !mapInstance) return;
+    if (!mapInstance) return;
 
-    if (visible) {
-        if (!mapInstance.hasLayer(bikeLayerGroup)) {
-            mapInstance.addLayer(bikeLayerGroup);
-        }
-    } else {
-        if (mapInstance.hasLayer(bikeLayerGroup)) {
-            mapInstance.removeLayer(bikeLayerGroup);
-        }
-    }
+    bikeOverlayVisible = visible;
+
+    bikePolylines.forEach(polyline => {
+        polyline.setMap(visible ? mapInstance : null);
+    });
 }
