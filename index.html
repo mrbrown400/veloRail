@@ -8,97 +8,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <div id="app">
-      <!-- Full-screen Map (background) -->
-      <div id="map-container" class="map-fullscreen"></div>
-
-      <!-- Floating Search Card (top-left) -->
-      <div id="search-card" class="floating-card">
-        <div class="search-header">
-          <span class="logo">🚲 + 🚆</span>
-          <span class="brand-name">VeloRail</span>
-        </div>
-
-        <!-- Collapsed State: Destination Only -->
-        <div id="search-collapsed" class="search-state">
-          <div class="input-group autocomplete-wrapper">
-            <input type="text" id="end" placeholder="Where to?" autocomplete="off" />
-            <div class="autocomplete-dropdown" id="end-dropdown"></div>
-          </div>
-          <div id="location-status" class="location-status clickable">
-            <span class="status-icon"></span>
-            <span class="status-text">Getting your location...</span>
-          </div>
-        </div>
-
-        <!-- Expanded State: Both Fields -->
-        <div id="search-expanded" class="search-state hidden">
-          <div class="input-group autocomplete-wrapper">
-            <div class="location-input-wrapper">
-              <input type="text" id="start" placeholder="Your Location" autocomplete="off" />
-              <button id="use-location-btn" class="location-btn" type="button" title="Use my location">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="3"></circle>
-                  <path d="M12 2v4m0 12v4m10-10h-4M6 12H2"></path>
-                </svg>
-              </button>
-            </div>
-            <div class="autocomplete-dropdown" id="start-dropdown"></div>
-          </div>
-          <div class="input-group autocomplete-wrapper">
-            <input type="text" id="end-expanded" placeholder="Where to?" autocomplete="off" />
-            <div class="autocomplete-dropdown" id="end-expanded-dropdown"></div>
-          </div>
-        </div>
-
-        <!-- Departure Time Selector -->
-        <div id="time-selector" class="time-selector">
-          <label class="time-option">
-            <input type="radio" name="departure-time" value="now" checked />
-            <span>Leave now</span>
-          </label>
-          <label class="time-option">
-            <input type="radio" name="departure-time" value="depart" />
-            <span>Depart at</span>
-          </label>
-          <input type="datetime-local" id="custom-time" class="custom-time hidden" />
-        </div>
-
-        <!-- Options Row (inside search card) -->
-        <div id="options-row" class="options-row">
-          <select id="travel-mode">
-            <option value="all">All Options</option>
-            <option value="bike">Bike + Rail</option>
-            <option value="walk">Walk + Rail</option>
-            <option value="driving">Driving</option>
-          </select>
-          <select id="bike-safety">
-            <option value="balanced">Balanced</option>
-            <option value="safe">Safer Route</option>
-            <option value="fast">Fastest</option>
-          </select>
-          <button id="find-route-btn" class="primary-btn">Find Route</button>
-        </div>
-      </div>
-
-      <!-- Slide-in Results Sidebar -->
-      <aside id="results-sidebar" class="results-sidebar">
-        <div class="sidebar-header">
-          <span class="logo">🚲 + 🚆</span>
-          <span class="brand-name">VeloRail</span>
-          <button id="close-sidebar" class="close-btn" type="button" title="Close">&times;</button>
-        </div>
-        <div id="route-details" class="route-details">
-          <!-- Route info rendered here -->
-        </div>
-      </aside>
-    </div>
-    <script type="module" src="/src/main.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
