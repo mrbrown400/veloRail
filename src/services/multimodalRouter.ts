@@ -106,12 +106,23 @@ export async function calculateBikeRailRoute(
       console.log('No rail stations found near destination');
       return null;
     }
-    const closestToDest = stationsNearDest[0]; // Already sorted by distance
-    console.log(`Closest station to destination: ${closestToDest.station.name} (${closestToDest.distance?.toFixed(1)}km)`);
+
+    // Check if destination IS a transit station (within 0.3km threshold)
+    // This handles cases like searching for "Union Station" - route directly there
+    const STATION_THRESHOLD_KM = 0.3;
+    const destinationIsStation = stationsNearDest[0].distance !== undefined &&
+                                  stationsNearDest[0].distance < STATION_THRESHOLD_KM;
+
+    const exitStation = stationsNearDest[0].station;
+
+    if (destinationIsStation) {
+      console.log(`Destination IS a transit station: ${exitStation.name} (${stationsNearDest[0].distance?.toFixed(2)}km away)`);
+    } else {
+      console.log(`Closest station to destination: ${exitStation.name} (${stationsNearDest[0].distance?.toFixed(1)}km)`);
+    }
 
     // Step 3: Build the route using these stations
     const entryStation = closestToOrigin.station;
-    const exitStation = closestToDest.station;
 
     // If same station, transit doesn't make sense
     if (entryStation.name === exitStation.name) {
@@ -125,7 +136,8 @@ export async function calculateBikeRailRoute(
       origin,
       destination,
       departureTime,
-      maxBikeDistanceKm
+      maxBikeDistanceKm,
+      destinationIsStation
     );
 
     return route;
@@ -139,6 +151,9 @@ export async function calculateBikeRailRoute(
 /**
  * Build a route from entry and exit stations
  * This is where we make the Google API calls for precise routing
+ *
+ * @param destinationIsStation - If true, destination is itself a transit station,
+ *        so we route transit directly to destination and skip the final bike leg
  */
 async function buildRouteFromStations(
   entryStation: Station,
@@ -146,7 +161,8 @@ async function buildRouteFromStations(
   origin: Location,
   destination: Location,
   departureTime: Date,
-  maxBikeDistanceKm: number
+  maxBikeDistanceKm: number,
+  destinationIsStation: boolean = false
 ): Promise<Route | null> {
   // Step 1: Get bike route to entry station
   const bikeToStation = await getBikeRoute(origin, {
@@ -178,10 +194,16 @@ async function buildRouteFromStations(
     departureTime.getTime() + bikeToStationDuration.totalDuration * 1000
   );
 
-  // Step 4: Get transit route from entry to exit station, departing after bike arrival
+  // Step 4: Get transit route from entry station to exit point
+  // If destination IS a transit station, route directly to destination coordinates
+  // This ensures Google routes to the actual destination (e.g., Union Station)
+  const transitDestination = destinationIsStation
+    ? { lat: destination.lat, lon: destination.lon }
+    : { lat: exitStation.lat, lon: exitStation.lon };
+
   const transitResult = await getFullTransitRoute(
     { lat: entryStation.lat, lon: entryStation.lon },
-    { lat: exitStation.lat, lon: exitStation.lon },
+    transitDestination,
     arrivalAtStation
   );
 
@@ -197,29 +219,36 @@ async function buildRouteFromStations(
     return null;
   }
 
-  // Step 5: Get bike route from exit station to destination
-  const bikeFromStation = await getBikeRoute(
-    { lat: exitStation.lat, lon: exitStation.lon },
-    destination
-  );
+  // Step 5: Get bike route from exit station to destination (skip if destination is a station)
+  let bikeFromStation: { geometry: any; distance: number; duration: number } | null = null;
+  let bikeFromStationDuration = { totalDuration: 0 };
 
-  if (!bikeFromStation) {
-    console.log('Could not get bike route from station');
-    return null;
+  if (!destinationIsStation) {
+    bikeFromStation = await getBikeRoute(
+      { lat: exitStation.lat, lon: exitStation.lon },
+      destination
+    );
+
+    if (!bikeFromStation) {
+      console.log('Could not get bike route from station');
+      return null;
+    }
+
+    // Check if bike distance from station is reasonable
+    if (bikeFromStation.distance > maxBikeDistanceKm) {
+      console.log(`Bike distance from station too far: ${bikeFromStation.distance.toFixed(1)}km`);
+      return null;
+    }
+
+    // Step 6: Calculate custom duration for bike from station
+    bikeFromStationDuration = await calculateBikeDuration(
+      bikeFromStation.geometry,
+      bikeFromStation.distance,
+      bikeSettings
+    );
+  } else {
+    console.log('Destination is a transit station, skipping final bike leg');
   }
-
-  // Check if bike distance from station is reasonable
-  if (bikeFromStation.distance > maxBikeDistanceKm) {
-    console.log(`Bike distance from station too far: ${bikeFromStation.distance.toFixed(1)}km`);
-    return null;
-  }
-
-  // Step 6: Calculate custom duration for bike from station
-  const bikeFromStationDuration = await calculateBikeDuration(
-    bikeFromStation.geometry,
-    bikeFromStation.distance,
-    bikeSettings
-  );
 
   // Step 7: Build the route legs
   const legs: RouteLeg[] = [];
@@ -287,15 +316,17 @@ async function buildRouteFromStations(
     }
   }
 
-  // Leg N: Bike from station to destination (using custom elevation-adjusted duration)
-  legs.push({
-    mode: 'bike',
-    from: exitStation,
-    to: destination,
-    geometry: bikeFromStation.geometry,
-    distance: bikeFromStation.distance,
-    duration: bikeFromStationDuration.totalDuration
-  });
+  // Leg N: Bike from station to destination (skip if destination is a transit station)
+  if (!destinationIsStation && bikeFromStation) {
+    legs.push({
+      mode: 'bike',
+      from: exitStation,
+      to: destination,
+      geometry: bikeFromStation.geometry,
+      distance: bikeFromStation.distance,
+      duration: bikeFromStationDuration.totalDuration
+    });
+  }
 
   // Step 8: Build the final route
   return stitchRoute(legs, origin, destination);
