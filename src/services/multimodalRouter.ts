@@ -13,10 +13,8 @@ import {
   loadBikeSettings
 } from './bikeDurationService';
 import {
-  selectOptimalStations,
-  isBikeRailViable,
-  type StationPair
-} from './smartStationSelector';
+  getStationDataProvider
+} from './stationDataProvider';
 import type {
   Location,
   Station,
@@ -62,17 +60,12 @@ export interface BikeRailOptions {
 }
 
 /**
- * Calculate a bike+rail route using Smart Station Selection + Google Directions API
+ * Calculate a bike+rail route using closest station selection + Google Directions API
  *
- * New algorithm:
- * 1. Use SmartStationSelector to find optimal station pairs based on user's bike speed
- * 2. For the top pair, get precise Google routes for each leg
- * 3. Fall back to Google-driven approach if smart selection fails
- *
- * This results in better station selection that accounts for:
- * - User's custom bike speed and weight
- * - Expected wait times based on line frequencies
- * - Transit connection time between stations
+ * Simple algorithm:
+ * 1. Find the closest BRT/LRT/HRT station to origin
+ * 2. Find the closest BRT/LRT/HRT station to destination
+ * 3. Route: bike to origin station → transit → bike from destination station
  */
 export async function calculateBikeRailRoute(
   origin: Location,
@@ -96,55 +89,46 @@ export async function calculateBikeRailRoute(
   }
 
   try {
-    // Step 1: Use Smart Station Selection to find optimal station pairs
-    console.log('Using Smart Station Selection for bike+rail routing');
-    const isViable = await isBikeRailViable(origin, destination);
+    const provider = getStationDataProvider();
 
-    if (!isViable) {
-      console.log('Bike+rail not viable for this origin/destination pair');
+    // Step 1: Find closest station to origin (within maxBikeDistanceKm)
+    const stationsNearOrigin = await provider.findStationsNear(origin, maxBikeDistanceKm);
+    if (stationsNearOrigin.length === 0) {
+      console.log('No rail stations found near origin');
+      return null;
+    }
+    const closestToOrigin = stationsNearOrigin[0]; // Already sorted by distance
+    console.log(`Closest station to origin: ${closestToOrigin.station.name} (${closestToOrigin.distance?.toFixed(1)}km)`);
+
+    // Step 2: Find closest station to destination (within maxBikeDistanceKm)
+    const stationsNearDest = await provider.findStationsNear(destination, maxBikeDistanceKm);
+    if (stationsNearDest.length === 0) {
+      console.log('No rail stations found near destination');
+      return null;
+    }
+    const closestToDest = stationsNearDest[0]; // Already sorted by distance
+    console.log(`Closest station to destination: ${closestToDest.station.name} (${closestToDest.distance?.toFixed(1)}km)`);
+
+    // Step 3: Build the route using these stations
+    const entryStation = closestToOrigin.station;
+    const exitStation = closestToDest.station;
+
+    // If same station, transit doesn't make sense
+    if (entryStation.name === exitStation.name) {
+      console.log('Entry and exit stations are the same, skip bike+rail');
       return null;
     }
 
-    const selectionResult = await selectOptimalStations(origin, destination, departureTime);
+    const route = await buildRouteFromStations(
+      entryStation,
+      exitStation,
+      origin,
+      destination,
+      departureTime,
+      maxBikeDistanceKm
+    );
 
-    if (selectionResult.topPairs.length > 0) {
-      // Use the best station pair from smart selection
-      const bestPair = selectionResult.topPairs[0];
-      console.log(`Smart selection chose: ${bestPair.origin.station.name} → ${bestPair.destination.station.name}`);
-
-      const route = await buildRouteFromStationPair(
-        bestPair,
-        origin,
-        destination,
-        departureTime,
-        maxBikeDistanceKm
-      );
-
-      if (route) {
-        return route;
-      }
-
-      // If first pair fails, try second pair
-      if (selectionResult.topPairs.length > 1) {
-        console.log('First station pair failed, trying second option');
-        const secondPair = selectionResult.topPairs[1];
-        const secondRoute = await buildRouteFromStationPair(
-          secondPair,
-          origin,
-          destination,
-          departureTime,
-          maxBikeDistanceKm
-        );
-
-        if (secondRoute) {
-          return secondRoute;
-        }
-      }
-    }
-
-    // Fallback: Use Google's station selection
-    console.log('Smart selection failed, falling back to Google station selection');
-    return await calculateBikeRailRouteFallback(origin, destination, departureTime, maxBikeDistanceKm);
+    return route;
 
   } catch (error) {
     console.error('Bike+rail routing error:', error);
@@ -153,19 +137,17 @@ export async function calculateBikeRailRoute(
 }
 
 /**
- * Build a route from a selected station pair
+ * Build a route from entry and exit stations
  * This is where we make the Google API calls for precise routing
  */
-async function buildRouteFromStationPair(
-  pair: StationPair,
+async function buildRouteFromStations(
+  entryStation: Station,
+  exitStation: Station,
   origin: Location,
   destination: Location,
   departureTime: Date,
   maxBikeDistanceKm: number
 ): Promise<Route | null> {
-  const entryStation = pair.origin.station;
-  const exitStation = pair.destination.station;
-
   // Step 1: Get bike route to entry station
   const bikeToStation = await getBikeRoute(origin, {
     lat: entryStation.lat,
@@ -316,197 +298,6 @@ async function buildRouteFromStationPair(
   });
 
   // Step 8: Build the final route
-  return stitchRoute(legs, origin, destination);
-}
-
-/**
- * Fallback: Original Google-driven station selection
- * Used when smart selection doesn't find viable pairs
- */
-async function calculateBikeRailRouteFallback(
-  origin: Location,
-  destination: Location,
-  departureTime: Date,
-  maxBikeDistanceKm: number
-): Promise<Route | null> {
-  // Get transit route from origin to destination
-  // Google will find the best transit stations
-  const transitResult = await getFullTransitRoute(origin, destination, departureTime);
-
-  if (!transitResult || transitResult.legs.length === 0) {
-    console.log('No transit route found');
-    return null;
-  }
-
-  // Check if transit route has actual transit legs
-  const transitLegs = transitResult.legs.filter(l => l.mode === 'TRANSIT');
-  if (transitLegs.length === 0) {
-    console.log('Transit route has no rail legs');
-    return null;
-  }
-
-  // Find the first and last transit stops
-  const firstTransitLeg = transitLegs[0];
-  const lastTransitLeg = transitLegs[transitLegs.length - 1];
-
-  if (!firstTransitLeg.transitInfo || !lastTransitLeg.transitInfo) {
-    console.log('Missing transit info');
-    return null;
-  }
-
-  const entryStation: Station = {
-    name: firstTransitLeg.transitInfo.departureStopName,
-    lat: firstTransitLeg.transitInfo.departureStopLat,
-    lon: firstTransitLeg.transitInfo.departureStopLng
-  };
-
-  const exitStation: Station = {
-    name: lastTransitLeg.transitInfo.arrivalStopName,
-    lat: lastTransitLeg.transitInfo.arrivalStopLat,
-    lon: lastTransitLeg.transitInfo.arrivalStopLng
-  };
-
-  // Get bike route to entry station
-  const bikeToStation = await getBikeRoute(origin, {
-    lat: entryStation.lat,
-    lon: entryStation.lon
-  });
-
-  if (!bikeToStation) {
-    console.log('Could not get bike route to station');
-    return null;
-  }
-
-  // Check if bike distance is reasonable
-  if (bikeToStation.distance > maxBikeDistanceKm) {
-    console.log(`Bike distance to station too far: ${bikeToStation.distance.toFixed(1)}km`);
-    return null;
-  }
-
-  // Calculate custom bike durations with elevation
-  const bikeSettings = loadBikeSettings();
-  const bikeToStationDuration = await calculateBikeDuration(
-    bikeToStation.geometry,
-    bikeToStation.distance,
-    bikeSettings
-  );
-
-  // Calculate arrival time at station using custom bike duration
-  const arrivalAtStation = new Date(
-    departureTime.getTime() + bikeToStationDuration.totalDuration * 1000
-  );
-
-  // Re-query transit from entry station to exit station with bike arrival time
-  const updatedTransitResult = await getFullTransitRoute(
-    { lat: entryStation.lat, lon: entryStation.lon },
-    { lat: exitStation.lat, lon: exitStation.lon },
-    arrivalAtStation
-  );
-
-  // Use updated transit if available, otherwise fall back to original
-  const finalTransitResult = updatedTransitResult || transitResult;
-
-  // Get bike route from exit station to destination
-  const bikeFromStation = await getBikeRoute(
-    { lat: exitStation.lat, lon: exitStation.lon },
-    destination
-  );
-
-  if (!bikeFromStation) {
-    console.log('Could not get bike route from station');
-    return null;
-  }
-
-  // Check if bike distance from station is reasonable
-  if (bikeFromStation.distance > maxBikeDistanceKm) {
-    console.log(`Bike distance from station too far: ${bikeFromStation.distance.toFixed(1)}km`);
-    return null;
-  }
-
-  // Calculate custom duration for bike from station
-  const bikeFromStationDuration = await calculateBikeDuration(
-    bikeFromStation.geometry,
-    bikeFromStation.distance,
-    bikeSettings
-  );
-
-  // Build the route legs
-  const legs: RouteLeg[] = [];
-
-  // Leg 1: Bike to station
-  legs.push({
-    mode: 'bike',
-    from: origin,
-    to: entryStation,
-    geometry: bikeToStation.geometry,
-    distance: bikeToStation.distance,
-    duration: bikeToStationDuration.totalDuration
-  });
-
-  // Transit legs from updated query
-  for (const transitLeg of finalTransitResult.legs) {
-    if (transitLeg.mode === 'TRANSIT' && transitLeg.transitInfo) {
-      const ti = transitLeg.transitInfo;
-
-      // Wait time based on custom bike arrival time
-      const waitTime = legs.length === 1
-        ? Math.max(0, (ti.departureTime.getTime() - arrivalAtStation.getTime()) / 1000)
-        : 0;
-
-      const fromStation: Station = {
-        name: ti.departureStopName,
-        lat: ti.departureStopLat,
-        lon: ti.departureStopLng
-      };
-
-      const toStation: Station = {
-        name: ti.arrivalStopName,
-        lat: ti.arrivalStopLat,
-        lon: ti.arrivalStopLng
-      };
-
-      legs.push({
-        mode: 'transit',
-        from: fromStation,
-        to: toStation,
-        geometry: transitLeg.geometry,
-        distance: transitLeg.distance,
-        duration: transitLeg.duration + waitTime,
-        line: ti.lineShortName || ti.lineName,
-        color: ti.lineColor,
-        headsign: ti.headsign,
-        departureTime: ti.departureTime,
-        waitTime: waitTime,
-        isRealtime: true,
-        isTransfer: legs.filter(l => l.mode === 'transit').length > 0
-      });
-    } else if (transitLeg.mode === 'WALKING' && transitLeg.distance > 0.05) {
-      // Include walking legs between transit (transfers)
-      const prevLeg = legs[legs.length - 1];
-      if (prevLeg && prevLeg.mode === 'transit') {
-        legs.push({
-          mode: 'walk',
-          from: prevLeg.to,
-          to: prevLeg.to,
-          geometry: transitLeg.geometry,
-          distance: transitLeg.distance,
-          duration: transitLeg.duration
-        });
-      }
-    }
-  }
-
-  // Leg N: Bike from station to destination
-  legs.push({
-    mode: 'bike',
-    from: exitStation,
-    to: destination,
-    geometry: bikeFromStation.geometry,
-    distance: bikeFromStation.distance,
-    duration: bikeFromStationDuration.totalDuration
-  });
-
-  // Build the final route
   return stitchRoute(legs, origin, destination);
 }
 
