@@ -1,6 +1,6 @@
 import { geocode } from './geocoding.js';
 import { TRANSIT_LINES } from './transit_data.js';
-import { getBikeRoute, getOSRMRoute } from './osrm.js';
+import { getBikeRoute, getOSRMRoute } from './google_directions.js';
 import { getRouteElevation } from './elevation.js';
 import { getORSBikeRoute } from './ors.js';
 import { calculateRouteSafetyScore } from './bike_safety.js';
@@ -33,7 +33,8 @@ function getAllStations(departureTime = null, includeFuture = false) {
         if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture })) {
             continue;
         }
-        data.stations.forEach(s => {
+        // Skip waypoints - they're only for route display, not actual stations
+        data.stations.filter(s => !s.waypoint).forEach(s => {
             all.push({
                 ...s,
                 line: lineName,
@@ -244,7 +245,8 @@ function getLinesForStation(stationName, departureTime = null, includeFuture = f
             continue;
         }
 
-        const hasStation = data.stations.some(s => s.name === stationName);
+        // Skip waypoints - they're only for route display
+        const hasStation = data.stations.some(s => !s.waypoint && s.name === stationName);
         if (hasStation) {
             lines.push(lineName);
         }
@@ -260,10 +262,14 @@ function findSharedStations(line1Name, line2Name, departureTime = null, includeF
 
     if (!line1 || !line2) return [];
 
-    const sharedStations = [];
-    const line1StationNames = new Set(line1.stations.map(s => s.name));
+    // Filter out waypoints - they're not real stations
+    const line1Stations = line1.stations.filter(s => !s.waypoint);
+    const line2Stations = line2.stations.filter(s => !s.waypoint);
 
-    for (const station of line2.stations) {
+    const sharedStations = [];
+    const line1StationNames = new Set(line1Stations.map(s => s.name));
+
+    for (const station of line2Stations) {
         if (line1StationNames.has(station.name)) {
             sharedStations.push(station);
         }
@@ -279,10 +285,14 @@ function findNearbyStationPairs(line1Name, line2Name, maxDistanceKm, departureTi
 
     if (!line1 || !line2) return [];
 
+    // Filter out waypoints - they're not real stations
+    const line1Stations = line1.stations.filter(s => !s.waypoint);
+    const line2Stations = line2.stations.filter(s => !s.waypoint);
+
     const nearbyPairs = [];
 
-    for (const s1 of line1.stations) {
-        for (const s2 of line2.stations) {
+    for (const s1 of line1Stations) {
+        for (const s2 of line2Stations) {
             // Skip if same station name (that's a same-station transfer)
             if (s1.name === s2.name) continue;
 

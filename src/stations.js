@@ -183,7 +183,9 @@ export const STATIONS = [
 
     // Sepulveda Transit Corridor (Planned, 2040)
     // Note: "Van Nuys" station is defined above with Orange line, includes Sepulveda Transit Corridor
-    { name: "Van Nuys Metrolink", lat: 34.1897, lon: -118.4495, lines: ["Sepulveda Transit Corridor", "Metrolink Ventura"], status: "planned", expectedOpening: "2040" },
+    // Van Nuys Metrolink and Sherman Way are interlined with East SFV LRT
+    { name: "Van Nuys Metrolink", lat: 34.1897, lon: -118.4495, lines: ["Sepulveda Transit Corridor", "East San Fernando Valley", "Metrolink Ventura"], status: "planned", expectedOpening: "2031" },
+    { name: "Sherman Way", lat: 34.2010, lon: -118.4489, lines: ["Sepulveda Transit Corridor", "East San Fernando Valley"], status: "planned", expectedOpening: "2031" },
     { name: "Ventura Blvd", lat: 34.1430, lon: -118.4500, lines: ["Sepulveda Transit Corridor"], status: "planned", expectedOpening: "2040" },
     { name: "UCLA Gateway Plaza", lat: 34.0705, lon: -118.4440, lines: ["Sepulveda Transit Corridor"], status: "planned", expectedOpening: "2040" },
     { name: "Santa Monica Blvd", lat: 34.0450, lon: -118.4420, lines: ["Sepulveda Transit Corridor"], status: "planned", expectedOpening: "2040" },
@@ -194,13 +196,11 @@ export const STATIONS = [
 
     // East San Fernando Valley Light Rail (Under Construction, 2031)
     // Note: "Van Nuys" station is defined above with Orange line, includes East San Fernando Valley
-    { name: "Van Nuys Blvd/Victory", lat: 34.1750, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
-    { name: "Van Nuys Blvd/Vanowen", lat: 34.1930, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
-    { name: "Van Nuys Blvd/Sherman Way", lat: 34.2010, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
-    { name: "Van Nuys Blvd/Roscoe", lat: 34.2210, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
+    // Note: Van Nuys Metrolink and Sherman Way are defined above (interlined with Sepulveda)
+    { name: "Roscoe Blvd", lat: 34.2210, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
     { name: "Panorama City", lat: 34.2260, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
-    { name: "Van Nuys Blvd/Nordhoff", lat: 34.2350, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
-    { name: "Van Nuys Blvd/San Fernando", lat: 34.2550, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
+    { name: "Nordhoff St", lat: 34.2350, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
+    { name: "San Fernando Rd", lat: 34.2550, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
     { name: "Sylmar/San Fernando", lat: 34.2700, lon: -118.4489, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
     { name: "Pacoima", lat: 34.2760, lon: -118.4300, lines: ["East San Fernando Valley"], status: "under_construction", expectedOpening: "2031" },
     { name: "Sylmar Metrolink", lat: 34.2830, lon: -118.4120, lines: ["East San Fernando Valley", "Metrolink Antelope Valley"], status: "under_construction", expectedOpening: "2031" }

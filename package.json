@@ -1,20 +1,30 @@
 {
-  "name": "magnetic-asteroid",
+  "name": "velorail",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc -b && vite build",
     "preview": "vite preview"
   },
-  "devDependencies": {
-    "vite": "^7.2.4"
-  },
   "dependencies": {
+    "@googlemaps/js-api-loader": "^2.0.2",
+    "@react-google-maps/api": "^2.20.3",
+    "@tanstack/react-query": "^5.62.0",
     "gtfs-rt-bindings": "^4.9.0",
     "idb": "^8.0.3",
     "jszip": "^3.10.1",
-    "leaflet": "^1.9.4"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/google.maps": "^3.58.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^7.2.4"
   }
 }

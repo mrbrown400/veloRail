@@ -1,0 +1,784 @@
+/* Google Maps Theme for VeloRail */
+/* Matches Google Maps UI patterns as closely as possible */
+
+/* ============================================
+   CSS Variables - Google Maps Color Palette
+   ============================================ */
+:root {
+  /* Primary colors */
+  --gm-blue: #1a73e8;
+  --gm-blue-hover: #1557b0;
+  --gm-green: #188038;
+  --gm-red: #d93025;
+  --gm-yellow: #f9ab00;
+
+  /* Text colors */
+  --gm-text-primary: #202124;
+  --gm-text-secondary: #5f6368;
+  --gm-text-disabled: #80868b;
+
+  /* Background colors */
+  --gm-background: #ffffff;
+  --gm-background-hover: #f8f9fa;
+  --gm-background-selected: #e8f0fe;
+  --gm-background-surface: #f1f3f4;
+
+  /* Border colors */
+  --gm-border: #dadce0;
+  --gm-border-focus: #1a73e8;
+
+  /* Shadows */
+  --gm-shadow-1: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+  --gm-shadow-2: 0 1px 3px rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
+  --gm-shadow-3: 0 4px 8px 3px rgba(60, 64, 67, 0.15), 0 1px 3px rgba(60, 64, 67, 0.3);
+
+  /* Spacing */
+  --gm-spacing-xs: 4px;
+  --gm-spacing-sm: 8px;
+  --gm-spacing-md: 12px;
+  --gm-spacing-lg: 16px;
+  --gm-spacing-xl: 24px;
+
+  /* Border radius */
+  --gm-radius-sm: 4px;
+  --gm-radius-md: 8px;
+  --gm-radius-lg: 12px;
+  --gm-radius-full: 9999px;
+
+  /* Typography */
+  --gm-font-family: 'Roboto', 'Arial', sans-serif;
+  --gm-font-size-xs: 11px;
+  --gm-font-size-sm: 12px;
+  --gm-font-size-md: 14px;
+  --gm-font-size-lg: 16px;
+  --gm-font-size-xl: 18px;
+  --gm-font-size-xxl: 22px;
+
+  /* Sidebar width */
+  --gm-sidebar-width: 408px;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--gm-font-family);
+  font-size: var(--gm-font-size-md);
+  color: var(--gm-text-primary);
+  background: var(--gm-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+}
+
+/* ============================================
+   Layout
+   ============================================ */
+.app-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.map-container {
+  flex: 1;
+  height: 100%;
+  position: relative;
+}
+
+/* ============================================
+   Search Card - Google Maps Style
+   ============================================ */
+.search-card {
+  position: absolute;
+  top: var(--gm-spacing-md);
+  left: var(--gm-spacing-md);
+  width: 400px;
+  max-width: calc(100vw - 24px);
+  background: var(--gm-background);
+  border-radius: var(--gm-radius-md);
+  box-shadow: var(--gm-shadow-2);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.search-card.sidebar-open {
+  display: none;
+}
+
+/* Search Header */
+.search-header {
+  display: flex;
+  align-items: center;
+  padding: var(--gm-spacing-md) var(--gm-spacing-lg);
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.search-logo {
+  font-size: 20px;
+  margin-right: var(--gm-spacing-sm);
+}
+
+.search-brand {
+  font-size: var(--gm-font-size-lg);
+  font-weight: 500;
+  color: var(--gm-text-primary);
+}
+
+/* Search Inputs */
+.search-inputs {
+  padding: var(--gm-spacing-md);
+}
+
+.search-input-wrapper {
+  position: relative;
+  margin-bottom: var(--gm-spacing-sm);
+}
+
+.search-input-wrapper:last-child {
+  margin-bottom: 0;
+}
+
+.search-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 var(--gm-spacing-lg);
+  padding-left: 44px;
+  border: 1px solid transparent;
+  border-radius: var(--gm-radius-md);
+  background: var(--gm-background-surface);
+  font-size: var(--gm-font-size-lg);
+  font-family: var(--gm-font-family);
+  color: var(--gm-text-primary);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  background: var(--gm-background);
+  border-color: var(--gm-border-focus);
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+.search-input::placeholder {
+  color: var(--gm-text-secondary);
+}
+
+.search-input-icon {
+  position: absolute;
+  left: var(--gm-spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gm-text-secondary);
+  font-size: 18px;
+}
+
+.search-input-icon.start {
+  color: var(--gm-blue);
+}
+
+.search-input-icon.end {
+  color: var(--gm-red);
+}
+
+/* Location Status */
+.location-status {
+  display: flex;
+  align-items: center;
+  padding: var(--gm-spacing-sm) var(--gm-spacing-lg);
+  font-size: var(--gm-font-size-sm);
+  color: var(--gm-text-secondary);
+  cursor: pointer;
+}
+
+.location-status:hover {
+  background: var(--gm-background-hover);
+}
+
+.location-status-icon {
+  margin-right: var(--gm-spacing-sm);
+}
+
+.location-status.success {
+  color: var(--gm-green);
+}
+
+.location-status.warning {
+  color: var(--gm-yellow);
+}
+
+.location-status.error {
+  color: var(--gm-red);
+}
+
+/* Search Options */
+.search-options {
+  display: flex;
+  padding: var(--gm-spacing-md);
+  border-top: 1px solid var(--gm-border);
+  gap: var(--gm-spacing-sm);
+}
+
+.search-option-select {
+  flex: 1;
+  height: 36px;
+  padding: 0 var(--gm-spacing-md);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius-sm);
+  background: var(--gm-background);
+  font-size: var(--gm-font-size-sm);
+  color: var(--gm-text-primary);
+  cursor: pointer;
+  outline: none;
+}
+
+.search-option-select:focus {
+  border-color: var(--gm-border-focus);
+}
+
+/* Find Route Button */
+.find-route-btn {
+  width: 100%;
+  height: 44px;
+  margin-top: var(--gm-spacing-sm);
+  background: var(--gm-blue);
+  color: white;
+  border: none;
+  border-radius: var(--gm-radius-sm);
+  font-size: var(--gm-font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.find-route-btn:hover {
+  background: var(--gm-blue-hover);
+}
+
+.find-route-btn:disabled {
+  background: var(--gm-text-disabled);
+  cursor: not-allowed;
+}
+
+/* ============================================
+   Results Sidebar - Google Maps Style
+   ============================================ */
+.results-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--gm-sidebar-width);
+  height: 100vh;
+  background: var(--gm-background);
+  box-shadow: var(--gm-shadow-3);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.results-sidebar.open {
+  transform: translateX(0);
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gm-spacing-md) var(--gm-spacing-lg);
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-spacing-sm);
+}
+
+.sidebar-close-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 24px;
+  color: var(--gm-text-secondary);
+}
+
+.sidebar-close-btn:hover {
+  background: var(--gm-background-hover);
+}
+
+/* Sidebar Content */
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Route Options */
+.route-options {
+  padding: var(--gm-spacing-md) 0;
+}
+
+.route-option {
+  display: flex;
+  align-items: flex-start;
+  padding: var(--gm-spacing-lg);
+  border-bottom: 1px solid var(--gm-border);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.route-option:hover {
+  background: var(--gm-background-hover);
+}
+
+.route-option.selected {
+  background: var(--gm-background-selected);
+  border-left: 4px solid var(--gm-blue);
+}
+
+.route-option.future {
+  background: #fff9e6;
+  border-left: 4px solid var(--gm-yellow);
+}
+
+.route-option-content {
+  flex: 1;
+}
+
+.route-option-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--gm-spacing-xs);
+}
+
+.route-option-label {
+  font-size: var(--gm-font-size-md);
+  font-weight: 500;
+  color: var(--gm-text-primary);
+}
+
+.route-option-duration {
+  font-size: var(--gm-font-size-xl);
+  font-weight: 500;
+  color: var(--gm-green);
+}
+
+.route-option-summary {
+  font-size: var(--gm-font-size-sm);
+  color: var(--gm-text-secondary);
+}
+
+/* Future Route Badge */
+.future-route-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gm-spacing-xs);
+  padding: 2px var(--gm-spacing-sm);
+  background: var(--gm-yellow);
+  border-radius: var(--gm-radius-sm);
+  font-size: var(--gm-font-size-xs);
+  font-weight: 500;
+  color: #5d4037;
+  margin-bottom: var(--gm-spacing-sm);
+}
+
+/* ============================================
+   Route Details
+   ============================================ */
+.route-details {
+  padding: var(--gm-spacing-lg);
+  border-top: 1px solid var(--gm-border);
+}
+
+.route-details-header {
+  margin-bottom: var(--gm-spacing-lg);
+}
+
+.route-details-header h3 {
+  font-size: var(--gm-font-size-lg);
+  font-weight: 500;
+  margin-bottom: var(--gm-spacing-xs);
+}
+
+/* Route Legs */
+.route-legs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gm-spacing-md);
+}
+
+.route-leg {
+  display: flex;
+  gap: var(--gm-spacing-md);
+}
+
+.route-leg-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.route-leg-content {
+  flex: 1;
+}
+
+.route-leg-instruction {
+  font-size: var(--gm-font-size-md);
+  font-weight: 500;
+  color: var(--gm-text-primary);
+  margin-bottom: var(--gm-spacing-xs);
+}
+
+.route-leg-details {
+  font-size: var(--gm-font-size-sm);
+  color: var(--gm-text-secondary);
+}
+
+/* Wait Time Badge */
+.wait-time-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--gm-spacing-sm);
+  background: var(--gm-background-surface);
+  border-radius: var(--gm-radius-sm);
+  font-size: var(--gm-font-size-xs);
+  color: var(--gm-text-secondary);
+  margin-left: var(--gm-spacing-sm);
+}
+
+.wait-time-badge.live {
+  background: #e8f5e9;
+  color: var(--gm-green);
+}
+
+/* Safety Badge */
+.safety-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--gm-spacing-sm);
+  border-radius: var(--gm-radius-sm);
+  font-size: var(--gm-font-size-xs);
+  font-weight: 500;
+  margin-left: var(--gm-spacing-sm);
+}
+
+.safety-badge.good {
+  background: #e8f5e9;
+  color: var(--gm-green);
+}
+
+.safety-badge.moderate {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.safety-badge.poor {
+  background: #ffebee;
+  color: var(--gm-red);
+}
+
+/* ============================================
+   Autocomplete Dropdown
+   ============================================ */
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--gm-background);
+  border-radius: 0 0 var(--gm-radius-md) var(--gm-radius-md);
+  box-shadow: var(--gm-shadow-2);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 150;
+  display: none;
+}
+
+.autocomplete-dropdown.visible {
+  display: block;
+}
+
+.autocomplete-item {
+  display: flex;
+  align-items: center;
+  padding: var(--gm-spacing-md) var(--gm-spacing-lg);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.highlighted {
+  background: var(--gm-background-hover);
+}
+
+.autocomplete-item-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: var(--gm-spacing-md);
+  font-size: 18px;
+  color: var(--gm-text-secondary);
+}
+
+.autocomplete-item-text {
+  flex: 1;
+}
+
+.autocomplete-item-name {
+  font-size: var(--gm-font-size-md);
+  color: var(--gm-text-primary);
+}
+
+.autocomplete-item-address {
+  font-size: var(--gm-font-size-sm);
+  color: var(--gm-text-secondary);
+}
+
+.autocomplete-loading,
+.autocomplete-no-results,
+.autocomplete-error {
+  padding: var(--gm-spacing-lg);
+  text-align: center;
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-sm);
+}
+
+/* ============================================
+   Time Selector
+   ============================================ */
+.time-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gm-spacing-sm);
+  padding: var(--gm-spacing-md);
+  border-top: 1px solid var(--gm-border);
+}
+
+.time-option {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-spacing-xs);
+  font-size: var(--gm-font-size-sm);
+  color: var(--gm-text-secondary);
+  cursor: pointer;
+}
+
+.time-option input[type="radio"] {
+  accent-color: var(--gm-blue);
+}
+
+.custom-time-input {
+  height: 32px;
+  padding: 0 var(--gm-spacing-sm);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius-sm);
+  font-size: var(--gm-font-size-sm);
+}
+
+/* ============================================
+   Vehicle Tracking
+   ============================================ */
+.vehicle-tracking-status {
+  padding: var(--gm-spacing-md) var(--gm-spacing-lg);
+  background: var(--gm-background-selected);
+  border-radius: var(--gm-radius-md);
+  margin: var(--gm-spacing-md);
+}
+
+.vehicle-tracking-header {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-spacing-sm);
+  margin-bottom: var(--gm-spacing-xs);
+}
+
+.tracking-icon {
+  font-size: 16px;
+}
+
+.tracking-label {
+  font-size: var(--gm-font-size-xs);
+  font-weight: 500;
+  color: var(--gm-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vehicle-tracking-info {
+  font-size: var(--gm-font-size-sm);
+  color: var(--gm-text-primary);
+}
+
+.stops-away {
+  display: block;
+  margin-top: var(--gm-spacing-xs);
+  color: var(--gm-text-secondary);
+}
+
+.stops-away.arriving {
+  color: var(--gm-green);
+  font-weight: 500;
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+.hidden {
+  display: none !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 480px) {
+  .search-card {
+    width: calc(100vw - 24px);
+  }
+
+  .results-sidebar {
+    width: 100%;
+  }
+}
+
+/* ============================================
+   Loading States
+   ============================================ */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--gm-border);
+  border-top-color: var(--gm-blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--gm-background-surface) 25%,
+    var(--gm-background-hover) 50%,
+    var(--gm-background-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ============================================
+   Map Layer Controls
+   ============================================ */
+.map-layer-controls {
+  position: absolute;
+  bottom: 24px;
+  right: 60px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.layer-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--gm-background);
+  border: none;
+  border-radius: var(--gm-radius-full);
+  box-shadow: var(--gm-shadow-1);
+  cursor: pointer;
+  font-family: var(--gm-font-family);
+  font-size: var(--gm-font-size-sm);
+  font-weight: 500;
+  color: var(--gm-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.layer-btn:hover {
+  background: var(--gm-background-hover);
+  box-shadow: var(--gm-shadow-2);
+}
+
+.layer-btn.active {
+  background: var(--gm-background-selected);
+  color: var(--gm-blue);
+}
+
+.layer-btn.active svg {
+  color: var(--gm-blue);
+}
+
+.layer-btn svg {
+  flex-shrink: 0;
+}
+
+.layer-btn span {
+  white-space: nowrap;
+}
+
+/* Responsive: hide text on smaller screens */
+@media (max-width: 768px) {
+  .map-layer-controls {
+    bottom: 16px;
+    right: 16px;
+  }
+
+  .layer-btn {
+    padding: 10px;
+  }
+
+  .layer-btn span {
+    display: none;
+  }
+}

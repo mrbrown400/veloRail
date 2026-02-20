@@ -8,7 +8,20 @@ const isDev = import.meta.env.DEV;
 const SWIFTLY_BASE = isDev ? '/api/swiftly' : 'https://api.goswift.ly';
 const METROLINK_BASE = isDev ? '/api/metrolink' : 'https://metrolink-gtfsrt.gbsdigital.us';
 
+// LA center coordinates for map initialization and API biasing
+export const LA_CENTER = { lat: 34.0522, lng: -118.2437 };
+export const LA_BOUNDS = {
+    north: 34.35,
+    south: 33.70,
+    east: -117.45,
+    west: -118.70
+};
+
 export const CONFIG = {
+    // Google Maps API Key (required)
+    // Get key at: https://console.cloud.google.com/apis/credentials
+    GOOGLE_MAPS_API_KEY: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+
     // OpenRouteService API key
     // Get free key at: https://openrouteservice.org/dev/#/signup
     ORS_API_KEY: import.meta.env.VITE_ORS_API_KEY || '',
@@ -51,4 +64,8 @@ export const CONFIG = {
 
 export function isORSConfigured() {
     return CONFIG.ORS_API_KEY && CONFIG.ORS_API_KEY.length > 0;
+}
+
+export function isGoogleMapsConfigured() {
+    return CONFIG.GOOGLE_MAPS_API_KEY && CONFIG.GOOGLE_MAPS_API_KEY.length > 0;
 }
