@@ -52,15 +52,6 @@ export interface SelectionResult {
 // ============================================
 
 const CONFIG = {
-  // Search radius for stations (km)
-  originSearchRadius: 8,      // Willing to bike up to 8km to a station
-  destinationSearchRadius: 5, // Willing to bike up to 5km from station
-
-  // Maximum candidates to consider at each stage
-  maxOriginCandidates: 6,
-  maxDestinationCandidates: 6,
-  maxPairsToReturn: 3,
-
   // Default wait time estimate (seconds) - updated with real data if available
   defaultWaitTime: 420, // 7 minutes average
 
@@ -245,15 +236,9 @@ async function scoreStationPair(
 // ============================================
 
 /**
- * Find optimal station pairs for a bike+rail journey
+ * Find optimal station pair for a bike+rail journey
  *
- * Algorithm:
- * 1. Find all rail stations near origin (user bikes TO these)
- * 2. Find all rail stations near destination (user bikes FROM these)
- * 3. Score origin stations based on bike time + wait time
- * 4. Score destination stations based on bike time
- * 5. Score all valid pairs (connected by rail)
- * 6. Return top N pairs for Google API routing
+ * Always uses the closest station to origin and destination.
  */
 export async function selectOptimalStations(
   origin: Location,
@@ -270,16 +255,12 @@ export async function selectOptimalStations(
     bikeSpeed: bikeSettings.baseSpeedKmh
   });
 
-  // Step 1: Find stations near origin
-  const nearOrigin = await provider.findStationsNear(origin, CONFIG.originSearchRadius);
-  console.log(`Found ${nearOrigin.length} stations within ${CONFIG.originSearchRadius}km of origin`);
-
-  // Step 2: Find stations near destination
-  const nearDestination = await provider.findStationsNear(destination, CONFIG.destinationSearchRadius);
-  console.log(`Found ${nearDestination.length} stations within ${CONFIG.destinationSearchRadius}km of destination`);
+  // Find all stations sorted by distance, then pick the closest
+  const nearOrigin = await provider.findStationsNear(origin);
+  const nearDestination = await provider.findStationsNear(destination);
 
   if (nearOrigin.length === 0 || nearDestination.length === 0) {
-    console.log('Not enough stations found for bike+rail route');
+    console.log('No stations found for bike+rail route');
     return {
       topPairs: [],
       allOriginCandidates: [],
@@ -287,69 +268,34 @@ export async function selectOptimalStations(
     };
   }
 
-  // Step 3: Score origin stations
-  const originCandidates: StationCandidate[] = [];
-  for (const station of nearOrigin.slice(0, CONFIG.maxOriginCandidates * 2)) {
-    const bikeDistance = station.distance || 0;
+  // Use only the closest station to origin
+  const closestOrigin = nearOrigin[0];
+  const originBikeDistance = closestOrigin.distance || 0;
+  const originBikeDuration = estimateBikeDuration(originBikeDistance, 0, bikeSettings);
+  const arrivalTime = new Date(departureTime.getTime() + originBikeDuration * 1000);
+  const originCandidate = scoreOriginStation(closestOrigin, originBikeDistance, originBikeDuration, arrivalTime);
 
-    // Estimate bike duration using our physics model
-    // Note: This is a rough estimate without actual route geometry
-    // Google API will give us the real route and we'll recalculate
-    const bikeDuration = estimateBikeDuration(
-      bikeDistance,
-      0, // No elevation data at this stage
-      bikeSettings
-    );
+  console.log(`Closest station to origin: ${closestOrigin.station.name} (${originBikeDistance.toFixed(1)}km)`);
 
-    const arrivalTime = new Date(departureTime.getTime() + bikeDuration * 1000);
-    const candidate = scoreOriginStation(station, bikeDistance, bikeDuration, arrivalTime);
-    originCandidates.push(candidate);
-  }
+  // Use only the closest station to destination
+  const closestDest = nearDestination[0];
+  const destBikeDistance = closestDest.distance || 0;
+  const destBikeDuration = estimateBikeDuration(destBikeDistance, 0, bikeSettings);
+  const destCandidate = scoreDestinationStation(closestDest, destBikeDistance, destBikeDuration);
 
-  // Sort by score and take top candidates
-  originCandidates.sort((a, b) => a.score - b.score);
-  const topOrigins = originCandidates.slice(0, CONFIG.maxOriginCandidates);
+  console.log(`Closest station to destination: ${closestDest.station.name} (${destBikeDistance.toFixed(1)}km)`);
 
-  // Step 4: Score destination stations
-  const destinationCandidates: StationCandidate[] = [];
-  for (const station of nearDestination.slice(0, CONFIG.maxDestinationCandidates * 2)) {
-    const bikeDistance = station.distance || 0;
-    const bikeDuration = estimateBikeDuration(
-      bikeDistance,
-      0,
-      bikeSettings
-    );
-
-    const candidate = scoreDestinationStation(station, bikeDistance, bikeDuration);
-    destinationCandidates.push(candidate);
-  }
-
-  // Sort by score and take top candidates
-  destinationCandidates.sort((a, b) => a.score - b.score);
-  const topDestinations = destinationCandidates.slice(0, CONFIG.maxDestinationCandidates);
-
-  // Step 5: Score all pairs
+  // Score the single pair
   const pairs: StationPair[] = [];
-  for (const originCandidate of topOrigins) {
-    for (const destCandidate of topDestinations) {
-      // Skip if same station
-      if (originCandidate.station.name === destCandidate.station.name) {
-        continue;
-      }
-
-      const pair = await scoreStationPair(originCandidate, destCandidate, departureTime);
-      if (pair) {
-        pairs.push(pair);
-      }
+  if (originCandidate.station.name !== destCandidate.station.name) {
+    const pair = await scoreStationPair(originCandidate, destCandidate, departureTime);
+    if (pair) {
+      pairs.push(pair);
     }
   }
 
-  // Sort pairs by total score
-  pairs.sort((a, b) => a.totalScore - b.totalScore);
-
-  console.log(`Evaluated ${pairs.length} station pairs`);
   if (pairs.length > 0) {
-    console.log('Top pair:', {
+    console.log('Selected pair:', {
       origin: pairs[0].origin.station.name,
       destination: pairs[0].destination.station.name,
       estimatedTime: `${Math.round(pairs[0].estimatedTotalTime / 60)} min`
@@ -357,9 +303,9 @@ export async function selectOptimalStations(
   }
 
   return {
-    topPairs: pairs.slice(0, CONFIG.maxPairsToReturn),
-    allOriginCandidates: originCandidates,
-    allDestinationCandidates: destinationCandidates
+    topPairs: pairs,
+    allOriginCandidates: [originCandidate],
+    allDestinationCandidates: [destCandidate]
   };
 }
 
@@ -372,9 +318,8 @@ export async function isBikeRailViable(
 ): Promise<boolean> {
   const provider = getStationDataProvider();
 
-  // Check if there are stations near both endpoints
-  const nearOrigin = await provider.findStationsNear(origin, CONFIG.originSearchRadius);
-  const nearDestination = await provider.findStationsNear(destination, CONFIG.destinationSearchRadius);
+  const nearOrigin = await provider.findStationsNear(origin);
+  const nearDestination = await provider.findStationsNear(destination);
 
   return nearOrigin.length > 0 && nearDestination.length > 0;
 }

@@ -169,21 +169,13 @@ function findNearestStation(
 ): StationWithLine | null {
   let nearest: StationWithLine | null = null;
   let minDist = Infinity;
-  let minPriority = Infinity;
   const stations = getAllStations(departureTime, includeFuture);
-
-  const PRIORITY_TOLERANCE_KM = 3.0;
 
   for (const station of stations) {
     const dist = getDistance(lat, lon, station.lat, station.lon);
-    const priority = preferRail ? getLinePriority(station.line) : 10;
 
-    const isCloserWithSamePriority = dist < minDist && priority <= minPriority;
-    const isBetterPriorityWithinTolerance = dist < minDist + PRIORITY_TOLERANCE_KM && priority < minPriority;
-
-    if (isCloserWithSamePriority || isBetterPriorityWithinTolerance) {
+    if (dist < minDist) {
       minDist = dist;
-      minPriority = priority;
       nearest = { ...station, distance: dist };
     }
   }

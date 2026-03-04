@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# TypeScript build info
+tsconfig.tsbuildinfo
+*.d.ts
+!src/**/*.d.ts
+
 # Environment variables
 .env
 .env.local
