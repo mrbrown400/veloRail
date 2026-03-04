@@ -55,7 +55,6 @@ function formatDuration(seconds: number): string {
 // ============================================
 
 export interface BikeRailOptions {
-  maxBikeDistanceKm?: number;  // Max bike distance to/from station (default: 8km)
   preferRail?: boolean;         // Prefer rail over bus (default: true)
 }
 
@@ -73,8 +72,6 @@ export async function calculateBikeRailRoute(
   departureTime: Date,
   options: BikeRailOptions = {}
 ): Promise<Route | null> {
-  const { maxBikeDistanceKm = 8 } = options;
-
   if (!isGoogleMapsConfigured()) {
     console.warn('Google Maps not configured, cannot use bike+rail routing');
     return null;
@@ -91,8 +88,8 @@ export async function calculateBikeRailRoute(
   try {
     const provider = getStationDataProvider();
 
-    // Step 1: Find closest station to origin (within maxBikeDistanceKm)
-    const stationsNearOrigin = await provider.findStationsNear(origin, maxBikeDistanceKm);
+    // Step 1: Find closest station to origin
+    const stationsNearOrigin = await provider.findStationsNear(origin);
     if (stationsNearOrigin.length === 0) {
       console.log('No rail stations found near origin');
       return null;
@@ -100,8 +97,8 @@ export async function calculateBikeRailRoute(
     const closestToOrigin = stationsNearOrigin[0]; // Already sorted by distance
     console.log(`Closest station to origin: ${closestToOrigin.station.name} (${closestToOrigin.distance?.toFixed(1)}km)`);
 
-    // Step 2: Find closest station to destination (within maxBikeDistanceKm)
-    const stationsNearDest = await provider.findStationsNear(destination, maxBikeDistanceKm);
+    // Step 2: Find closest station to destination
+    const stationsNearDest = await provider.findStationsNear(destination);
     if (stationsNearDest.length === 0) {
       console.log('No rail stations found near destination');
       return null;

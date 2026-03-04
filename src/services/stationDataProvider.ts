@@ -23,8 +23,8 @@ export interface TransitTimeEstimate {
 }
 
 export interface StationDataProvider {
-  // Find stations within radius of a location
-  findStationsNear(location: Location, radiusKm: number): Promise<StationWithLine[]>;
+  // Find stations near a location, sorted by distance (closest first)
+  findStationsNear(location: Location): Promise<StationWithLine[]>;
 
   // Get all lines that serve a station
   getLinesServingStation(stationName: string): Promise<string[]>;
@@ -49,7 +49,7 @@ export interface StationDataProvider {
 
 export class LocalStationDataProvider implements StationDataProvider {
 
-  async findStationsNear(location: Location, radiusKm: number): Promise<StationWithLine[]> {
+  async findStationsNear(location: Location): Promise<StationWithLine[]> {
     const results: StationWithLine[] = [];
 
     for (const [lineName, lineData] of Object.entries(TRANSIT_LINES)) {
@@ -72,27 +72,25 @@ export class LocalStationDataProvider implements StationDataProvider {
           station.lat, station.lon
         );
 
-        if (distance <= radiusKm) {
-          // Check if we already have this station from another line
-          const existing = results.find(r => r.station.name === station.name);
-          if (!existing || distance < (existing.distance || Infinity)) {
-            if (existing) {
-              // Update with closer distance
-              existing.distance = distance;
-            } else {
-              results.push({
-                station,
-                line: lineName,
-                lineColor: lineData.color,
-                distance
-              });
-            }
+        // Check if we already have this station from another line
+        const existing = results.find(r => r.station.name === station.name);
+        if (!existing || distance < (existing.distance || Infinity)) {
+          if (existing) {
+            // Update with closer distance
+            existing.distance = distance;
+          } else {
+            results.push({
+              station,
+              line: lineName,
+              lineColor: lineData.color,
+              distance
+            });
           }
         }
       }
     }
 
-    // Sort by distance
+    // Sort by distance (closest first)
     return results.sort((a, b) => (a.distance || 0) - (b.distance || 0));
   }
 

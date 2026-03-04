@@ -70,26 +70,13 @@ function getLinePriority(lineName) {
 function findNearestStation(lat, lon, departureTime = null, preferRail = true, includeFuture = false) {
     let nearest = null;
     let minDist = Infinity;
-    let minPriority = Infinity;
     const stations = getAllStations(departureTime, includeFuture);
-
-    // Tolerance for preferring higher-priority stations (rail over shuttle)
-    // Use larger tolerance (3km) to prefer rail connections even for airport destinations
-    const PRIORITY_TOLERANCE_KM = 3.0;
 
     for (const station of stations) {
         const dist = getDistance(lat, lon, station.lat, station.lon);
-        const priority = preferRail ? getLinePriority(station.line) : 10;
 
-        // Choose this station if:
-        // 1. It's closer AND same or better priority, OR
-        // 2. It has significantly better priority (rail vs shuttle) within tolerance
-        const isCloserWithSamePriority = dist < minDist && priority <= minPriority;
-        const isBetterPriorityWithinTolerance = dist < minDist + PRIORITY_TOLERANCE_KM && priority < minPriority;
-
-        if (isCloserWithSamePriority || isBetterPriorityWithinTolerance) {
+        if (dist < minDist) {
             minDist = dist;
-            minPriority = priority;
             nearest = { ...station, distance: dist };
         }
     }
