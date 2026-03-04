@@ -54,9 +54,7 @@ function formatDuration(seconds: number): string {
 // Main Bike+Rail Routing
 // ============================================
 
-export interface BikeRailOptions {
-  preferRail?: boolean;         // Prefer rail over bus (default: true)
-}
+const MAX_BIKE_DISTANCE_KM = 8;
 
 /**
  * Calculate a bike+rail route using closest station selection + Google Directions API
@@ -69,8 +67,7 @@ export interface BikeRailOptions {
 export async function calculateBikeRailRoute(
   origin: Location,
   destination: Location,
-  departureTime: Date,
-  options: BikeRailOptions = {}
+  departureTime: Date
 ): Promise<Route | null> {
   if (!isGoogleMapsConfigured()) {
     console.warn('Google Maps not configured, cannot use bike+rail routing');
@@ -133,7 +130,7 @@ export async function calculateBikeRailRoute(
       origin,
       destination,
       departureTime,
-      maxBikeDistanceKm,
+      MAX_BIKE_DISTANCE_KM,
       destinationIsStation
     );
 
@@ -217,14 +214,18 @@ async function buildRouteFromStations(
   }
 
   // Step 5: Get bike route from exit station to destination (skip if destination is a station)
+  // Use actual arrival stop coords from Google's transit result to eliminate the visual gap
+  // between where the transit line ends and where the bike route begins.
   let bikeFromStation: { geometry: any; distance: number; duration: number } | null = null;
   let bikeFromStationDuration = { totalDuration: 0 };
+  const lastTransitLeg = [...transitResult.legs].reverse().find(l => l.mode === 'TRANSIT');
+  const actualEgressOrigin: { lat: number; lon: number } = lastTransitLeg?.transitInfo
+    ? { lat: lastTransitLeg.transitInfo.arrivalStopLat, lon: lastTransitLeg.transitInfo.arrivalStopLng }
+    : { lat: exitStation.lat, lon: exitStation.lon };
 
   if (!destinationIsStation) {
-    bikeFromStation = await getBikeRoute(
-      { lat: exitStation.lat, lon: exitStation.lon },
-      destination
-    );
+    console.log(`Egress from actual stop: ${lastTransitLeg?.transitInfo?.arrivalStopName} (${actualEgressOrigin.lat.toFixed(5)}, ${actualEgressOrigin.lon.toFixed(5)})`);
+    bikeFromStation = await getBikeRoute(actualEgressOrigin, destination);
 
     if (!bikeFromStation) {
       console.log('Could not get bike route from station');
@@ -261,7 +262,8 @@ async function buildRouteFromStations(
   });
 
   // Transit legs
-  for (const transitLeg of transitResult.legs) {
+  for (let i = 0; i < transitResult.legs.length; i++) {
+    const transitLeg = transitResult.legs[i];
     if (transitLeg.mode === 'TRANSIT' && transitLeg.transitInfo) {
       const ti = transitLeg.transitInfo;
 
@@ -298,9 +300,12 @@ async function buildRouteFromStations(
         isTransfer: legs.filter(l => l.mode === 'transit').length > 0
       });
     } else if (transitLeg.mode === 'WALKING' && transitLeg.distance > 0.05) {
-      // Include walking legs between transit (transfers)
+      // Only include walking legs that are followed by another transit leg (transfers).
+      // Terminal walking legs from Google (after the last train stop) are dropped
+      // because VeloRail's own bike-from-station leg handles the egress.
       const prevLeg = legs[legs.length - 1];
-      if (prevLeg && prevLeg.mode === 'transit') {
+      const hasFollowingTransit = transitResult.legs.slice(i + 1).some(l => l.mode === 'TRANSIT');
+      if (prevLeg && prevLeg.mode === 'transit' && hasFollowingTransit) {
         legs.push({
           mode: 'walk',
           from: prevLeg.to,
@@ -317,7 +322,7 @@ async function buildRouteFromStations(
   if (!destinationIsStation && bikeFromStation) {
     legs.push({
       mode: 'bike',
-      from: exitStation,
+      from: actualEgressOrigin,
       to: destination,
       geometry: bikeFromStation.geometry,
       distance: bikeFromStation.distance,
