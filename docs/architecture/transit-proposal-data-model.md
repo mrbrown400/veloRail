@@ -32,8 +32,35 @@ The current schema version is `1.0.0`. Versioning lives on `TransitProposalDatas
 - `timeline`: opening year, phase, phase order, and schedule notes.
 - `style`: stroke, station, legend, and z-index rendering hints.
 - `rendering`: layer group, zoom range, and clickability hints.
-- `freight`: owner, operator, track usage, electrification, conversion scenario id, and suitability notes.
+- `freight`: owner, operator, track usage, electrification, source references, conversion scenarios, and suitability metadata.
 - `notes` and `tags`: human context and filtering metadata.
+
+## Freight Corridor Model
+
+VR-401 keeps freight corridors in the proposal dataset instead of adding a second overlay registry. A freight corridor is a proposal record with:
+
+- `kind: corridor`.
+- `status: freight_only` for current freight corridors or `converted_passenger` for passenger conversion concepts.
+- `mode: freight_rail` for freight-only corridors or `mixed_rail` when the corridor model itself represents shared freight and passenger use.
+- `name` as the corridor display name.
+- `geometry` as the custom corridor centerline for Google Maps polyline rendering.
+- `provenance` with at least one source attribution before rendering custom non-Google rail geometry.
+- `freight` metadata with `owner`, `operator`, `trackUsage`, `electrification`, optional source-id references back to `provenance`, optional `conversionScenarios`, and optional `suitability` metadata.
+
+Freight metadata uses `unknown` when ownership, operations, usage, electrification, or suitability is not known from the checked source. The source of that uncertainty still belongs in `provenance` and source-specific notes.
+
+### Conversion Status Fields
+
+The schema supports two freight-related concepts:
+
+- `freight_only`: a corridor currently represented as freight rail. Validation requires freight metadata and rejects `passenger` track usage.
+- `converted_passenger`: a hypothetical or planned passenger conversion concept. Conversion concepts must identify a `conversionScenarioId` when represented as proposal records.
+
+Freight corridor records can also include nested `conversionScenarios`. These scenarios are not official passenger lines by themselves; they document reusable assumptions for later VR-405 line generation.
+
+### Data Source Assumptions
+
+Google Maps may show freight rails on the basemap, but VeloRail does not treat basemap visuals as routing-ready custom geometry. Freight corridor records therefore require explicit provenance and should document whether geometry is official, surveyed, approximate, or conceptual. VR-402 should replace seed geometry with a public freight corridor dataset and carry license or terms notes forward.
 
 ## Example Records
 
@@ -43,7 +70,7 @@ The current schema version is `1.0.0`. Versioning lives on `TransitProposalDatas
 - Visionary line: `vision-vermont-rapid-rail`
 - Freight corridor: `freight-alameda-corridor`
 
-These examples exercise the schema and renderer contract. They are not the authoritative future or freight datasets. VR-105 and VR-402 should replace approximate geometry with sourced production data.
+These examples exercise the schema and renderer contract. The Alameda Corridor example includes owner/operator metadata, freight usage, unknown electrification, source-id references, suitability placeholders, and a nested `converted_passenger` scenario. They are not the authoritative future or freight datasets. VR-105 and VR-402 should replace approximate geometry with sourced production data.
 
 ## Validation Strategy
 
@@ -60,6 +87,9 @@ These examples exercise the schema and renderer contract. They are not the autho
 - Missing source notes for uncertainty metadata.
 - Invalid `LineString` coordinates.
 - Invalid station coordinates and station statuses.
+- Missing or invalid freight metadata for freight-only, converted-passenger, freight-mode, or freight-layer records.
+- Freight metadata source-id references that do not point to a record in `provenance`.
+- Invalid conversion scenario status, passenger target mode, assumptions, or suitability score.
 
 `assertValidTransitProposalDataset` throws with path-specific messages and is used to validate the checked-in seed dataset at module load.
 

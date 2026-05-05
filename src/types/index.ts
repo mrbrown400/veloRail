@@ -18,11 +18,21 @@ export type {
 } from './mapOverlays';
 
 export type {
+  FreightConversionScenario,
+  FreightConversionTargetMode,
+  FreightCorridorMode,
+  FreightCorridorProposal,
+  FreightCorridorStatus,
+  FreightCorridorSuitability,
+  FreightSuitabilityFactor,
+  FreightSuitabilityRating,
   ProposalClassificationCategory,
   ProposalConfidence,
   ProposalConfidenceLevel,
   ProposalCoordinate,
+  ProposalElectrificationStatus,
   ProposalFreightMetadata,
+  ProposalFreightTrackUsage,
   ProposalKind,
   ProposalLineString,
   ProposalMarkerInput,

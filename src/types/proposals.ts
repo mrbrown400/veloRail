@@ -125,12 +125,49 @@ export interface ProposalStylingHints {
   legendLabel?: string;
 }
 
+export type FreightCorridorStatus = Extract<ProposalStatus, 'freight_only' | 'converted_passenger'>;
+export type FreightCorridorMode = Extract<ProposalMode, 'freight_rail' | 'mixed_rail'>;
+export type ProposalFreightTrackUsage = 'freight' | 'passenger' | 'mixed' | 'unknown';
+export type ProposalElectrificationStatus = 'yes' | 'no' | 'partial' | 'unknown';
+export type FreightConversionTargetMode = Exclude<ProposalMode, 'freight_rail' | 'unknown'>;
+export type FreightSuitabilityRating = 'high' | 'medium' | 'low' | 'unknown';
+
+export interface FreightSuitabilityFactor {
+  factor: string;
+  effect: 'positive' | 'negative' | 'neutral' | 'unknown';
+  note: string;
+}
+
+export interface FreightCorridorSuitability {
+  rating: FreightSuitabilityRating;
+  score?: number;
+  factors?: FreightSuitabilityFactor[];
+  notes?: string;
+}
+
+export interface FreightConversionScenario {
+  id: string;
+  name: string;
+  status: 'converted_passenger';
+  targetMode: FreightConversionTargetMode;
+  sourceFreightCorridorId?: string;
+  serviceConcept?: string;
+  stationAssumptions?: string[];
+  assumptions: string[];
+  notes?: string;
+}
+
 export interface ProposalFreightMetadata {
-  owner?: string;
-  operator?: string;
-  trackUsage?: 'freight' | 'passenger' | 'mixed' | 'unknown';
-  electrification?: 'yes' | 'no' | 'partial' | 'unknown';
+  owner: string;
+  operator: string;
+  trackUsage: ProposalFreightTrackUsage;
+  electrification: ProposalElectrificationStatus;
+  ownershipSourceId?: string;
+  usageSourceId?: string;
+  electrificationSourceId?: string;
   conversionScenarioId?: string;
+  conversionScenarios?: FreightConversionScenario[];
+  suitability?: FreightCorridorSuitability;
   suitabilityNotes?: string;
 }
 
@@ -162,6 +199,13 @@ export interface TransitProposal {
   tags?: string[];
 }
 
+export interface FreightCorridorProposal extends TransitProposal {
+  kind: 'corridor';
+  status: FreightCorridorStatus;
+  mode: FreightCorridorMode;
+  freight: ProposalFreightMetadata;
+}
+
 export interface TransitProposalDataset {
   schemaVersion: TransitProposalSchemaVersion;
   updatedAt: string;
@@ -185,6 +229,8 @@ export interface ProposalValidationIssue {
     | 'invalid_layer_classification'
     | 'invalid_status'
     | 'invalid_station'
+    | 'missing_freight_metadata'
+    | 'invalid_freight_metadata'
     | 'invalid_dataset'
     | 'missing_field';
   message: string;

@@ -341,9 +341,49 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
       },
       freight: {
         owner: 'Alameda Corridor Transportation Authority',
+        operator: 'BNSF Railway / Union Pacific Railroad',
         trackUsage: 'freight',
         electrification: 'unknown',
-        suitabilityNotes: 'Passenger conversion suitability is intentionally deferred to VR-401 and VR-406.'
+        ownershipSourceId: 'acta-corridor-overview',
+        usageSourceId: 'acta-corridor-overview',
+        electrificationSourceId: 'acta-corridor-overview',
+        conversionScenarioId: 'alameda-corridor-regional-passenger-conversion',
+        conversionScenarios: [
+          {
+            id: 'alameda-corridor-regional-passenger-conversion',
+            name: 'Alameda Corridor regional passenger conversion concept',
+            status: 'converted_passenger',
+            targetMode: 'commuter_rail',
+            sourceFreightCorridorId: 'freight-alameda-corridor',
+            serviceConcept: 'Hypothetical regional passenger overlay sharing or converting the freight corridor right-of-way.',
+            stationAssumptions: [
+              'Stations are not defined in VR-401.',
+              'Future scenario work must identify stations separately with provenance and uncertainty.'
+            ],
+            assumptions: [
+              'Freight ownership and operations remain source metadata on the corridor record.',
+              'Passenger service is a hypothetical conversion concept, not an official plan.'
+            ],
+            notes: 'VR-405 should define any concrete passenger line records that inherit this corridor geometry.'
+          }
+        ],
+        suitability: {
+          rating: 'unknown',
+          factors: [
+            {
+              factor: 'right-of-way continuity',
+              effect: 'positive',
+              note: 'The corridor is modeled as a continuous freight right-of-way for overlay and conversion planning.'
+            },
+            {
+              factor: 'station feasibility',
+              effect: 'unknown',
+              note: 'Station locations, passenger access, and platform feasibility are not assessed in VR-401.'
+            }
+          ],
+          notes: 'VR-406 should replace this placeholder suitability metadata with a documented scoring method.'
+        },
+        suitabilityNotes: 'Suitability is intentionally unknown until VR-406 defines scoring inputs and weights.'
       },
       notes: 'Freight-only example record; do not imply passenger service.',
       tags: ['freight', 'nationalized-rail', 'corridor']

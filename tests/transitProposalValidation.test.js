@@ -111,3 +111,87 @@ test('commentary-summary classification requires a commentary source', async () 
   assert.equal(result.valid, false);
   assert.ok(result.issues.some(issue => issue.code === 'invalid_classification'));
 });
+
+test('checked-in freight corridor validates and maps to Google polyline inputs', async () => {
+  const {
+    TRANSIT_PROPOSAL_DATASET,
+    proposalDatasetToGoogleMapInputs
+  } = await loadAppModule('/src/data/transitProposals.ts');
+
+  const freightCorridor = TRANSIT_PROPOSAL_DATASET.proposals.find(
+    proposal => proposal.id === 'freight-alameda-corridor'
+  );
+
+  assert.ok(freightCorridor);
+  assert.equal(freightCorridor.status, 'freight_only');
+  assert.equal(freightCorridor.kind, 'corridor');
+  assert.equal(freightCorridor.freight.owner, 'Alameda Corridor Transportation Authority');
+  assert.equal(freightCorridor.freight.operator, 'BNSF Railway / Union Pacific Railroad');
+  assert.equal(freightCorridor.freight.trackUsage, 'freight');
+  assert.equal(freightCorridor.freight.electrification, 'unknown');
+  assert.equal(
+    freightCorridor.freight.conversionScenarios[0].status,
+    'converted_passenger'
+  );
+
+  const [overlayInput] = proposalDatasetToGoogleMapInputs({
+    ...TRANSIT_PROPOSAL_DATASET,
+    proposals: [freightCorridor]
+  });
+
+  assert.deepEqual(overlayInput.polyline.path[0], {
+    lat: 34.0190,
+    lng: -118.2280
+  });
+  assert.equal(overlayInput.polyline.options.clickable, true);
+});
+
+test('freight records require freight metadata', async () => {
+  const {
+    TRANSIT_PROPOSAL_DATASET
+  } = await loadAppModule('/src/data/transitProposals.ts');
+  const {
+    validateTransitProposalRecord
+  } = await loadAppModule('/src/data/transitProposalValidation.ts');
+
+  const freightCorridor = TRANSIT_PROPOSAL_DATASET.proposals.find(
+    proposal => proposal.id === 'freight-alameda-corridor'
+  );
+
+  const result = validateTransitProposalRecord({
+    ...freightCorridor,
+    freight: undefined
+  }, 'proposal');
+
+  assert.equal(result.valid, false);
+  assert.ok(result.issues.some(issue => (
+    issue.path === 'proposal.freight' && issue.code === 'missing_freight_metadata'
+  )));
+});
+
+test('freight metadata source references must point to provenance', async () => {
+  const {
+    TRANSIT_PROPOSAL_DATASET
+  } = await loadAppModule('/src/data/transitProposals.ts');
+  const {
+    validateTransitProposalRecord
+  } = await loadAppModule('/src/data/transitProposalValidation.ts');
+
+  const freightCorridor = TRANSIT_PROPOSAL_DATASET.proposals.find(
+    proposal => proposal.id === 'freight-alameda-corridor'
+  );
+
+  const result = validateTransitProposalRecord({
+    ...freightCorridor,
+    freight: {
+      ...freightCorridor.freight,
+      usageSourceId: 'missing-source'
+    }
+  }, 'proposal');
+
+  assert.equal(result.valid, false);
+  assert.ok(result.issues.some(issue => (
+    issue.path === 'proposal.freight.usageSourceId'
+    && issue.code === 'invalid_freight_metadata'
+  )));
+});

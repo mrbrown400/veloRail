@@ -67,6 +67,21 @@ const VALID_CONFIDENCE_LEVELS = new Set<string>([
 ]);
 const MACHINE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const FREIGHT_METADATA_STATUSES = new Set(['freight_only', 'converted_passenger']);
+const FREIGHT_LAYER_GROUPS = new Set(['freight', 'converted_passenger']);
+const FREIGHT_TRACK_USAGES = new Set(['freight', 'passenger', 'mixed', 'unknown']);
+const FREIGHT_ELECTRIFICATION_STATUSES = new Set(['yes', 'no', 'partial', 'unknown']);
+const FREIGHT_SUITABILITY_RATINGS = new Set(['high', 'medium', 'low', 'unknown']);
+const FREIGHT_SUITABILITY_EFFECTS = new Set(['positive', 'negative', 'neutral', 'unknown']);
+const FREIGHT_CONVERSION_TARGET_MODES = new Set([
+  'heavy_rail',
+  'light_rail',
+  'brt',
+  'commuter_rail',
+  'intercity_rail',
+  'people_mover',
+  'mixed_rail'
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -91,6 +106,10 @@ function hasFiniteNumber(value: unknown): value is number {
 
 function isValidStatus(value: unknown): value is ProposalStatus {
   return typeof value === 'string' && VALID_STATUSES.has(value);
+}
+
+function isTextArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => hasText(item));
 }
 
 function isValidClassification(value: unknown): value is ProposalClassificationCategory {
@@ -430,6 +449,239 @@ function validateStations(
   });
 }
 
+function proposalRequiresFreightMetadata(record: Record<string, unknown>): boolean {
+  if (typeof record.status === 'string' && FREIGHT_METADATA_STATUSES.has(record.status)) {
+    return true;
+  }
+
+  if (record.mode === 'freight_rail') {
+    return true;
+  }
+
+  if (record.freight !== undefined) {
+    return true;
+  }
+
+  if (isRecord(record.rendering) && typeof record.rendering.layerGroup === 'string') {
+    return FREIGHT_LAYER_GROUPS.has(record.rendering.layerGroup);
+  }
+
+  return false;
+}
+
+function collectProvenanceSourceIds(record: Record<string, unknown>): Set<string> {
+  if (!Array.isArray(record.provenance)) {
+    return new Set();
+  }
+
+  return new Set(record.provenance.flatMap((source) => {
+    if (isRecord(source) && hasText(source.sourceId)) {
+      return [source.sourceId];
+    }
+    return [];
+  }));
+}
+
+function validateFreightSourceId(
+  freight: Record<string, unknown>,
+  field: string,
+  sourceIds: Set<string>,
+  path: string,
+  issues: ProposalValidationIssue[]
+) {
+  const value = freight[field];
+  if (value === undefined) return;
+
+  if (!hasText(value)) {
+    addIssue(issues, `${path}.${field}`, 'invalid_freight_metadata', `${field} must be a sourceId string when provided.`);
+    return;
+  }
+
+  if (!sourceIds.has(value)) {
+    addIssue(issues, `${path}.${field}`, 'invalid_freight_metadata', `${field} must reference a provenance sourceId.`);
+  }
+}
+
+function validateFreightSuitability(
+  value: unknown,
+  path: string,
+  issues: ProposalValidationIssue[]
+) {
+  if (value === undefined) return;
+
+  if (!isRecord(value)) {
+    addIssue(issues, path, 'invalid_freight_metadata', 'Freight suitability must be an object when provided.');
+    return;
+  }
+
+  if (!hasText(value.rating) || !FREIGHT_SUITABILITY_RATINGS.has(value.rating)) {
+    addIssue(issues, `${path}.rating`, 'invalid_freight_metadata', 'Freight suitability rating must be high, medium, low, or unknown.');
+  }
+
+  if (
+    value.score !== undefined
+    && (!hasFiniteNumber(value.score) || value.score < 0 || value.score > 100)
+  ) {
+    addIssue(issues, `${path}.score`, 'invalid_freight_metadata', 'Freight suitability score must be a finite number from 0 to 100.');
+  }
+
+  if (value.factors === undefined) return;
+
+  if (!Array.isArray(value.factors)) {
+    addIssue(issues, `${path}.factors`, 'invalid_freight_metadata', 'Freight suitability factors must be an array when provided.');
+    return;
+  }
+
+  value.factors.forEach((factor, index) => {
+    const factorPath = `${path}.factors[${index}]`;
+    if (!isRecord(factor)) {
+      addIssue(issues, factorPath, 'invalid_freight_metadata', 'Freight suitability factor must be an object.');
+      return;
+    }
+
+    if (!hasText(factor.factor)) {
+      addIssue(issues, `${factorPath}.factor`, 'invalid_freight_metadata', 'Freight suitability factor requires a name.');
+    }
+
+    if (!hasText(factor.effect) || !FREIGHT_SUITABILITY_EFFECTS.has(factor.effect)) {
+      addIssue(issues, `${factorPath}.effect`, 'invalid_freight_metadata', 'Freight suitability factor effect must be positive, negative, neutral, or unknown.');
+    }
+
+    if (!hasText(factor.note)) {
+      addIssue(issues, `${factorPath}.note`, 'invalid_freight_metadata', 'Freight suitability factor requires a note.');
+    }
+  });
+}
+
+function validateFreightConversionScenarios(
+  value: unknown,
+  path: string,
+  issues: ProposalValidationIssue[]
+): Set<string> {
+  const scenarioIds = new Set<string>();
+  if (value === undefined) return scenarioIds;
+
+  if (!Array.isArray(value)) {
+    addIssue(issues, path, 'invalid_freight_metadata', 'Freight conversionScenarios must be an array when provided.');
+    return scenarioIds;
+  }
+
+  value.forEach((scenario, index) => {
+    const scenarioPath = `${path}[${index}]`;
+    if (!isRecord(scenario)) {
+      addIssue(issues, scenarioPath, 'invalid_freight_metadata', 'Freight conversion scenario must be an object.');
+      return;
+    }
+
+    if (hasText(scenario.id)) {
+      scenarioIds.add(scenario.id);
+    } else {
+      addIssue(issues, `${scenarioPath}.id`, 'invalid_freight_metadata', 'Freight conversion scenario requires an id.');
+    }
+
+    if (!hasText(scenario.name)) {
+      addIssue(issues, `${scenarioPath}.name`, 'invalid_freight_metadata', 'Freight conversion scenario requires a name.');
+    }
+
+    if (scenario.status !== 'converted_passenger') {
+      addIssue(issues, `${scenarioPath}.status`, 'invalid_freight_metadata', 'Freight conversion scenario status must be converted_passenger.');
+    }
+
+    if (!hasText(scenario.targetMode) || !FREIGHT_CONVERSION_TARGET_MODES.has(scenario.targetMode)) {
+      addIssue(issues, `${scenarioPath}.targetMode`, 'invalid_freight_metadata', 'Freight conversion scenario targetMode must be a passenger mode.');
+    }
+
+    if (scenario.sourceFreightCorridorId !== undefined && !hasText(scenario.sourceFreightCorridorId)) {
+      addIssue(issues, `${scenarioPath}.sourceFreightCorridorId`, 'invalid_freight_metadata', 'Freight conversion scenario sourceFreightCorridorId must be a string.');
+    }
+
+    if (scenario.stationAssumptions !== undefined && !isTextArray(scenario.stationAssumptions)) {
+      addIssue(issues, `${scenarioPath}.stationAssumptions`, 'invalid_freight_metadata', 'Freight conversion scenario stationAssumptions must be non-empty strings.');
+    }
+
+    if (!isTextArray(scenario.assumptions) || scenario.assumptions.length === 0) {
+      addIssue(issues, `${scenarioPath}.assumptions`, 'invalid_freight_metadata', 'Freight conversion scenario requires at least one assumption.');
+    }
+  });
+
+  return scenarioIds;
+}
+
+function validateFreightMetadata(
+  record: Record<string, unknown>,
+  path: string,
+  issues: ProposalValidationIssue[]
+) {
+  const requiresFreight = proposalRequiresFreightMetadata(record);
+  const freight = record.freight;
+  const freightPath = `${path}.freight`;
+
+  if (freight === undefined) {
+    if (requiresFreight) {
+      addIssue(issues, freightPath, 'missing_freight_metadata', 'Freight corridor records require freight metadata.');
+    }
+    return;
+  }
+
+  if (!isRecord(freight)) {
+    addIssue(issues, freightPath, 'invalid_freight_metadata', 'Freight metadata must be an object.');
+    return;
+  }
+
+  if (record.status === 'freight_only' && record.kind !== 'corridor') {
+    addIssue(issues, `${path}.kind`, 'invalid_freight_metadata', 'freight_only records must use kind corridor.');
+  }
+
+  if (!hasText(freight.owner)) {
+    addIssue(issues, `${freightPath}.owner`, 'invalid_freight_metadata', 'Freight metadata requires an owner.');
+  }
+
+  if (!hasText(freight.operator)) {
+    addIssue(issues, `${freightPath}.operator`, 'invalid_freight_metadata', 'Freight metadata requires an operator.');
+  }
+
+  if (!hasText(freight.trackUsage) || !FREIGHT_TRACK_USAGES.has(freight.trackUsage)) {
+    addIssue(issues, `${freightPath}.trackUsage`, 'invalid_freight_metadata', 'Freight metadata trackUsage must be freight, passenger, mixed, or unknown.');
+  }
+
+  if (record.status === 'freight_only' && freight.trackUsage === 'passenger') {
+    addIssue(issues, `${freightPath}.trackUsage`, 'invalid_freight_metadata', 'freight_only records cannot use passenger trackUsage.');
+  }
+
+  if (!hasText(freight.electrification) || !FREIGHT_ELECTRIFICATION_STATUSES.has(freight.electrification)) {
+    addIssue(issues, `${freightPath}.electrification`, 'invalid_freight_metadata', 'Freight metadata electrification must be yes, no, partial, or unknown.');
+  }
+
+  const sourceIds = collectProvenanceSourceIds(record);
+  validateFreightSourceId(freight, 'ownershipSourceId', sourceIds, freightPath, issues);
+  validateFreightSourceId(freight, 'usageSourceId', sourceIds, freightPath, issues);
+  validateFreightSourceId(freight, 'electrificationSourceId', sourceIds, freightPath, issues);
+
+  if (freight.conversionScenarioId !== undefined && !hasText(freight.conversionScenarioId)) {
+    addIssue(issues, `${freightPath}.conversionScenarioId`, 'invalid_freight_metadata', 'Freight metadata conversionScenarioId must be a string.');
+  }
+
+  const scenarioIds = validateFreightConversionScenarios(
+    freight.conversionScenarios,
+    `${freightPath}.conversionScenarios`,
+    issues
+  );
+
+  if (
+    hasText(freight.conversionScenarioId)
+    && scenarioIds.size > 0
+    && !scenarioIds.has(freight.conversionScenarioId)
+  ) {
+    addIssue(issues, `${freightPath}.conversionScenarioId`, 'invalid_freight_metadata', 'Freight metadata conversionScenarioId must reference a conversion scenario id.');
+  }
+
+  if (record.status === 'converted_passenger' && !hasText(freight.conversionScenarioId)) {
+    addIssue(issues, `${freightPath}.conversionScenarioId`, 'invalid_freight_metadata', 'converted_passenger records must identify a conversion scenario.');
+  }
+
+  validateFreightSuitability(freight.suitability, `${freightPath}.suitability`, issues);
+}
+
 function validateConfidence(
   record: Record<string, unknown>,
   path: string,
@@ -495,6 +747,7 @@ export function validateTransitProposalRecord(
   validateClassification(proposal, path, issues);
   validateStations(proposal, path, issues);
   validateConfidence(proposal, path, issues);
+  validateFreightMetadata(proposal, path, issues);
 
   return { valid: issues.length === 0, issues };
 }
