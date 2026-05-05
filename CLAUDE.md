@@ -24,21 +24,21 @@ npm run preview    # Preview production build
 
 ## Agent Harness
 
-This repo uses **Overstory** plus **Beads**:
+This repo uses **Overstory** plus **Seeds**:
 
 - Overstory is the orchestration layer. It manages agent roles, worktrees, mail, logs, merge flow, and swarm coordination.
-- Beads is the issue database. It stores work items, dependencies, statuses, and IDs that Overstory agents claim and close.
+- Seeds is the issue database. It stores work items, dependencies, statuses, and IDs that Overstory agents claim and close.
 
 Useful commands:
 
 ```bash
-bd ready             # Show available Beads work
-bd show <id>         # Inspect one issue
-bd update <id> --claim
-bd close <id>
-bd export -o .beads/issues.jsonl
-overstory status     # Show agents, worktrees, mail, and merge queue
-overstory doctor     # Check Overstory health
+sd ready             # Show available Seeds work
+sd show <id>         # Inspect one issue
+sd update <id> --status in_progress
+sd close <id>
+sd sync              # Stage and commit Seeds changes
+ov status            # Show agents, worktrees, mail, and merge queue
+ov doctor            # Check Overstory health
 ```
 
 Overstory workers should not push directly. Worker branches are merged back through Overstory. The canonical repo should still be pushed from the orchestrator or main session after merges and quality gates pass.

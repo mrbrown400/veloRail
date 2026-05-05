@@ -1,22 +1,22 @@
 # Agent Instructions
 
-This project uses **Overstory** for multi-agent orchestration and **bd** (Beads) for issue tracking.
+This project uses **Overstory** for multi-agent orchestration and **sd** (Seeds) for issue tracking.
 
-Overstory and Beads are different layers:
+Overstory and Seeds are different layers:
 - **Overstory** coordinates agents, worktrees, mail, logs, merges, and swarm roles.
-- **Beads** stores the actual work items, dependencies, status, and issue IDs that Overstory agents claim and close.
+- **Seeds** stores the actual work items, dependencies, status, and issue IDs that Overstory agents claim and close.
 
-Run `bd onboard` for Beads basics and `overstory status` to inspect active agents.
+Run `sd prime` for Seeds basics and `ov status` to inspect active agents.
 
 ## Quick Reference
 
 ```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work
-bd close <id>         # Complete work
-bd export -o .beads/issues.jsonl  # Export issues for git
-overstory status      # Inspect active agents and worktrees
+sd ready              # Find available work
+sd show <id>          # View issue details
+sd update <id> --status in_progress  # Claim work
+sd close <id>         # Complete work
+sd sync               # Stage and commit Seeds changes
+ov status             # Inspect active agents and worktrees
 ```
 
 ## Quality Gates
@@ -51,7 +51,7 @@ If GitNexus reports the index is stale, run `npx gitnexus analyze` before relyin
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd export -o .beads/issues.jsonl
+   sd sync
    git push
    git status  # MUST show "up to date with origin"
    ```

@@ -1,7 +1,0 @@
-{
-  "database": "dolt",
-  "backend": "dolt",
-  "dolt_mode": "embedded",
-  "dolt_database": "velorail",
-  "project_id": "6ea82019-070d-4217-af91-295a6e1e97ae"
-}

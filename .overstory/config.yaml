@@ -5,6 +5,10 @@ project:
   name: veloRail
   root: /Users/kylebrown/veloRail
   canonicalBranch: main
+  qualityGates:
+    - name: Quality
+      command: npm run quality
+      description: tests, TypeScript checks, and production build pass
 agents:
   manifestPath: .overstory/agent-manifest.json
   baseDir: .overstory/agent-defs
@@ -13,7 +17,8 @@ agents:
   maxDepth: 2
 worktrees:
   baseDir: .overstory/worktrees
-beads:
+taskTracker:
+  backend: seeds
   enabled: true
 mulch:
   enabled: true

@@ -114,24 +114,26 @@
 				"no-worktree"
 			]
 		},
-		"supervisor": {
-			"file": "supervisor.md",
+		"orchestrator": {
+			"file": "orchestrator.md",
 			"model": "opus",
 			"tools": [
 				"Read",
-				"Write",
-				"Edit",
 				"Glob",
 				"Grep",
-				"Bash",
-				"Task"
+				"Bash"
 			],
 			"capabilities": [
+				"orchestrate",
 				"coordinate",
-				"supervise"
+				"dispatch",
+				"escalate"
 			],
 			"canSpawn": true,
-			"constraints": []
+			"constraints": [
+				"read-only",
+				"no-worktree"
+			]
 		},
 		"monitor": {
 			"file": "monitor.md",
@@ -180,7 +182,7 @@
 		"coordinate": [
 			"lead",
 			"coordinator",
-			"supervisor"
+			"orchestrator"
 		],
 		"merge": [
 			"merger"
@@ -189,13 +191,15 @@
 			"merger"
 		],
 		"dispatch": [
-			"coordinator"
+			"coordinator",
+			"orchestrator"
 		],
 		"escalate": [
-			"coordinator"
+			"coordinator",
+			"orchestrator"
 		],
-		"supervise": [
-			"supervisor"
+		"orchestrate": [
+			"orchestrator"
 		],
 		"monitor": [
 			"monitor"
