@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "node -e \"console.log('No automated tests configured yet')\"",
+    "lint": "tsc -b --pretty false",
+    "typecheck": "tsc -b",
+    "quality": "npm run test && npm run lint && npm run typecheck && npm run build",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },

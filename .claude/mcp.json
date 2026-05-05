@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "kotadb": {
+      "command": "bunx",
+      "args": ["kotadb@next", "--stdio"]
+    }
+  }
+}

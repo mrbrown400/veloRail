@@ -36,7 +36,7 @@ bd ready             # Show available Beads work
 bd show <id>         # Inspect one issue
 bd update <id> --claim
 bd close <id>
-bd sync
+bd export -o .beads/issues.jsonl
 overstory status     # Show agents, worktrees, mail, and merge queue
 overstory doctor     # Check Overstory health
 ```

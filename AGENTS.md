@@ -15,7 +15,7 @@ bd ready              # Find available work
 bd show <id>          # View issue details
 bd update <id> --claim  # Claim work
 bd close <id>         # Complete work
-bd sync               # Sync with git
+bd export -o .beads/issues.jsonl  # Export issues for git
 overstory status      # Inspect active agents and worktrees
 ```
 
@@ -51,7 +51,7 @@ If GitNexus reports the index is stale, run `npx gitnexus analyze` before relyin
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync
+   bd export -o .beads/issues.jsonl
    git push
    git status  # MUST show "up to date with origin"
    ```
