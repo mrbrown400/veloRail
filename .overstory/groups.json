@@ -1,0 +1,16 @@
+[
+	{
+		"id": "group-e1a1cca1",
+		"name": "ready-foundation",
+		"memberIssueIds": [
+			"VR-000",
+			"VR-001",
+			"VR-301",
+			"velorail-5xd",
+			"velorail-fyh"
+		],
+		"status": "active",
+		"createdAt": "2026-05-05T08:34:25.602Z",
+		"completedAt": null
+	}
+]
