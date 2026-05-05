@@ -12,5 +12,19 @@
 		"status": "completed",
 		"createdAt": "2026-05-05T08:34:25.602Z",
 		"completedAt": "2026-05-05T09:22:58.495Z"
+	},
+	{
+		"id": "group-472d49d5",
+		"name": "next-ready-2026-05-05",
+		"memberIssueIds": [
+			"VR-002",
+			"VR-302",
+			"VR-401",
+			"VR-005",
+			"VR-201"
+		],
+		"status": "active",
+		"createdAt": "2026-05-05T09:43:37.324Z",
+		"completedAt": null
 	}
 ]
