@@ -49,22 +49,6 @@ export function formatDuration(seconds: number): string {
   return `${hr} hr ${m} min`;
 }
 
-// ============================================
-// Station Types and Priorities
-// ============================================
-
-const STATION_TYPE_PRIORITY: Record<string, number> = {
-  'rail': 1,
-  'heavy_rail': 1,
-  'light_rail': 1,
-  'brt': 2,
-  'commuter_rail': 3,
-  'intercity_rail': 3,
-  'people_mover': 4,
-  'airport_shuttle': 5,
-  'commuter_express': 6,
-  'shuttle': 7
-};
 
 interface StationWithLine extends Station {
   line: string;
@@ -154,17 +138,10 @@ function getAllStations(departureTime: Date | null = null, includeFuture = false
   return all;
 }
 
-function getLinePriority(lineName: string): number {
-  const line = TRANSIT_LINES[lineName];
-  if (!line?.schedule) return 10;
-  return STATION_TYPE_PRIORITY[line.schedule.type] || 10;
-}
-
 function findNearestStation(
   lat: number,
   lon: number,
   departureTime: Date | null = null,
-  preferRail = true,
   includeFuture = false
 ): StationWithLine | null {
   let nearest: StationWithLine | null = null;
@@ -461,8 +438,8 @@ export async function calculateRoute(
   const fallbackSpeedMs = fallbackSpeed / 3.6;
   const busPenaltySeconds = isBus ? 600 : 0;
 
-  const entryStation = findNearestStation(startLoc.lat, startLoc.lon, queryTime, true, includeFuture);
-  const exitStation = findNearestStation(endLoc.lat, endLoc.lon, queryTime, true, includeFuture);
+  const entryStation = findNearestStation(startLoc.lat, startLoc.lon, queryTime, includeFuture);
+  const exitStation = findNearestStation(endLoc.lat, endLoc.lon, queryTime, includeFuture);
 
   const legs: RouteLeg[] = [];
 
