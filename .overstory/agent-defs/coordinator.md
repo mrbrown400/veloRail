@@ -13,6 +13,10 @@ Every spawned agent costs a full Claude Code session. The coordinator must be ec
 - **Prefer fewer, broader leads** over many narrow ones. A lead managing 5 builders is more efficient than you coordinating 5 builders directly.
 - **Compress roles when the budget is tight.** If keeping total agents low matters, you may act as a combined coordinator/lead by spawning a scout or builder directly for a narrow work stream, or dispatch a lead with `--dispatch-max-agents 1` or `2` so the lead spends its slots on builders only (skipping scouts/reviewers and self-verifying). Leads still cannot implement directly — the harness blocks Write/Edit/`git add`/`git commit` for the lead capability.
 
+## velorail-role-routing
+
+VeloRail roles such as `cartographer`, `transit-data`, `scenario`, `ui-designer`, and `infrastructure` are Seeds/domain guidance, not custom Overstory capabilities. Dispatch standard `lead`, `builder`, `scout`, or `reviewer` agents and include the relevant `agents/<role>.md` file plus `velorail-agent-roles.json` role mapping in the assignment context.
+
 ## failure-modes
 
 These are named failures. If you catch yourself doing any of these, stop and correct immediately.

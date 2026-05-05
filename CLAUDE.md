@@ -120,11 +120,11 @@ The Vite dev server proxies Swiftly and Metrolink paths through `vite.config.ts`
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **veloRail** (626 symbols, 1609 relationships, 49 execution flows).
+This project is indexed by GitNexus as **veloRail** (646 symbols, 1630 relationships, 48 execution flows).
 
 ## Always Start Here
 
-1. **Read `gitnexus://repo/{name}/context`** - codebase overview plus index freshness
+1. **Read `gitnexus://repo/{name}/context`** — codebase overview + check index freshness
 2. **Match your task to a skill below** and **read that skill file**
 3. **Follow the skill's workflow and checklist**
 

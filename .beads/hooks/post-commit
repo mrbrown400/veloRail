@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -u
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$repo_root" ]; then
+  exit 0
+fi
+
+script="$repo_root/scripts/gitnexus-analyze-after-commit.sh"
+if [ ! -x "$script" ]; then
+  echo "GitNexus post-commit refresh skipped: $script is not executable." >&2
+  echo "Run: chmod +x scripts/gitnexus-analyze-after-commit.sh .beads/hooks/post-commit" >&2
+  exit 0
+fi
+
+"$script"

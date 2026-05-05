@@ -8,6 +8,36 @@ Overstory and Seeds are different layers:
 
 Run `sd prime` for Seeds basics, `ml prime` for project expertise, `cn prime` for prompt workflow context, and `ov status` to inspect active agents.
 
+## Project Mission
+
+VeloRail is a Los Angeles car-free routing and transit-planning project. It uses Google Maps APIs wherever feasible, then layers VeloRail-owned planning data on top for cases Google does not natively provide: future transit overlays, visionary concepts, freight-rail passenger conversion scenarios, GTFS ingestion, scoring, and scenario generation.
+
+Core product goals:
+- Mixed-mode routing that avoids cars.
+- Future and visionary transit overlays.
+- Nationalized/freight-rail passenger conversion scenarios.
+- Better UI around Google Maps-centered routing and overlays.
+
+## Google Maps-First Architecture
+
+Use Google Maps APIs and SDK features wherever possible.
+
+Do not introduce alternate map providers, custom tile systems, or duplicate geospatial rendering stacks unless a Seeds issue explicitly requires it and the decision is documented.
+
+Google Maps should handle base map rendering, map gestures and viewport, polylines, markers or advanced markers, map object click/hover events, and Directions/Routes comparison where API access and product constraints allow.
+
+VeloRail may own custom logic/data for future proposal geometries, visionary proposal registries, freight corridor datasets, nationalized rail scenarios, GTFS ingestion, suitability/demand/bike-access scoring, and scenario route generation over custom data.
+
+## Role Guidance
+
+VeloRail domain roles are guidance only. They are **not** active custom Overstory capabilities in this repo.
+
+- Keep using standard Overstory capabilities: `coordinator`, `lead`, `builder`, `scout`, `reviewer`, and `merger`.
+- Use Seeds labels such as `role/cartographer`, `role/transit-data`, `role/scenario`, `role/ui-designer`, and `role/infrastructure` to route work.
+- Before dispatching or implementing a role-labeled issue, read the matching file in `agents/`.
+- Use `velorail-agent-roles.json` as the role-to-issue assignment map.
+- Do not add domain roles to `.overstory/agent-manifest.json` unless the harness is updated and tested for custom task-scoped capabilities.
+
 ## Quick Reference
 
 ```bash
@@ -23,6 +53,7 @@ ml doctor             # Validate Mulch expertise store
 cn prime              # Load Canopy prompt workflow context
 cn list               # List managed prompts
 cn doctor             # Validate Canopy prompt store
+npx gitnexus analyze  # Refresh GitNexus after commits or before GitNexus-driven navigation
 ```
 
 ## Quality Gates
@@ -44,6 +75,20 @@ npx gitnexus status
 ```
 
 If GitNexus reports the index is stale, run `npx gitnexus analyze` before relying on GitNexus code navigation, impact analysis, or execution flows. Do not run a refresh in the middle of unrelated dirty generated-doc edits unless the current task needs GitNexus.
+
+The harness also refreshes GitNexus after commits:
+- `.beads/hooks/post-commit` runs `scripts/gitnexus-analyze-after-commit.sh` for normal Git commits because local `core.hooksPath` points to `.beads/hooks`.
+- `.overstory/hooks.json` invokes the same script after agent `git commit` tool calls.
+- The refresh does not auto-commit generated context updates. If GitNexus changes tracked files such as `AGENTS.md` or `CLAUDE.md`, commit them explicitly.
+
+## Idempotent Work Rules
+
+Before changing agentic setup files:
+1. Inspect the repo.
+2. Find existing `.seeds`, `.overstory`, `AGENTS.md`, `agents/`, Mulch, and Canopy files.
+3. Preserve existing setup unless the task explicitly requires a change.
+4. If a file exists, merge missing sections rather than replacing it.
+5. If a config schema is uncertain, create a proposed config file or documentation note instead of breaking the current setup.
 
 ## Landing the Plane (Session Completion)
 
@@ -74,7 +119,7 @@ If GitNexus reports the index is stale, run `npx gitnexus analyze` before relyin
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **veloRail** (626 symbols, 1609 relationships, 49 execution flows).
+This project is indexed by GitNexus as **veloRail** (646 symbols, 1630 relationships, 48 execution flows).
 
 ## Always Start Here
 

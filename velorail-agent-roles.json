@@ -1,0 +1,75 @@
+{
+  "coordinator": {
+    "mission": "Own architecture consistency, Google Maps-first constraints, Seeds/Overstory/Mulch/Canopy integration, and cross-cutting product decisions.",
+    "issues": [
+      "VR-000",
+      "VR-004",
+      "VR-101",
+      "VR-104",
+      "VR-401"
+    ],
+    "default_runtime": "codex"
+  },
+  "transit-data": {
+    "mission": "Own data schemas, GTFS/future-project/freight-corridor ingestion, validation, provenance, and dataset docs.",
+    "issues": [
+      "VR-001",
+      "VR-005",
+      "VR-105",
+      "VR-203",
+      "VR-402",
+      "VR-503"
+    ],
+    "default_runtime": "codex"
+  },
+  "cartographer": {
+    "mission": "Own Google Maps overlay architecture, polylines, markers, styling, interactions, and map rendering performance.",
+    "issues": [
+      "VR-002",
+      "VR-003",
+      "VR-102",
+      "VR-103",
+      "VR-403"
+    ],
+    "default_runtime": "codex"
+  },
+  "ui-designer": {
+    "mission": "Own the UI audit, design system, map controls, route panels, responsive behavior, accessibility, and polish.",
+    "issues": [
+      "VR-301",
+      "VR-302",
+      "VR-303",
+      "VR-304",
+      "VR-305",
+      "VR-306",
+      "VR-307",
+      "VR-308"
+    ],
+    "default_runtime": "codex"
+  },
+  "scenario": {
+    "mission": "Own visionary-planning features, Nick Andert-inspired scenario curation, disclaimers, provenance UX, and nationalized-rail scenario presentation.",
+    "issues": [
+      "VR-201",
+      "VR-202",
+      "VR-204",
+      "VR-205",
+      "VR-206",
+      "VR-404",
+      "VR-407"
+    ],
+    "default_runtime": "codex"
+  },
+  "infrastructure": {
+    "mission": "Own routing algorithms, graph generation, scoring models, demand heuristics, bike-rail scoring, and comparisons with Google Maps.",
+    "issues": [
+      "VR-405",
+      "VR-406",
+      "VR-500",
+      "VR-501",
+      "VR-502",
+      "VR-504"
+    ],
+    "default_runtime": "codex"
+  }
+}
