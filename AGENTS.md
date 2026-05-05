@@ -1,12 +1,12 @@
 # Agent Instructions
 
-This project uses **Overstory** for multi-agent orchestration and **sd** (Seeds) for issue tracking.
+This project uses **Overstory** for multi-agent orchestration, **sd** (Seeds) for issue tracking, **ml** (Mulch) for durable project expertise, and **cn** (Canopy) for git-native prompt management.
 
 Overstory and Seeds are different layers:
 - **Overstory** coordinates agents, worktrees, mail, logs, merges, and swarm roles.
 - **Seeds** stores the actual work items, dependencies, status, and issue IDs that Overstory agents claim and close.
 
-Run `sd prime` for Seeds basics and `ov status` to inspect active agents.
+Run `sd prime` for Seeds basics, `ml prime` for project expertise, `cn prime` for prompt workflow context, and `ov status` to inspect active agents.
 
 ## Quick Reference
 
@@ -17,6 +17,12 @@ sd update <id> --status in_progress  # Claim work
 sd close <id>         # Complete work
 sd sync               # Stage and commit Seeds changes
 ov status             # Inspect active agents and worktrees
+ml prime              # Load Mulch project expertise
+ml learn              # Discover session insights worth recording
+ml doctor             # Validate Mulch expertise store
+cn prime              # Load Canopy prompt workflow context
+cn list               # List managed prompts
+cn doctor             # Validate Canopy prompt store
 ```
 
 ## Quality Gates
