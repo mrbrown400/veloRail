@@ -119,7 +119,7 @@ Before changing agentic setup files:
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **veloRail** (646 symbols, 1630 relationships, 48 execution flows).
+This project is indexed by GitNexus as **veloRail** (644 symbols, 1630 relationships, 48 execution flows).
 
 ## Always Start Here
 
