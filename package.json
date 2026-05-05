@@ -9,9 +9,9 @@
   },
   "scripts": {
     "dev": "node scripts/with-supported-node.mjs vite",
-    "test": "node -e \"console.log('No automated tests configured yet')\"",
-    "lint": "tsc -b --pretty false",
-    "typecheck": "tsc -b",
+    "test": "node scripts/with-supported-node.mjs node --test tests/*.test.js",
+    "lint": "node scripts/lint-style.mjs",
+    "typecheck": "tsc -b --pretty false",
     "quality": "npm run test && npm run lint && npm run typecheck && npm run build",
     "build": "tsc -b && node scripts/with-supported-node.mjs vite build",
     "preview": "node scripts/with-supported-node.mjs vite preview"

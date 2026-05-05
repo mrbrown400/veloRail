@@ -12,15 +12,15 @@ The current web app entry point is `src/main.tsx`, which mounts `App.tsx` into `
 
 ```bash
 npm run dev        # Start Vite dev server, usually http://localhost:5173
-npm run test       # Placeholder until automated tests are added
-npm run lint       # TypeScript static check, not a style linter yet
+npm run test       # Run the Node test suite
+npm run lint       # Run repository style linting
 npm run typecheck  # TypeScript project build check
 npm run build      # Production build to dist
 npm run quality    # Full configured gate for agents
 npm run preview    # Preview production build
 ```
 
-`npm run quality` is the required gate after code changes. There is no dedicated unit test suite or style linter yet, so `test` is a placeholder and `lint` currently delegates to TypeScript checking.
+`npm run quality` is the required gate after code changes. It runs tests, style linting, TypeScript checking, and the production build.
 
 ## Agent Harness
 
