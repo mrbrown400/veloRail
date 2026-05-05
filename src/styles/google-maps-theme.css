@@ -149,11 +149,17 @@ body {
   border-radius: var(--gm-radius-md);
   box-shadow: var(--gm-shadow-2);
   z-index: var(--vr-z-floating-panel);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .search-card.sidebar-open {
   display: none;
+}
+
+.search-form {
+  overflow: visible;
+  border-radius: inherit;
+  background: inherit;
 }
 
 /* Search Header */
@@ -370,13 +376,30 @@ body {
   position: absolute;
   top: 100%;
   left: 0;
-  width: 280px;
+  width: min(280px, calc(100vw - 32px));
   margin-top: var(--gm-spacing-sm);
   overflow: hidden;
   background: var(--gm-background);
   border-radius: var(--gm-radius-lg);
   box-shadow: var(--gm-shadow-3);
   z-index: var(--vr-z-popover);
+}
+
+.search-feedback {
+  margin: 0 var(--gm-spacing-md) var(--gm-spacing-md);
+  padding: var(--gm-spacing-sm) var(--gm-spacing-md);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius-sm);
+  background: var(--gm-background-surface);
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-sm);
+  line-height: var(--vr-line-height-normal);
+}
+
+.search-feedback--error {
+  border-color: rgba(217, 48, 37, 0.32);
+  background: #fce8e6;
+  color: var(--gm-red);
 }
 
 .bike-settings-header {
