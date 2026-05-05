@@ -7,6 +7,7 @@ VR-001 adds a parallel schema for VeloRail-owned proposal data. It does not repl
 - Types: `src/types/proposals.ts`
 - Example records and Google Maps adapters: `src/data/transitProposals.ts`
 - Validation helpers: `src/data/transitProposalValidation.ts`
+- Import helpers and source manifest: `src/data/transitProposalImport.ts` and `src/data/transitProposalSources.ts`
 
 ## Version
 
@@ -70,8 +71,13 @@ Proposal geometry remains source-format GeoJSON, matching existing route geometr
 - `proposalStationsToGoogleMarkers` creates marker-ready station inputs.
 - `proposalToGooglePolylineInput` creates polyline path and options.
 - `proposalDatasetToGoogleMapInputs` returns proposal, polyline, and marker bundles for overlay work.
+- `importTransitProposalDataset` and `importTransitProposalSources` validate source data before returning overlay-ready polyline and marker bundles.
 
 The schema is compatible with Google Maps `Polyline` and marker inputs without introducing another map provider.
+
+## Import Workflow
+
+VR-005 adds a source import pipeline documented in `docs/architecture/transit-proposal-import-pipeline.md`. New source files should declare `schemaVersion: '1.0.0'`, use lowercase kebab-case ids, include provenance before rendering, and register through `TRANSIT_PROPOSAL_SOURCE_FILES` instead of requiring map component edits for each new line.
 
 ## Migration Notes
 

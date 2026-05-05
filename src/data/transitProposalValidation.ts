@@ -36,6 +36,37 @@ const OFFICIAL_FUTURE_STATUSES = new Set<string>([
   'under_construction',
   'funded'
 ]);
+const VALID_KINDS = new Set<string>(['line', 'corridor']);
+const VALID_MODES = new Set<string>([
+  'heavy_rail',
+  'light_rail',
+  'brt',
+  'commuter_rail',
+  'intercity_rail',
+  'people_mover',
+  'freight_rail',
+  'mixed_rail',
+  'unknown'
+]);
+const VALID_SOURCE_TYPES = new Set<string>([
+  'official_project',
+  'public_agency',
+  'public_plan',
+  'freight_owner',
+  'advocacy',
+  'commentary',
+  'internal_example',
+  'other'
+]);
+const VALID_CONFIDENCE_LEVELS = new Set<string>([
+  'official',
+  'high',
+  'medium',
+  'low',
+  'unknown'
+]);
+const MACHINE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -92,6 +123,38 @@ function hasSourceNote(record: Record<string, unknown>): boolean {
 function getLayerGroup(record: Record<string, unknown>): unknown {
   if (!isRecord(record.rendering)) return undefined;
   return record.rendering.layerGroup;
+}
+
+function validateMachineId(
+  value: unknown,
+  path: string,
+  issues: ProposalValidationIssue[],
+  label: string,
+  code: ProposalValidationIssue['code']
+): value is string {
+  if (!hasText(value)) {
+    addIssue(issues, path, code, `${label} is required.`);
+    return false;
+  }
+
+  if (!MACHINE_ID_PATTERN.test(value)) {
+    addIssue(issues, path, code, `${label} must use lowercase kebab-case letters, numbers, and hyphens.`);
+    return false;
+  }
+
+  return true;
+}
+
+function validateIsoDate(
+  value: unknown,
+  path: string,
+  issues: ProposalValidationIssue[],
+  label: string,
+  code: ProposalValidationIssue['code']
+) {
+  if (!hasText(value) || !ISO_DATE_PATTERN.test(value)) {
+    addIssue(issues, path, code, `${label} must use YYYY-MM-DD format.`);
+  }
 }
 
 function validateLonLat(
@@ -154,6 +217,7 @@ function validateProvenance(
     return;
   }
 
+  const sourceIds = new Set<string>();
   provenance.forEach((source, index) => {
     const sourcePath = `${path}.provenance[${index}]`;
     if (!isRecord(source)) {
@@ -161,8 +225,11 @@ function validateProvenance(
       return;
     }
 
-    if (!hasText(source.sourceId)) {
-      addIssue(issues, `${sourcePath}.sourceId`, 'invalid_provenance', 'Source attribution requires a sourceId.');
+    if (validateMachineId(source.sourceId, `${sourcePath}.sourceId`, issues, 'Source attribution sourceId', 'invalid_provenance')) {
+      if (sourceIds.has(source.sourceId)) {
+        addIssue(issues, `${sourcePath}.sourceId`, 'invalid_provenance', `Duplicate sourceId "${source.sourceId}" in proposal provenance.`);
+      }
+      sourceIds.add(source.sourceId);
     }
 
     if (!hasText(source.title)) {
@@ -171,6 +238,12 @@ function validateProvenance(
 
     if (!hasText(source.sourceType)) {
       addIssue(issues, `${sourcePath}.sourceType`, 'invalid_provenance', 'Source attribution requires a sourceType.');
+    } else if (!VALID_SOURCE_TYPES.has(source.sourceType)) {
+      addIssue(issues, `${sourcePath}.sourceType`, 'invalid_provenance', 'Source attribution sourceType is not supported.');
+    }
+
+    if (source.accessedAt !== undefined) {
+      validateIsoDate(source.accessedAt, `${sourcePath}.accessedAt`, issues, 'Source accessedAt', 'invalid_provenance');
     }
   });
 }
@@ -324,6 +397,7 @@ function validateStations(
     return;
   }
 
+  const stationIds = new Set<string>();
   record.stations.forEach((station, index) => {
     const stationPath = `${path}.stations[${index}]`;
     if (!isRecord(station)) {
@@ -331,8 +405,11 @@ function validateStations(
       return;
     }
 
-    if (!hasText(station.id)) {
-      addIssue(issues, `${stationPath}.id`, 'invalid_station', 'Station requires an id.');
+    if (validateMachineId(station.id, `${stationPath}.id`, issues, 'Station id', 'invalid_station')) {
+      if (stationIds.has(station.id)) {
+        addIssue(issues, `${stationPath}.id`, 'invalid_station', `Duplicate station id "${station.id}" in proposal.`);
+      }
+      stationIds.add(station.id);
     }
 
     if (!hasText(station.name)) {
@@ -353,6 +430,31 @@ function validateStations(
   });
 }
 
+function validateConfidence(
+  record: Record<string, unknown>,
+  path: string,
+  issues: ProposalValidationIssue[]
+) {
+  const confidence = record.confidence;
+  if (!isRecord(confidence)) {
+    addIssue(issues, `${path}.confidence`, 'missing_field', 'Proposal confidence is required.');
+    return;
+  }
+
+  if (!hasText(confidence.level)) {
+    addIssue(issues, `${path}.confidence.level`, 'missing_field', 'Proposal confidence level is required.');
+  } else if (!VALID_CONFIDENCE_LEVELS.has(confidence.level)) {
+    addIssue(issues, `${path}.confidence.level`, 'missing_field', 'Proposal confidence level is not supported.');
+  }
+
+  for (const key of ['geometry', 'stations', 'status']) {
+    const value = confidence[key];
+    if (value !== undefined && !VALID_CONFIDENCE_LEVELS.has(String(value))) {
+      addIssue(issues, `${path}.confidence.${key}`, 'missing_field', 'Proposal confidence detail level is not supported.');
+    }
+  }
+}
+
 export function validateTransitProposalRecord(
   proposal: unknown,
   path = 'proposal'
@@ -364,9 +466,7 @@ export function validateTransitProposalRecord(
     return { valid: false, issues };
   }
 
-  if (!hasText(proposal.id)) {
-    addIssue(issues, `${path}.id`, 'missing_field', 'Proposal id is required.');
-  }
+  validateMachineId(proposal.id, `${path}.id`, issues, 'Proposal id', 'missing_field');
 
   if (!hasText(proposal.name)) {
     addIssue(issues, `${path}.name`, 'missing_field', 'Proposal name is required.');
@@ -374,6 +474,8 @@ export function validateTransitProposalRecord(
 
   if (!hasText(proposal.kind)) {
     addIssue(issues, `${path}.kind`, 'missing_field', 'Proposal kind is required.');
+  } else if (!VALID_KINDS.has(proposal.kind)) {
+    addIssue(issues, `${path}.kind`, 'missing_field', 'Proposal kind must be line or corridor.');
   }
 
   if (proposal.status === undefined) {
@@ -384,12 +486,15 @@ export function validateTransitProposalRecord(
 
   if (!hasText(proposal.mode)) {
     addIssue(issues, `${path}.mode`, 'missing_field', 'Proposal mode is required.');
+  } else if (!VALID_MODES.has(proposal.mode)) {
+    addIssue(issues, `${path}.mode`, 'missing_field', 'Proposal mode is not supported.');
   }
 
   validateGeometry(proposal, path, issues);
   validateProvenance(proposal, path, issues);
   validateClassification(proposal, path, issues);
   validateStations(proposal, path, issues);
+  validateConfidence(proposal, path, issues);
 
   return { valid: issues.length === 0, issues };
 }
@@ -406,12 +511,22 @@ export function validateTransitProposalDataset(dataset: unknown): ProposalValida
     addIssue(issues, 'dataset.schemaVersion', 'invalid_dataset', `Dataset schemaVersion must be ${TRANSIT_PROPOSAL_SCHEMA_VERSION}.`);
   }
 
+  validateIsoDate(dataset.updatedAt, 'dataset.updatedAt', issues, 'Dataset updatedAt', 'invalid_dataset');
+
   if (!Array.isArray(dataset.proposals)) {
     addIssue(issues, 'dataset.proposals', 'invalid_dataset', 'Dataset proposals must be an array.');
     return { valid: false, issues };
   }
 
+  const proposalIds = new Set<string>();
   dataset.proposals.forEach((proposal, index) => {
+    if (isRecord(proposal) && hasText(proposal.id)) {
+      if (proposalIds.has(proposal.id)) {
+        addIssue(issues, `dataset.proposals[${index}].id`, 'invalid_dataset', `Duplicate proposal id "${proposal.id}" in dataset.`);
+      }
+      proposalIds.add(proposal.id);
+    }
+
     const result = validateTransitProposalRecord(proposal, `dataset.proposals[${index}]`);
     issues.push(...result.issues);
   });
