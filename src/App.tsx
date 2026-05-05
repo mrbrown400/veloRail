@@ -27,20 +27,12 @@ function App() {
   if (loadError) {
     return (
       <div className="app-container">
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100vh',
-          padding: '20px',
-          textAlign: 'center',
-          background: '#f8f9fa'
-        }}>
+        <div className="app-state">
           <div>
-            <h2 style={{ color: '#d93025', marginBottom: '16px' }}>
+            <h2 className="app-state-title app-state-title--error">
               Error Loading Google Maps
             </h2>
-            <p style={{ color: '#5f6368' }}>
+            <p className="app-state-copy">
               Please check your API key configuration.
             </p>
           </div>
@@ -52,16 +44,10 @@ function App() {
   if (!isLoaded) {
     return (
       <div className="app-container">
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100vh',
-          background: '#f8f9fa'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div className="loading-spinner" style={{ marginBottom: '16px' }} />
-            <p style={{ color: '#5f6368' }}>Loading VeloRail...</p>
+        <div className="app-state">
+          <div className="app-state-content">
+            <div className="loading-spinner app-state-spinner" />
+            <p className="app-state-copy">Loading VeloRail...</p>
           </div>
         </div>
       </div>

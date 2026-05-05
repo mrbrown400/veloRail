@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { RouteOption } from './RouteOption';
 import { RouteDetails } from './RouteDetails';
+import { CloseIcon, IconButton, Panel, VeloRailMark } from '@/components/ui';
 import { useRouteStore, useUIStore } from '@/stores';
 import type { Route } from '@/types';
 
@@ -19,21 +20,28 @@ export function ResultsSidebar() {
   }, [selectRoute]);
 
   return (
-    <aside className={`results-sidebar ${sidebarOpen ? 'open' : ''}`}>
+    <Panel
+      as="aside"
+      className={`results-sidebar ${sidebarOpen ? 'open' : ''}`}
+      ariaLabel="Route results"
+      isHidden={!sidebarOpen}
+    >
       {/* Header */}
       <div className="sidebar-header">
         <div className="sidebar-title">
-          <span className="search-logo">{'\u{1F6B2}'} + {'\u{1F686}'}</span>
+          <span className="search-logo">
+            <VeloRailMark />
+          </span>
           <span className="search-brand">VeloRail</span>
         </div>
-        <button
+        <IconButton
           className="sidebar-close-btn"
           onClick={handleClose}
           title="Close"
-          type="button"
+          aria-label="Close route results"
         >
-          &times;
-        </button>
+          <CloseIcon />
+        </IconButton>
       </div>
 
       {/* Content */}
@@ -42,7 +50,7 @@ export function ResultsSidebar() {
           <>
             {/* Route Options */}
             <div className="route-options">
-              <h3 style={{ padding: '16px 16px 8px', fontSize: '14px', color: '#5f6368' }}>
+              <h3 className="route-options-heading">
                 Route Options
               </h3>
               {routes.map((route, index) => (
@@ -61,11 +69,11 @@ export function ResultsSidebar() {
         )}
 
         {routes.length === 0 && sidebarOpen && (
-          <div style={{ padding: '24px', textAlign: 'center', color: '#5f6368' }}>
+          <div className="empty-state">
             No routes calculated yet.
           </div>
         )}
       </div>
-    </aside>
+    </Panel>
   );
 }

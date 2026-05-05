@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { searchPlaces, getPlaceDetails, getPlaceIcon, debounce } from '@/services/geocoding';
+import { CrosshairIcon, DestinationIcon, MapPinIcon, OriginIcon } from '@/components/ui';
 import type { PlaceResult } from '@/types';
 
 interface PlaceAutocompleteProps {
@@ -131,10 +132,15 @@ export function PlaceAutocomplete({
     }, 200);
   };
 
+  const searchIcon =
+    icon === 'start' ? <OriginIcon />
+    : icon === 'end' ? <DestinationIcon />
+    : <MapPinIcon />;
+
   return (
     <div className="search-input-wrapper">
-      <span className={`search-input-icon ${icon || ''}`}>
-        {icon === 'start' ? '\u{1F535}' : icon === 'end' ? '\u{1F534}' : '\u{1F4CD}'}
+      <span className={`search-input-icon ${icon || ''}`} aria-hidden="true">
+        {searchIcon}
       </span>
       <input
         ref={inputRef}
@@ -154,22 +160,9 @@ export function PlaceAutocomplete({
           className="location-btn"
           onClick={onLocationRequest}
           title="Use my location"
-          style={{
-            position: 'absolute',
-            right: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '8px',
-            color: '#5f6368'
-          }}
+          aria-label="Use my location"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M12 2v4m0 12v4m10-10h-4M6 12H2" />
-          </svg>
+          <CrosshairIcon />
         </button>
       )}
 

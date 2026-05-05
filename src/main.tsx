@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
+import './styles/design-system.css';
 import './styles/google-maps-theme.css';
 
 const queryClient = new QueryClient({

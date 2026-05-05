@@ -1,0 +1,261 @@
+/* VeloRail design system v1 */
+
+:root {
+  color-scheme: light;
+
+  /* Color */
+  --vr-color-background: #ffffff;
+  --vr-color-surface: #ffffff;
+  --vr-color-surface-muted: #f1f3f4;
+  --vr-color-surface-hover: #f8f9fa;
+  --vr-color-surface-selected: #e8f0fe;
+  --vr-color-text: #202124;
+  --vr-color-text-muted: #5f6368;
+  --vr-color-text-disabled: #80868b;
+  --vr-color-border: #dadce0;
+  --vr-color-accent: #1a73e8;
+  --vr-color-accent-hover: #1557b0;
+  --vr-color-success: #188038;
+  --vr-color-warning: #f9ab00;
+  --vr-color-danger: #d93025;
+  --vr-color-bike: #188038;
+  --vr-color-rail: #1a73e8;
+  --vr-color-future-surface: #fff9e6;
+  --vr-color-future-text: #5d4037;
+
+  /* Typography */
+  --vr-font-family-sans: "Roboto", "Arial", sans-serif;
+  --vr-font-size-2xs: 11px;
+  --vr-font-size-xs: 12px;
+  --vr-font-size-sm: 14px;
+  --vr-font-size-md: 16px;
+  --vr-font-size-lg: 18px;
+  --vr-font-size-xl: 22px;
+  --vr-font-weight-regular: 400;
+  --vr-font-weight-medium: 500;
+  --vr-font-weight-semibold: 600;
+  --vr-line-height-tight: 1.2;
+  --vr-line-height-normal: 1.45;
+
+  /* Spacing */
+  --vr-space-1: 4px;
+  --vr-space-2: 8px;
+  --vr-space-3: 12px;
+  --vr-space-4: 16px;
+  --vr-space-5: 20px;
+  --vr-space-6: 24px;
+  --vr-space-8: 32px;
+
+  /* Shape */
+  --vr-radius-1: 4px;
+  --vr-radius-2: 8px;
+  --vr-radius-3: 12px;
+  --vr-radius-pill: 9999px;
+
+  /* Elevation */
+  --vr-shadow-raised: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+  --vr-shadow-floating: 0 1px 3px rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
+  --vr-shadow-panel: 0 4px 8px 3px rgba(60, 64, 67, 0.15), 0 1px 3px rgba(60, 64, 67, 0.3);
+  --vr-focus-ring: 0 0 0 3px rgba(26, 115, 232, 0.25);
+
+  /* Layering */
+  --vr-z-map-overlay: 10;
+  --vr-z-floating-panel: 100;
+  --vr-z-popover: 150;
+  --vr-z-side-panel: 200;
+
+  /* Layout */
+  --vr-sidebar-width: 408px;
+}
+
+.vr-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vr-space-2);
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: var(--vr-radius-1);
+  font-family: var(--vr-font-family-sans);
+  font-weight: var(--vr-font-weight-medium);
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease;
+}
+
+.vr-button:focus-visible,
+.vr-chip:focus-visible,
+.vr-panel:focus-visible,
+.vr-card:focus-visible {
+  outline: none;
+  box-shadow: var(--vr-focus-ring);
+}
+
+.vr-button:disabled,
+.vr-button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.vr-button--sm {
+  min-height: 36px;
+  padding: 0 var(--vr-space-3);
+  font-size: var(--vr-font-size-xs);
+}
+
+.vr-button--md {
+  min-height: 44px;
+  padding: 0 var(--vr-space-4);
+  font-size: var(--vr-font-size-sm);
+}
+
+.vr-button--icon {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: var(--vr-radius-pill);
+}
+
+.vr-button--primary {
+  background: var(--vr-color-accent);
+  color: #ffffff;
+}
+
+.vr-button--primary:hover:not(:disabled) {
+  background: var(--vr-color-accent-hover);
+}
+
+.vr-button--secondary {
+  background: var(--vr-color-surface);
+  border-color: var(--vr-color-border);
+  color: var(--vr-color-text);
+}
+
+.vr-button--secondary:hover:not(:disabled) {
+  background: var(--vr-color-surface-hover);
+}
+
+.vr-button--ghost {
+  background: transparent;
+  color: var(--vr-color-text-muted);
+}
+
+.vr-button--ghost:hover:not(:disabled) {
+  background: var(--vr-color-surface-hover);
+  color: var(--vr-color-text);
+}
+
+.vr-button--map-toggle {
+  background: var(--vr-color-surface);
+  border-color: transparent;
+  border-radius: var(--vr-radius-pill);
+  box-shadow: var(--vr-shadow-raised);
+  color: var(--vr-color-text-muted);
+}
+
+.vr-button--map-toggle:hover:not(:disabled) {
+  background: var(--vr-color-surface-hover);
+  box-shadow: var(--vr-shadow-floating);
+}
+
+.vr-button--pressed {
+  background: var(--vr-color-surface-selected);
+  color: var(--vr-color-accent);
+}
+
+.vr-button--full {
+  width: 100%;
+}
+
+.vr-button__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.vr-button__icon svg {
+  width: 1.25em;
+  height: 1.25em;
+}
+
+.vr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vr-space-1);
+  min-height: 24px;
+  padding: 0 var(--vr-space-2);
+  border-radius: var(--vr-radius-1);
+  font-family: var(--vr-font-family-sans);
+  font-size: var(--vr-font-size-2xs);
+  font-weight: var(--vr-font-weight-medium);
+  line-height: var(--vr-line-height-tight);
+}
+
+.vr-chip--neutral {
+  background: var(--vr-color-surface-muted);
+  color: var(--vr-color-text-muted);
+}
+
+.vr-chip--accent {
+  background: var(--vr-color-surface-selected);
+  color: var(--vr-color-accent);
+}
+
+.vr-chip--success {
+  background: #e8f5e9;
+  color: var(--vr-color-success);
+}
+
+.vr-chip--warning,
+.vr-chip--future {
+  background: var(--vr-color-warning);
+  color: var(--vr-color-future-text);
+}
+
+.vr-chip--danger {
+  background: #ffebee;
+  color: var(--vr-color-danger);
+}
+
+.vr-card,
+.vr-panel {
+  background: var(--vr-color-surface);
+  color: var(--vr-color-text);
+  font-family: var(--vr-font-family-sans);
+}
+
+.vr-card {
+  border-radius: var(--vr-radius-2);
+  box-shadow: var(--vr-shadow-floating);
+}
+
+.vr-panel {
+  box-shadow: var(--vr-shadow-panel);
+}
+
+.velorail-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vr-space-1);
+  color: var(--vr-color-accent);
+}
+
+.velorail-mark__icon {
+  width: 20px;
+  height: 20px;
+}
+
+.velorail-mark__connector {
+  width: 10px;
+  height: 2px;
+  border-radius: var(--vr-radius-pill);
+  background: var(--vr-color-border);
+}

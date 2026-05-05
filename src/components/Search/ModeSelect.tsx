@@ -10,6 +10,7 @@ export function ModeSelect({ value, onChange }: ModeSelectProps) {
     <select
       className="search-option-select"
       value={value}
+      aria-label="Route mode"
       onChange={(e) => onChange(e.target.value as ModeFilter)}
     >
       <option value="all">All Options</option>

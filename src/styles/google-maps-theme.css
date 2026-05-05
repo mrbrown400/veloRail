@@ -2,60 +2,60 @@
 /* Matches Google Maps UI patterns as closely as possible */
 
 /* ============================================
-   CSS Variables - Google Maps Color Palette
+   Google Maps compatibility aliases
    ============================================ */
 :root {
   /* Primary colors */
-  --gm-blue: #1a73e8;
-  --gm-blue-hover: #1557b0;
-  --gm-green: #188038;
-  --gm-red: #d93025;
-  --gm-yellow: #f9ab00;
+  --gm-blue: var(--vr-color-accent);
+  --gm-blue-hover: var(--vr-color-accent-hover);
+  --gm-green: var(--vr-color-success);
+  --gm-red: var(--vr-color-danger);
+  --gm-yellow: var(--vr-color-warning);
 
   /* Text colors */
-  --gm-text-primary: #202124;
-  --gm-text-secondary: #5f6368;
-  --gm-text-disabled: #80868b;
+  --gm-text-primary: var(--vr-color-text);
+  --gm-text-secondary: var(--vr-color-text-muted);
+  --gm-text-disabled: var(--vr-color-text-disabled);
 
   /* Background colors */
-  --gm-background: #ffffff;
-  --gm-background-hover: #f8f9fa;
-  --gm-background-selected: #e8f0fe;
-  --gm-background-surface: #f1f3f4;
+  --gm-background: var(--vr-color-surface);
+  --gm-background-hover: var(--vr-color-surface-hover);
+  --gm-background-selected: var(--vr-color-surface-selected);
+  --gm-background-surface: var(--vr-color-surface-muted);
 
   /* Border colors */
-  --gm-border: #dadce0;
-  --gm-border-focus: #1a73e8;
+  --gm-border: var(--vr-color-border);
+  --gm-border-focus: var(--vr-color-accent);
 
   /* Shadows */
-  --gm-shadow-1: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
-  --gm-shadow-2: 0 1px 3px rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
-  --gm-shadow-3: 0 4px 8px 3px rgba(60, 64, 67, 0.15), 0 1px 3px rgba(60, 64, 67, 0.3);
+  --gm-shadow-1: var(--vr-shadow-raised);
+  --gm-shadow-2: var(--vr-shadow-floating);
+  --gm-shadow-3: var(--vr-shadow-panel);
 
   /* Spacing */
-  --gm-spacing-xs: 4px;
-  --gm-spacing-sm: 8px;
-  --gm-spacing-md: 12px;
-  --gm-spacing-lg: 16px;
-  --gm-spacing-xl: 24px;
+  --gm-spacing-xs: var(--vr-space-1);
+  --gm-spacing-sm: var(--vr-space-2);
+  --gm-spacing-md: var(--vr-space-3);
+  --gm-spacing-lg: var(--vr-space-4);
+  --gm-spacing-xl: var(--vr-space-6);
 
   /* Border radius */
-  --gm-radius-sm: 4px;
-  --gm-radius-md: 8px;
-  --gm-radius-lg: 12px;
-  --gm-radius-full: 9999px;
+  --gm-radius-sm: var(--vr-radius-1);
+  --gm-radius-md: var(--vr-radius-2);
+  --gm-radius-lg: var(--vr-radius-3);
+  --gm-radius-full: var(--vr-radius-pill);
 
   /* Typography */
-  --gm-font-family: 'Roboto', 'Arial', sans-serif;
-  --gm-font-size-xs: 11px;
-  --gm-font-size-sm: 12px;
-  --gm-font-size-md: 14px;
-  --gm-font-size-lg: 16px;
-  --gm-font-size-xl: 18px;
-  --gm-font-size-xxl: 22px;
+  --gm-font-family: var(--vr-font-family-sans);
+  --gm-font-size-xs: var(--vr-font-size-2xs);
+  --gm-font-size-sm: var(--vr-font-size-xs);
+  --gm-font-size-md: var(--vr-font-size-sm);
+  --gm-font-size-lg: var(--vr-font-size-md);
+  --gm-font-size-xl: var(--vr-font-size-lg);
+  --gm-font-size-xxl: var(--vr-font-size-xl);
 
   /* Sidebar width */
-  --gm-sidebar-width: 408px;
+  --gm-sidebar-width: var(--vr-sidebar-width);
 }
 
 /* ============================================
@@ -70,6 +70,7 @@
 body {
   font-family: var(--gm-font-family);
   font-size: var(--gm-font-size-md);
+  line-height: var(--vr-line-height-normal);
   color: var(--gm-text-primary);
   background: var(--gm-background);
   -webkit-font-smoothing: antialiased;
@@ -100,6 +101,42 @@ body {
 }
 
 /* ============================================
+   App states
+   ============================================ */
+.app-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100vh;
+  padding: var(--gm-spacing-xl);
+  text-align: center;
+  background: var(--gm-background-hover);
+}
+
+.app-state-content {
+  text-align: center;
+}
+
+.app-state-title {
+  margin-bottom: var(--gm-spacing-lg);
+  font-size: var(--gm-font-size-xxl);
+  font-weight: var(--vr-font-weight-medium);
+}
+
+.app-state-title--error {
+  color: var(--gm-red);
+}
+
+.app-state-copy {
+  color: var(--gm-text-secondary);
+}
+
+.app-state-spinner {
+  margin-bottom: var(--gm-spacing-lg);
+}
+
+/* ============================================
    Search Card - Google Maps Style
    ============================================ */
 .search-card {
@@ -111,7 +148,7 @@ body {
   background: var(--gm-background);
   border-radius: var(--gm-radius-md);
   box-shadow: var(--gm-shadow-2);
-  z-index: 100;
+  z-index: var(--vr-z-floating-panel);
   overflow: hidden;
 }
 
@@ -128,6 +165,8 @@ body {
 }
 
 .search-logo {
+  display: inline-flex;
+  align-items: center;
   font-size: 20px;
   margin-right: var(--gm-spacing-sm);
 }
@@ -177,13 +216,45 @@ body {
   color: var(--gm-text-secondary);
 }
 
+.location-btn {
+  position: absolute;
+  right: var(--gm-spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: var(--gm-radius-full);
+  background: transparent;
+  color: var(--gm-text-secondary);
+  cursor: pointer;
+}
+
+.location-btn:hover {
+  background: var(--gm-background-hover);
+}
+
+.location-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--vr-focus-ring);
+}
+
 .search-input-icon {
   position: absolute;
   left: var(--gm-spacing-md);
   top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   transform: translateY(-50%);
   color: var(--gm-text-secondary);
-  font-size: 18px;
+  pointer-events: none;
 }
 
 .search-input-icon.start {
@@ -198,9 +269,14 @@ body {
 .location-status {
   display: flex;
   align-items: center;
+  width: 100%;
   padding: var(--gm-spacing-sm) var(--gm-spacing-lg);
+  border: none;
+  background: transparent;
+  font-family: var(--gm-font-family);
   font-size: var(--gm-font-size-sm);
   color: var(--gm-text-secondary);
+  text-align: left;
   cursor: pointer;
 }
 
@@ -209,7 +285,19 @@ body {
 }
 
 .location-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
   margin-right: var(--gm-spacing-sm);
+}
+
+.location-status-action {
+  margin-left: var(--gm-spacing-sm);
+  color: var(--gm-blue);
+  font-size: var(--gm-font-size-sm);
+  font-weight: var(--vr-font-weight-medium);
 }
 
 .location-status.success {
@@ -249,6 +337,147 @@ body {
   border-color: var(--gm-border-focus);
 }
 
+/* Bike Settings */
+.bike-settings {
+  position: relative;
+}
+
+.bike-settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 var(--gm-spacing-md);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius-sm);
+  background: var(--gm-background);
+  color: var(--gm-text-primary);
+  font-family: var(--gm-font-family);
+  font-size: var(--gm-font-size-sm);
+  cursor: pointer;
+}
+
+.bike-settings-toggle:hover {
+  background: var(--gm-background-hover);
+}
+
+.bike-settings-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--vr-focus-ring);
+}
+
+.bike-settings-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 280px;
+  margin-top: var(--gm-spacing-sm);
+  overflow: hidden;
+  background: var(--gm-background);
+  border-radius: var(--gm-radius-lg);
+  box-shadow: var(--gm-shadow-3);
+  z-index: var(--vr-z-popover);
+}
+
+.bike-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gm-spacing-md) var(--gm-spacing-lg);
+  background: var(--gm-background-hover);
+  border-bottom: 1px solid var(--gm-border);
+  color: var(--gm-text-primary);
+  font-size: var(--gm-font-size-md);
+  font-weight: var(--vr-font-weight-medium);
+}
+
+.bike-settings-close {
+  width: 32px;
+  height: 32px;
+}
+
+.bike-settings-content {
+  padding: var(--gm-spacing-lg);
+}
+
+.setting-group {
+  margin-bottom: var(--gm-spacing-lg);
+}
+
+.setting-group:last-of-type {
+  margin-bottom: var(--gm-spacing-md);
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--gm-spacing-sm);
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-sm);
+}
+
+.setting-value {
+  color: var(--gm-text-primary);
+  font-weight: var(--vr-font-weight-medium);
+}
+
+.setting-hint {
+  margin-left: var(--gm-spacing-xs);
+  color: var(--gm-text-disabled);
+  font-weight: var(--vr-font-weight-regular);
+}
+
+.setting-slider {
+  width: 100%;
+  height: 4px;
+  border-radius: var(--gm-radius-full);
+  outline: none;
+  appearance: none;
+  background: var(--gm-border);
+}
+
+.setting-slider:focus-visible {
+  box-shadow: var(--vr-focus-ring);
+}
+
+.setting-slider::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--gm-radius-full);
+  appearance: none;
+  background: var(--gm-blue);
+  box-shadow: var(--gm-shadow-1);
+  cursor: pointer;
+}
+
+.setting-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: var(--gm-radius-full);
+  background: var(--gm-blue);
+  box-shadow: var(--gm-shadow-1);
+  cursor: pointer;
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--gm-spacing-xs);
+  color: var(--gm-text-disabled);
+  font-size: var(--gm-font-size-xs);
+}
+
+.settings-note {
+  margin: 0;
+  padding-top: var(--gm-spacing-sm);
+  border-top: 1px solid var(--gm-border);
+  color: var(--gm-text-disabled);
+  font-size: var(--gm-font-size-xs);
+  line-height: var(--vr-line-height-normal);
+}
+
 /* Find Route Button */
 .find-route-btn {
   width: 100%;
@@ -286,7 +515,7 @@ body {
   box-shadow: var(--gm-shadow-3);
   transform: translateX(-100%);
   transition: transform 0.3s ease;
-  z-index: 200;
+  z-index: var(--vr-z-side-panel);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -312,16 +541,6 @@ body {
 }
 
 .sidebar-close-btn {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 24px;
   color: var(--gm-text-secondary);
 }
 
@@ -340,9 +559,24 @@ body {
   padding: var(--gm-spacing-md) 0;
 }
 
+.route-options-heading {
+  padding: var(--gm-spacing-lg) var(--gm-spacing-lg) var(--gm-spacing-sm);
+  font-size: var(--gm-font-size-md);
+  font-weight: var(--vr-font-weight-medium);
+  color: var(--gm-text-secondary);
+}
+
+.empty-state {
+  padding: var(--gm-spacing-xl);
+  text-align: center;
+  color: var(--gm-text-secondary);
+}
+
 .route-option {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
+  gap: var(--gm-spacing-sm);
   padding: var(--gm-spacing-lg);
   border-bottom: 1px solid var(--gm-border);
   cursor: pointer;
@@ -351,6 +585,11 @@ body {
 
 .route-option:hover {
   background: var(--gm-background-hover);
+}
+
+.route-option:focus-visible {
+  outline: none;
+  box-shadow: inset var(--vr-focus-ring);
 }
 
 .route-option.selected {
@@ -365,6 +604,7 @@ body {
 
 .route-option-content {
   flex: 1;
+  width: 100%;
 }
 
 .route-option-header {

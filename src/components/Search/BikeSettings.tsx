@@ -5,6 +5,7 @@ import {
   DEFAULT_BIKE_SETTINGS,
   type BikeSettings as BikeSettingsType
 } from '@/services/bikeDurationService';
+import { CloseIcon, IconButton } from '@/components/ui';
 
 interface BikeSettingsProps {
   onSettingsChange?: (settings: BikeSettingsType) => void;
@@ -49,6 +50,7 @@ export function BikeSettings({ onSettingsChange }: BikeSettingsProps) {
         className="bike-settings-toggle"
         onClick={() => setIsOpen(!isOpen)}
         title="Bike Settings"
+        aria-expanded={isOpen}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="3" />
@@ -61,13 +63,13 @@ export function BikeSettings({ onSettingsChange }: BikeSettingsProps) {
         <div className="bike-settings-panel">
           <div className="bike-settings-header">
             <span>Bike Settings</span>
-            <button
-              type="button"
+            <IconButton
               className="bike-settings-close"
               onClick={() => setIsOpen(false)}
+              aria-label="Close bike settings"
             >
-              &times;
-            </button>
+              <CloseIcon />
+            </IconButton>
           </div>
 
           <div className="bike-settings-content">

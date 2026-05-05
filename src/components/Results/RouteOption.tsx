@@ -1,3 +1,4 @@
+import { Chip } from '@/components/ui';
 import type { Route } from '@/types';
 
 interface RouteOptionProps {
@@ -8,6 +9,12 @@ interface RouteOptionProps {
 
 export function RouteOption({ route, isSelected, onClick }: RouteOptionProps) {
   const isFuture = route.isFuture;
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  };
 
   return (
     <div
@@ -15,13 +22,14 @@ export function RouteOption({ route, isSelected, onClick }: RouteOptionProps) {
       onClick={onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onClick()}
+      aria-pressed={isSelected}
+      onKeyDown={handleKeyDown}
     >
       {isFuture && (
-        <div className="future-route-badge">
+        <Chip tone="future" className="future-route-badge">
           <span>{'\u{1F6A7}'}</span>
           <span>Future Route Preview</span>
-        </div>
+        </Chip>
       )}
 
       <div className="route-option-content">

@@ -59,6 +59,7 @@ export function TimeSelector({ onChange }: TimeSelectorProps) {
           className="custom-time-input"
           value={customTime}
           onChange={handleTimeChange}
+          aria-label="Departure time"
         />
       )}
     </div>

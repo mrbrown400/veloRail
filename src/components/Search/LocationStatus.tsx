@@ -1,3 +1,10 @@
+import {
+  AlertIcon,
+  CheckIcon,
+  CrosshairIcon,
+  MapPinIcon,
+  UnavailableIcon
+} from '@/components/ui';
 import type { LocationStatus as LocationStatusType } from '@/types';
 
 interface LocationStatusProps {
@@ -9,15 +16,15 @@ export function LocationStatus({ status, onClick }: LocationStatusProps) {
   const getStatusIcon = () => {
     switch (status) {
       case 'pending':
-        return '\u{23F3}'; // hourglass
+        return <CrosshairIcon />;
       case 'granted':
-        return '\u2713'; // checkmark
+        return <CheckIcon />;
       case 'denied':
-        return '\u26A0'; // warning
+        return <AlertIcon />;
       case 'unavailable':
-        return '\u2716'; // X
+        return <UnavailableIcon />;
       default:
-        return '\u{1F4CD}'; // pin
+        return <MapPinIcon />;
     }
   };
 
@@ -49,30 +56,19 @@ export function LocationStatus({ status, onClick }: LocationStatusProps) {
   };
 
   return (
-    <div
+    <button
+      type="button"
       className={`location-status ${getStatusClass()}`}
       onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onClick?.()}
+      aria-label={getStatusText()}
     >
-      <span className="location-status-icon">{getStatusIcon()}</span>
+      <span className="location-status-icon" aria-hidden="true">{getStatusIcon()}</span>
       <span>{getStatusText()}</span>
       {(status === 'denied' || status === 'unavailable') && onClick && (
-        <button
-          type="button"
-          style={{
-            marginLeft: '8px',
-            background: 'none',
-            border: 'none',
-            color: '#1a73e8',
-            cursor: 'pointer',
-            fontSize: '12px'
-          }}
-        >
+        <span className="location-status-action">
           Enter start
-        </button>
+        </span>
       )}
-    </div>
+    </button>
   );
 }

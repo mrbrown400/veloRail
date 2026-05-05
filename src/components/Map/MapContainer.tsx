@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import { GoogleMap } from '@react-google-maps/api';
 import { RouteOverlay } from './RouteOverlay';
 import { VehicleMarker } from './VehicleMarker';
+import { BikeIcon, ToggleChip, TransitIcon } from '@/components/ui';
 import { useRouteStore, useRealtimeStore } from '@/stores';
 import { LA_CENTER } from '@/services/config';
 
@@ -152,26 +153,26 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
 
       {/* Layer Controls */}
       <div className="map-layer-controls">
-        <button
+        <ToggleChip
           className={`layer-btn ${layers.transit ? 'active' : ''}`}
           onClick={() => toggleLayer('transit')}
           title="Transit"
+          aria-label="Toggle transit layer"
+          pressed={layers.transit}
+          icon={<TransitIcon />}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2c-4 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h2.23l2-2H14l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-6H6V6h5v5zm2 0V6h5v5h-5zm3.5 6c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-          </svg>
           <span>Transit</span>
-        </button>
-        <button
+        </ToggleChip>
+        <ToggleChip
           className={`layer-btn ${layers.bicycling ? 'active' : ''}`}
           onClick={() => toggleLayer('bicycling')}
           title="Biking"
+          aria-label="Toggle bicycling layer"
+          pressed={layers.bicycling}
+          icon={<BikeIcon />}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"/>
-          </svg>
           <span>Biking</span>
-        </button>
+        </ToggleChip>
       </div>
     </div>
   );

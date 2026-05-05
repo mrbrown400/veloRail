@@ -4,6 +4,7 @@ import { LocationStatus } from './LocationStatus';
 import { TimeSelector } from './TimeSelector';
 import { ModeSelect } from './ModeSelect';
 import { BikeSettings } from './BikeSettings';
+import { Button, Card, VeloRailMark } from '@/components/ui';
 import { useRouteStore, useUIStore } from '@/stores';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useRouting } from '@/hooks/useRouting';
@@ -90,10 +91,12 @@ export function SearchCard({ className = '' }: SearchCardProps) {
   };
 
   return (
-    <div className={`search-card ${className}`}>
+    <Card className={`search-card ${className}`} ariaLabel="Route search">
       {/* Header */}
       <div className="search-header">
-        <span className="search-logo">{'\u{1F6B2}'} + {'\u{1F686}'}</span>
+        <span className="search-logo">
+          <VeloRailMark />
+        </span>
         <span className="search-brand">VeloRail</span>
       </div>
 
@@ -153,6 +156,7 @@ export function SearchCard({ className = '' }: SearchCardProps) {
         <select
           className="search-option-select"
           value={searchParams.safety}
+          aria-label="Bike route safety preference"
           onChange={(e) => handleSafetyChange(e.target.value as SafetyPreference)}
         >
           <option value="balanced">Balanced</option>
@@ -163,14 +167,16 @@ export function SearchCard({ className = '' }: SearchCardProps) {
 
       {/* Find Route Button */}
       <div className="search-options">
-        <button
+        <Button
           className="find-route-btn"
           onClick={handleSearch}
           disabled={isLoading}
+          variant="primary"
+          fullWidth
         >
           {isLoading ? 'Calculating...' : 'Find Route'}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }
