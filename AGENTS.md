@@ -79,7 +79,7 @@ If GitNexus reports the index is stale, run `npx gitnexus analyze` before relyin
 The harness also refreshes GitNexus after commits:
 - `.beads/hooks/post-commit` runs `scripts/gitnexus-analyze-after-commit.sh` for normal Git commits because local `core.hooksPath` points to `.beads/hooks`.
 - `.overstory/hooks.json` invokes the same script after agent `git commit` tool calls.
-- The refresh does not auto-commit generated context updates. If GitNexus changes tracked files such as `AGENTS.md` or `CLAUDE.md`, commit them explicitly.
+- The refresh snapshots and restores generated GitNexus context files so routine stats-only updates do not leave `AGENTS.md` or `CLAUDE.md` dirty after every commit. Run `npx gitnexus analyze` manually when you intentionally want to refresh tracked GitNexus context text.
 
 ## Idempotent Work Rules
 

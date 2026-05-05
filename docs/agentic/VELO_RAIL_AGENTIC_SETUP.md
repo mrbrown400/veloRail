@@ -51,7 +51,7 @@ This repo's local Git config uses:
 git config core.hooksPath .beads/hooks
 ```
 
-The tracked `.beads/hooks/post-commit` hook runs `scripts/gitnexus-analyze-after-commit.sh`, which refreshes GitNexus after commits without auto-committing generated context changes. If GitNexus updates tracked files such as `AGENTS.md` or `CLAUDE.md`, commit those changes explicitly.
+The tracked `.beads/hooks/post-commit` hook runs `scripts/gitnexus-analyze-after-commit.sh`, which refreshes the ignored GitNexus index after commits and restores generated context files afterward. This keeps routine stats-only updates out of the working tree. Run `npx gitnexus analyze` manually when you intentionally want to refresh tracked GitNexus context text.
 
 ## Mulch
 
