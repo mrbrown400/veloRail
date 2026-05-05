@@ -115,7 +115,7 @@ function drawLeg(
     strokeColor: '#ffffff',
     strokeWeight: casingWeight,
     strokeOpacity: 0.9,
-    zIndex: 1
+    zIndex: 9000
   });
   polylines.push(whiteCasing);
 
@@ -126,7 +126,7 @@ function drawLeg(
     strokeColor: '#1a1a2e',
     strokeWeight: casingWeight - 3,
     strokeOpacity: 1,
-    zIndex: 2
+    zIndex: 9001
   });
   polylines.push(darkCasing);
 
@@ -147,7 +147,7 @@ function drawLeg(
         offset: '0',
         repeat: isWalk ? '12px' : '14px'
       }],
-      zIndex: 3
+      zIndex: 9002
     });
     polylines.push(dashedLine);
   } else {
@@ -157,7 +157,7 @@ function drawLeg(
       strokeColor: getLineColor(),
       strokeWeight: lineWeight,
       strokeOpacity: 1,
-      zIndex: 3
+      zIndex: 9002
     });
     polylines.push(solidLine);
   }

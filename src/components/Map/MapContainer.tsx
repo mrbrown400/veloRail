@@ -1,15 +1,13 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { GoogleMap } from '@react-google-maps/api';
+import { MapOverlayRenderer } from './MapOverlayRenderer';
 import { RouteOverlay } from './RouteOverlay';
 import { VehicleMarker } from './VehicleMarker';
-import { BikeIcon, ToggleChip, TransitIcon } from '@/components/ui';
-import { useRouteStore, useRealtimeStore } from '@/stores';
+import { getOrderedMapOverlayDefinitions } from './mapOverlayRegistry';
+import { ToggleChip } from '@/components/ui';
+import { useMapOverlayStore, useRouteStore, useRealtimeStore } from '@/stores';
 import { LA_CENTER } from '@/services/config';
-
-interface LayerRefs {
-  transit: google.maps.TransitLayer | null;
-  bicycling: google.maps.BicyclingLayer | null;
-}
+import type { MapOverlayScenario } from '@/types/mapOverlays';
 
 const mapContainerStyle = {
   width: '100%',
@@ -20,6 +18,8 @@ const defaultCenter = {
   lat: LA_CENTER.lat,
   lng: LA_CENTER.lng
 };
+
+const overlayControls = getOrderedMapOverlayDefinitions();
 
 // Options are created as a function to avoid using google.maps before it's loaded
 const getMapOptions = (): google.maps.MapOptions => ({
@@ -44,45 +44,18 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const { selectedRoute } = useRouteStore();
   const { vehiclePosition, trackedVehicle } = useRealtimeStore();
-
-  // Layer visibility state
-  const [layers, setLayers] = useState({
-    transit: true,
-    bicycling: false
-  });
-
-  // Layer refs to persist layer instances
-  const layerRefs = useRef<LayerRefs>({
-    transit: null,
-    bicycling: null
-  });
+  const overlayVisibility = useMapOverlayStore((state) => state.visibility);
+  const toggleOverlay = useMapOverlayStore((state) => state.toggleOverlay);
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
-
-    // Create layer instances
-    layerRefs.current.transit = new google.maps.TransitLayer();
-    layerRefs.current.bicycling = new google.maps.BicyclingLayer();
-
-    // Enable transit layer by default
-    layerRefs.current.transit.setMap(mapInstance);
 
     if (onMapLoad) {
       onMapLoad(mapInstance);
     }
 
-    console.log('Google Maps initialized with layer controls');
+    console.log('Google Maps initialized with overlay controls');
   }, [onMapLoad]);
-
-  // Toggle layer visibility
-  const toggleLayer = (layerName: 'transit' | 'bicycling') => {
-    if (!map || !layerRefs.current[layerName]) return;
-
-    const newState = !layers[layerName];
-    setLayers(prev => ({ ...prev, [layerName]: newState }));
-
-    layerRefs.current[layerName]!.setMap(newState ? map : null);
-  };
 
   const onUnmount = useCallback(() => {
     setMap(null);
@@ -136,6 +109,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
         onLoad={onLoad}
         onUnmount={onUnmount}
       >
+        <MapOverlayRenderer />
         {selectedRoute && (
           <RouteOverlay
             key={`route-${selectedRoute.label}-${selectedRoute.totalDuration}`}
@@ -152,28 +126,70 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
       </GoogleMap>
 
       {/* Layer Controls */}
-      <div className="map-layer-controls">
-        <ToggleChip
-          className={`layer-btn ${layers.transit ? 'active' : ''}`}
-          onClick={() => toggleLayer('transit')}
-          title="Transit"
-          aria-label="Toggle transit layer"
-          pressed={layers.transit}
-          icon={<TransitIcon />}
-        >
-          <span>Transit</span>
-        </ToggleChip>
-        <ToggleChip
-          className={`layer-btn ${layers.bicycling ? 'active' : ''}`}
-          onClick={() => toggleLayer('bicycling')}
-          title="Biking"
-          aria-label="Toggle bicycling layer"
-          pressed={layers.bicycling}
-          icon={<BikeIcon />}
-        >
-          <span>Biking</span>
-        </ToggleChip>
+      <div className="map-layer-controls" aria-label="Map layers">
+        {overlayControls.map((overlay) => {
+          const isActive = overlayVisibility[overlay.id] ?? false;
+
+          return (
+            <ToggleChip
+              key={overlay.id}
+              className={`layer-btn layer-btn-${overlay.scenario} ${isActive ? 'active' : ''}`}
+              onClick={() => toggleOverlay(overlay.id)}
+              title={overlay.description}
+              aria-label={overlay.description}
+              pressed={isActive}
+              icon={<LayerIcon scenario={overlay.scenario} />}
+            >
+              {overlay.label}
+            </ToggleChip>
+          );
+        })}
       </div>
     </div>
+  );
+}
+
+function LayerIcon({ scenario }: { scenario: MapOverlayScenario }) {
+  if (scenario === 'context') {
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z" />
+      </svg>
+    );
+  }
+
+  if (scenario === 'future') {
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 17c4-7 8-10 16-10" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+        <path d="M16 5h4v4" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="6" cy="15" r="2" fill="currentColor" />
+        <circle cx="12" cy="10" r="2" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  if (scenario === 'visionary') {
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" fill="currentColor" />
+        <path d="M5 16l.8 2.2L8 19l-2.2.8L5 22l-.8-2.2L2 19l2.2-.8L5 16z" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  if (scenario === 'nationalized') {
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 18h16M6 14h12M8 10h8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        <path d="M7 18l5-12 5 12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2c-4 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h2.23l2-2H14l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-6H6V6h5v5zm2 0V6h5v5h-5zm3.5 6c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
+    </svg>
   );
 }

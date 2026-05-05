@@ -964,18 +964,22 @@ body {
   bottom: 24px;
   right: 60px;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
   z-index: 10;
+  max-width: min(680px, calc(100vw - 96px));
 }
 
 .layer-btn {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 38px;
   padding: 8px 12px;
   background: var(--gm-background);
-  border: none;
-  border-radius: var(--gm-radius-full);
+  border: 1px solid transparent;
+  border-radius: var(--gm-radius-md);
   box-shadow: var(--gm-shadow-1);
   cursor: pointer;
   font-family: var(--gm-font-family);
@@ -993,6 +997,7 @@ body {
 .layer-btn.active {
   background: var(--gm-background-selected);
   color: var(--gm-blue);
+  border-color: rgba(26, 115, 232, 0.25);
 }
 
 .layer-btn.active svg {
@@ -1005,6 +1010,30 @@ body {
 
 .layer-btn span {
   white-space: nowrap;
+}
+
+.layer-btn-future.active {
+  background: #f3e8ff;
+  border-color: rgba(126, 34, 206, 0.25);
+  color: #7e22ce;
+}
+
+.layer-btn-visionary.active {
+  background: #fce7f3;
+  border-color: rgba(219, 39, 119, 0.25);
+  color: #be185d;
+}
+
+.layer-btn-nationalized.active {
+  background: #f1f5f9;
+  border-color: rgba(71, 85, 105, 0.28);
+  color: #334155;
+}
+
+.layer-btn-context.active {
+  background: #dcfce7;
+  border-color: rgba(22, 101, 52, 0.24);
+  color: #166534;
 }
 
 /* Responsive: hide text on smaller screens */

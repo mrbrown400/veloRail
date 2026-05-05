@@ -8,6 +8,14 @@ export {
 } from './proposals';
 
 export type {
+  MapOverlayDefinition,
+  MapOverlayHandle,
+  MapOverlayId,
+  MapOverlayScenario,
+  MapOverlayVisibility
+} from './mapOverlays';
+
+export type {
   ProposalConfidence,
   ProposalConfidenceLevel,
   ProposalCoordinate,
