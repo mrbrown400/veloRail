@@ -2,6 +2,35 @@
 // GeoJSON Types (simplified)
 // ============================================
 
+export {
+  PROPOSAL_STATUSES,
+  TRANSIT_PROPOSAL_SCHEMA_VERSION
+} from './proposals';
+
+export type {
+  ProposalConfidence,
+  ProposalConfidenceLevel,
+  ProposalCoordinate,
+  ProposalFreightMetadata,
+  ProposalKind,
+  ProposalLineString,
+  ProposalMarkerInput,
+  ProposalMode,
+  ProposalPolylineInput,
+  ProposalRenderingMetadata,
+  ProposalSource,
+  ProposalSourceType,
+  ProposalStation,
+  ProposalStatus,
+  ProposalStylingHints,
+  ProposalTimeline,
+  ProposalValidationIssue,
+  ProposalValidationResult,
+  TransitProposal,
+  TransitProposalDataset,
+  TransitProposalSchemaVersion
+} from './proposals';
+
 export interface LineString {
   type: 'LineString';
   coordinates: [number, number][];
