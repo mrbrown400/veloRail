@@ -13,8 +13,25 @@ export const PROPOSAL_STATUSES = [
   'converted_passenger'
 ] as const;
 
+export const PROPOSAL_CLASSIFICATIONS = [
+  'official',
+  'commentary_summary',
+  'advocacy_derived',
+  'speculative'
+] as const;
+
+export const PROPOSAL_UNCERTAINTY_LEVELS = [
+  'none',
+  'low',
+  'medium',
+  'high',
+  'unknown'
+] as const;
+
 export type TransitProposalSchemaVersion = typeof TRANSIT_PROPOSAL_SCHEMA_VERSION;
 export type ProposalStatus = typeof PROPOSAL_STATUSES[number];
+export type ProposalClassificationCategory = typeof PROPOSAL_CLASSIFICATIONS[number];
+export type ProposalUncertaintyLevel = typeof PROPOSAL_UNCERTAINTY_LEVELS[number];
 
 export type ProposalKind = 'line' | 'corridor';
 
@@ -66,6 +83,13 @@ export interface ProposalConfidence {
   stations?: ProposalConfidenceLevel;
   status?: ProposalConfidenceLevel;
   notes?: string;
+}
+
+export interface ProposalUncertainty {
+  level: ProposalUncertaintyLevel;
+  sourceNotes: string;
+  assumptions?: string[];
+  disclaimer?: string;
 }
 
 export interface ProposalTimeline {
@@ -124,9 +148,11 @@ export interface TransitProposal {
   kind: ProposalKind;
   status: ProposalStatus;
   mode: ProposalMode;
+  classification: ProposalClassificationCategory;
   geometry: ProposalLineString;
   provenance: ProposalSource[];
   confidence: ProposalConfidence;
+  uncertainty: ProposalUncertainty;
   stations?: ProposalStation[];
   timeline?: ProposalTimeline;
   style?: ProposalStylingHints;
@@ -151,7 +177,12 @@ export interface ProposalValidationIssue {
     | 'missing_status'
     | 'invalid_coordinate'
     | 'invalid_geometry'
+    | 'missing_classification'
+    | 'invalid_classification'
     | 'invalid_provenance'
+    | 'missing_uncertainty'
+    | 'invalid_uncertainty'
+    | 'invalid_layer_classification'
     | 'invalid_status'
     | 'invalid_station'
     | 'invalid_dataset'

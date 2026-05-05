@@ -1,10 +1,15 @@
 import {
+  PROPOSAL_CLASSIFICATIONS,
   PROPOSAL_STATUSES,
+  PROPOSAL_UNCERTAINTY_LEVELS,
   TRANSIT_PROPOSAL_SCHEMA_VERSION
 } from '@/types/proposals';
 import type {
+  ProposalClassificationCategory,
   ProposalCoordinate,
+  ProposalSourceType,
   ProposalStatus,
+  ProposalUncertaintyLevel,
   ProposalValidationIssue,
   ProposalValidationResult,
   TransitProposal,
@@ -12,6 +17,25 @@ import type {
 } from '@/types/proposals';
 
 const VALID_STATUSES = new Set<string>(PROPOSAL_STATUSES);
+const VALID_CLASSIFICATIONS = new Set<string>(PROPOSAL_CLASSIFICATIONS);
+const VALID_UNCERTAINTY_LEVELS = new Set<string>(PROPOSAL_UNCERTAINTY_LEVELS);
+const UNOFFICIAL_CLASSIFICATIONS = new Set<string>([
+  'commentary_summary',
+  'advocacy_derived',
+  'speculative'
+]);
+const OFFICIAL_SOURCE_TYPES = new Set<string>([
+  'official_project',
+  'public_agency',
+  'public_plan',
+  'freight_owner'
+]);
+const OFFICIAL_FUTURE_STATUSES = new Set<string>([
+  'operational',
+  'planned',
+  'under_construction',
+  'funded'
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -36,6 +60,38 @@ function hasFiniteNumber(value: unknown): value is number {
 
 function isValidStatus(value: unknown): value is ProposalStatus {
   return typeof value === 'string' && VALID_STATUSES.has(value);
+}
+
+function isValidClassification(value: unknown): value is ProposalClassificationCategory {
+  return typeof value === 'string' && VALID_CLASSIFICATIONS.has(value);
+}
+
+function isValidUncertaintyLevel(value: unknown): value is ProposalUncertaintyLevel {
+  return typeof value === 'string' && VALID_UNCERTAINTY_LEVELS.has(value);
+}
+
+function getSourceTypes(record: Record<string, unknown>): Set<ProposalSourceType> {
+  const sourceTypes = new Set<ProposalSourceType>();
+  if (!Array.isArray(record.provenance)) return sourceTypes;
+
+  record.provenance.forEach((source) => {
+    if (isRecord(source) && hasText(source.sourceType)) {
+      sourceTypes.add(source.sourceType as ProposalSourceType);
+    }
+  });
+
+  return sourceTypes;
+}
+
+function hasSourceNote(record: Record<string, unknown>): boolean {
+  if (!Array.isArray(record.provenance)) return false;
+
+  return record.provenance.some(source => isRecord(source) && hasText(source.note));
+}
+
+function getLayerGroup(record: Record<string, unknown>): unknown {
+  if (!isRecord(record.rendering)) return undefined;
+  return record.rendering.layerGroup;
 }
 
 function validateLonLat(
@@ -119,6 +175,143 @@ function validateProvenance(
   });
 }
 
+function validateUncertainty(
+  record: Record<string, unknown>,
+  path: string,
+  issues: ProposalValidationIssue[]
+): ProposalUncertaintyLevel | undefined {
+  const uncertainty = record.uncertainty;
+
+  if (!isRecord(uncertainty)) {
+    addIssue(issues, `${path}.uncertainty`, 'missing_uncertainty', 'Proposal uncertainty metadata is required.');
+    return undefined;
+  }
+
+  if (!isValidUncertaintyLevel(uncertainty.level)) {
+    addIssue(
+      issues,
+      `${path}.uncertainty.level`,
+      'invalid_uncertainty',
+      `Uncertainty level must be one of: ${PROPOSAL_UNCERTAINTY_LEVELS.join(', ')}.`
+    );
+  }
+
+  if (!hasText(uncertainty.sourceNotes)) {
+    addIssue(
+      issues,
+      `${path}.uncertainty.sourceNotes`,
+      'invalid_uncertainty',
+      'Uncertainty metadata requires source notes.'
+    );
+  }
+
+  return isValidUncertaintyLevel(uncertainty.level) ? uncertainty.level : undefined;
+}
+
+function validateClassification(
+  record: Record<string, unknown>,
+  path: string,
+  issues: ProposalValidationIssue[]
+) {
+  const classification = record.classification;
+  const uncertaintyLevel = validateUncertainty(record, path, issues);
+  const layerGroup = getLayerGroup(record);
+  const sourceTypes = getSourceTypes(record);
+  const status = record.status;
+
+  if (classification === undefined) {
+    addIssue(issues, `${path}.classification`, 'missing_classification', 'Proposal classification is required.');
+    return;
+  }
+
+  if (!isValidClassification(classification)) {
+    addIssue(
+      issues,
+      `${path}.classification`,
+      'invalid_classification',
+      `Proposal classification must be one of: ${PROPOSAL_CLASSIFICATIONS.join(', ')}.`
+    );
+    return;
+  }
+
+  if (classification === 'official') {
+    const hasOfficialSource = Array.from(sourceTypes).some(sourceType => OFFICIAL_SOURCE_TYPES.has(sourceType));
+    if (!hasOfficialSource) {
+      addIssue(
+        issues,
+        `${path}.classification`,
+        'invalid_classification',
+        'Official proposals require an official, public agency, public plan, or freight owner source.'
+      );
+    }
+  }
+
+  if (classification === 'commentary_summary' && !sourceTypes.has('commentary')) {
+    addIssue(
+      issues,
+      `${path}.classification`,
+      'invalid_classification',
+      'Commentary-summary proposals require at least one commentary source.'
+    );
+  }
+
+  if (classification === 'advocacy_derived' && !sourceTypes.has('advocacy')) {
+    addIssue(
+      issues,
+      `${path}.classification`,
+      'invalid_classification',
+      'Advocacy-derived proposals require at least one advocacy source.'
+    );
+  }
+
+  if (layerGroup === 'future' && classification !== 'official') {
+    addIssue(
+      issues,
+      `${path}.rendering.layerGroup`,
+      'invalid_layer_classification',
+      'The official future layer only accepts official proposal records.'
+    );
+  }
+
+  if (classification === 'official' && (status === 'vision' || status === 'concept' || layerGroup === 'visionary')) {
+    addIssue(
+      issues,
+      `${path}.classification`,
+      'invalid_layer_classification',
+      'Visionary or concept records cannot use the official classification.'
+    );
+  }
+
+  if (UNOFFICIAL_CLASSIFICATIONS.has(classification)) {
+    if (OFFICIAL_FUTURE_STATUSES.has(String(status))) {
+      addIssue(
+        issues,
+        `${path}.status`,
+        'invalid_layer_classification',
+        'Unofficial proposal classifications must not use official future or operational statuses.'
+      );
+    }
+
+    if (uncertaintyLevel === 'none') {
+      addIssue(
+        issues,
+        `${path}.uncertainty.level`,
+        'invalid_uncertainty',
+        'Unofficial proposals must carry a non-none uncertainty level.'
+      );
+    }
+
+    if (!hasSourceNote(record)) {
+      addIssue(
+        issues,
+        `${path}.provenance`,
+        'invalid_provenance',
+        'Unofficial proposals require at least one provenance note explaining how the concept was derived.'
+      );
+    }
+  }
+}
+
 function validateStations(
   record: Record<string, unknown>,
   path: string,
@@ -195,6 +388,7 @@ export function validateTransitProposalRecord(
 
   validateGeometry(proposal, path, issues);
   validateProvenance(proposal, path, issues);
+  validateClassification(proposal, path, issues);
   validateStations(proposal, path, issues);
 
   return { valid: issues.length === 0, issues };

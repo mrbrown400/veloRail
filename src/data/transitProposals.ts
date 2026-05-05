@@ -40,6 +40,7 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
       kind: 'line',
       status: 'under_construction',
       mode: 'heavy_rail',
+      classification: 'official',
       geometry: {
         type: 'LineString',
         geometrySource: 'approximate',
@@ -156,6 +157,11 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
         status: 'high',
         notes: 'Project and station list are official; geometry is simplified for schema coverage.'
       },
+      uncertainty: {
+        level: 'low',
+        sourceNotes: 'Official Metro project materials establish the project and station list; VeloRail seed geometry is simplified for validation coverage.',
+        disclaimer: 'Official project record with simplified VeloRail geometry.'
+      },
       timeline: {
         openingYear: 2027,
         phase: 'Sections 2 and 3',
@@ -182,6 +188,7 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
       kind: 'line',
       status: 'vision',
       mode: 'heavy_rail',
+      classification: 'speculative',
       geometry: {
         type: 'LineString',
         geometrySource: 'conceptual',
@@ -252,6 +259,15 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
         status: 'medium',
         notes: 'Visionary example intended to exercise unofficial proposal fields.'
       },
+      uncertainty: {
+        level: 'high',
+        sourceNotes: 'Internal VeloRail seed concept used for visionary overlay testing; it is not derived from an approved agency project.',
+        assumptions: [
+          'Station list is illustrative.',
+          'Alignment is a conceptual corridor sketch.'
+        ],
+        disclaimer: 'Unofficial VeloRail scenario. Not an approved agency project or Google Maps transit route.'
+      },
       style: {
         strokeColor: '#db2777',
         strokeOpacity: 0.72,
@@ -275,6 +291,7 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
       kind: 'corridor',
       status: 'freight_only',
       mode: 'freight_rail',
+      classification: 'official',
       geometry: {
         type: 'LineString',
         geometrySource: 'approximate',
@@ -304,6 +321,11 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
         geometry: 'low',
         status: 'high',
         notes: 'Corridor identity is public; geometry is a simplified placeholder for model validation.'
+      },
+      uncertainty: {
+        level: 'medium',
+        sourceNotes: 'Public ACTA corridor materials establish the corridor identity; seed geometry is a simplified centerline and passenger suitability is deferred.',
+        disclaimer: 'Freight corridor record with simplified VeloRail geometry; do not imply passenger service.'
       },
       style: {
         strokeColor: '#64748b',

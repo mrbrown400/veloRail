@@ -19,9 +19,11 @@ The current schema version is `1.0.0`. Versioning lives on `TransitProposalDatas
 - `kind`: `line` or `corridor`.
 - `status`: one of `operational`, `planned`, `under_construction`, `funded`, `vision`, `concept`, `freight_only`, or `converted_passenger`.
 - `mode`: rail, BRT, freight, or unknown mode classification.
+- `classification`: one of `official`, `commentary_summary`, `advocacy_derived`, or `speculative`.
 - `geometry`: GeoJSON `LineString` using `[lon, lat]` coordinates.
 - `provenance`: at least one source attribution with `sourceId`, `title`, and `sourceType`.
 - `confidence`: overall confidence plus optional geometry, station, and status confidence.
+- `uncertainty`: uncertainty level plus source notes explaining what the sources support and what VeloRail inferred.
 
 ## Optional Proposal Fields
 
@@ -49,7 +51,12 @@ These examples exercise the schema and renderer contract. They are not the autho
 - Missing geometry with `missing_geometry`.
 - Missing provenance with `missing_provenance`.
 - Missing status with `missing_status`.
+- Missing classification with `missing_classification`.
+- Missing uncertainty metadata with `missing_uncertainty`.
 - Invalid status values.
+- Invalid classification values.
+- Invalid future or visionary layer classification boundaries.
+- Missing source notes for uncertainty metadata.
 - Invalid `LineString` coordinates.
 - Invalid station coordinates and station statuses.
 
@@ -73,3 +80,7 @@ No existing data model is migrated in VR-001. Current routing keeps using `TRANS
 When operational route data is converted into proposal data later, map `operating` to proposal status `operational`. Keep existing `Station.lat` and `Station.lon` fields, but store proposal line geometry as `[lon, lat]` so it stays aligned with existing route `LineString` geometry.
 
 Future import work should require provenance for every proposal record before rendering non-Google custom overlays.
+
+## Visionary Classification
+
+VR-201 adds explicit classification and uncertainty metadata for visionary and future proposal records. See `docs/architecture/visionary-transit-classification.md` for category definitions, YouTube/commentary inclusion rules, source-note requirements, UI disclaimers, and the rule that the official future layer stays separate from unofficial visionary scenarios.

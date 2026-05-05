@@ -3,7 +3,9 @@
 // ============================================
 
 export {
+  PROPOSAL_CLASSIFICATIONS,
   PROPOSAL_STATUSES,
+  PROPOSAL_UNCERTAINTY_LEVELS,
   TRANSIT_PROPOSAL_SCHEMA_VERSION
 } from './proposals';
 
@@ -16,6 +18,7 @@ export type {
 } from './mapOverlays';
 
 export type {
+  ProposalClassificationCategory,
   ProposalConfidence,
   ProposalConfidenceLevel,
   ProposalCoordinate,
@@ -32,6 +35,8 @@ export type {
   ProposalStatus,
   ProposalStylingHints,
   ProposalTimeline,
+  ProposalUncertainty,
+  ProposalUncertaintyLevel,
   ProposalValidationIssue,
   ProposalValidationResult,
   TransitProposal,
