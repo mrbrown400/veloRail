@@ -1,6 +1,7 @@
 {
   "database": "dolt",
-  "jsonl_export": "issues.jsonl",
   "backend": "dolt",
-  "dolt_database": "beads_veloRail"
+  "dolt_mode": "embedded",
+  "dolt_database": "velorail",
+  "project_id": "6ea82019-070d-4217-af91-295a6e1e97ae"
 }
