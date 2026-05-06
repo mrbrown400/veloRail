@@ -26,5 +26,17 @@
 		"status": "completed",
 		"createdAt": "2026-05-05T09:43:37.324Z",
 		"completedAt": "2026-05-05T10:05:17.405Z"
+	},
+	{
+		"id": "group-12273d2c",
+		"name": "future-transit-overlays",
+		"memberIssueIds": [
+			"VR-101",
+			"VR-102",
+			"VR-103"
+		],
+		"status": "completed",
+		"createdAt": "2026-05-06T23:34:03.779Z",
+		"completedAt": "2026-05-06T23:49:59.568Z"
 	}
 ]
