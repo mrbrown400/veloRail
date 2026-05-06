@@ -140,7 +140,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
               pressed={isActive}
               icon={<LayerIcon scenario={overlay.scenario} />}
             >
-              {overlay.label}
+              <span className="layer-btn-label">{overlay.label}</span>
             </ToggleChip>
           );
         })}

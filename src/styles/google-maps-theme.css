@@ -1031,7 +1031,7 @@ body {
   flex-shrink: 0;
 }
 
-.layer-btn span {
+.layer-btn-label {
   white-space: nowrap;
 }
 
@@ -1070,7 +1070,7 @@ body {
     padding: 10px;
   }
 
-  .layer-btn span {
+  .layer-btn-label {
     display: none;
   }
 }

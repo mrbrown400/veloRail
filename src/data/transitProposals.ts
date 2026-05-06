@@ -404,7 +404,11 @@ export function proposalStationsToGoogleMarkers(proposal: TransitProposal): Prop
     position: { lat: station.lat, lng: station.lon },
     status: station.status ?? proposal.status,
     proposalId: proposal.id,
-    role: station.role
+    role: station.role,
+    openingYear: station.openingYear,
+    phase: station.phase,
+    confidence: station.confidence,
+    notes: station.notes
   }));
 }
 

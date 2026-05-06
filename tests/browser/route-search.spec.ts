@@ -55,3 +55,20 @@ test('@smoke bike settings popover is not clipped by the search card', async ({ 
   expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(viewport!.width);
   expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(viewport!.height);
 });
+
+test('@VR-101 @VR-102 @VR-103 future transit overlay control is grouped and default off', async ({ page }) => {
+  await ensureMapsAvailable(page);
+
+  const futureToggle = page.getByRole('button', {
+    name: /official planned, funded, and under-construction future rail lines and stations/i
+  });
+
+  await expect(futureToggle).toBeVisible();
+  await expect(futureToggle).toHaveAttribute('aria-pressed', 'false');
+
+  await futureToggle.click();
+  await expect(futureToggle).toHaveAttribute('aria-pressed', 'true');
+
+  await futureToggle.click();
+  await expect(futureToggle).toHaveAttribute('aria-pressed', 'false');
+});

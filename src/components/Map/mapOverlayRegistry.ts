@@ -1,6 +1,4 @@
-import {
-  proposalDatasetToGoogleMapInputs
-} from '@/data/transitProposals';
+import { IMPORTED_TRANSIT_PROPOSALS } from '@/data/transitProposalSources';
 import type {
   MapOverlayDefinition,
   MapOverlayHandle,
@@ -11,6 +9,7 @@ import type {
   ProposalMarkerInput,
   ProposalPolylineInput,
   ProposalRenderingMetadata,
+  ProposalStatus,
   TransitProposal
 } from '@/types';
 
@@ -29,14 +28,26 @@ interface ProposalOverlayItem {
 const FUTURE_GROUPS: ProposalLayerGroup[] = ['future'];
 const VISIONARY_GROUPS: ProposalLayerGroup[] = ['visionary'];
 const NATIONALIZED_GROUPS: ProposalLayerGroup[] = ['freight', 'converted_passenger'];
+const OFFICIAL_FUTURE_STATUSES: ReadonlySet<ProposalStatus> = new Set([
+  'planned',
+  'funded',
+  'under_construction'
+]);
+export const FUTURE_STATION_MIN_ZOOM = 11;
 
 export function getProposalOverlayInputsByGroup(groups: ProposalLayerGroup | ProposalLayerGroup[]) {
   const layerGroups = new Set(Array.isArray(groups) ? groups : [groups]);
 
-  return proposalDatasetToGoogleMapInputs().filter(({ proposal }) => {
+  return IMPORTED_TRANSIT_PROPOSALS.overlays.filter(({ proposal }) => {
     const layerGroup = proposal.rendering?.layerGroup;
-    return layerGroup ? layerGroups.has(layerGroup) : false;
+    if (!layerGroup || !layerGroups.has(layerGroup)) return false;
+    if (layerGroup === 'future') return isOfficialFutureProposal(proposal);
+    return true;
   });
+}
+
+export function isOfficialFutureProposal(proposal: TransitProposal): boolean {
+  return proposal.classification === 'official' && OFFICIAL_FUTURE_STATUSES.has(proposal.status);
 }
 
 export const MAP_OVERLAY_DEFINITIONS: MapOverlayDefinition[] = [
@@ -51,11 +62,11 @@ export const MAP_OVERLAY_DEFINITIONS: MapOverlayDefinition[] = [
   },
   {
     id: 'future-projects',
-    label: 'Future',
-    description: 'Funded or under construction rail proposals',
+    label: 'Future Transit',
+    description: 'Official planned, funded, and under-construction future rail lines and stations',
     scenario: 'future',
     order: 20,
-    defaultVisible: true,
+    defaultVisible: false,
     create: createProposalGroupOverlay(FUTURE_GROUPS, 20)
   },
   {
@@ -206,10 +217,11 @@ function createProposalOverlays(
     const marker = new google.maps.Marker(
       getProposalMarkerOptions(proposal, markerInput, zIndex)
     );
+    const markerZoomRange = getProposalMarkerZoomRange(proposal);
     overlays.push({
       overlay: marker,
-      minZoom: rendering?.minZoom,
-      maxZoom: rendering?.maxZoom
+      minZoom: markerZoomRange.minZoom,
+      maxZoom: markerZoomRange.maxZoom
     });
 
     if (rendering?.clickable ?? true) {
@@ -280,7 +292,7 @@ function getProposalMarkerOptions(
   markerInput: ProposalMarkerInput,
   zIndex: number
 ): google.maps.MarkerOptions {
-  const fillColor = proposal.style?.stationFillColor ?? proposal.style?.strokeColor ?? '#2563eb';
+  const statusStyle = getStationStatusStyle(markerInput.status);
 
   return {
     position: markerInput.position,
@@ -290,12 +302,50 @@ function getProposalMarkerOptions(
     zIndex,
     icon: {
       path: google.maps.SymbolPath.CIRCLE,
-      scale: proposal.style?.stationScale ?? 5,
-      fillColor,
+      scale: proposal.style?.stationScale ?? statusStyle.scale,
+      fillColor: statusStyle.fillColor ?? proposal.style?.stationFillColor ?? proposal.style?.strokeColor ?? '#2563eb',
       fillOpacity: 1,
-      strokeColor: proposal.style?.stationStrokeColor ?? '#ffffff',
+      strokeColor: proposal.style?.stationStrokeColor ?? statusStyle.strokeColor,
       strokeWeight: 2
     }
+  };
+}
+
+interface StationStatusStyle {
+  fillColor: string;
+  strokeColor: string;
+  scale: number;
+}
+
+export function getStationStatusStyle(status: ProposalStatus): StationStatusStyle {
+  switch (status) {
+    case 'under_construction':
+      return { fillColor: '#f59e0b', strokeColor: '#78350f', scale: 5.5 };
+    case 'funded':
+      return { fillColor: '#059669', strokeColor: '#064e3b', scale: 5.25 };
+    case 'planned':
+      return { fillColor: '#2563eb', strokeColor: '#1e3a8a', scale: 5 };
+    case 'operational':
+      return { fillColor: '#7e22ce', strokeColor: '#4c1d95', scale: 5 };
+    case 'vision':
+    case 'concept':
+      return { fillColor: '#db2777', strokeColor: '#831843', scale: 4.75 };
+    case 'freight_only':
+    case 'converted_passenger':
+      return { fillColor: '#475569', strokeColor: '#1e293b', scale: 4.75 };
+    default:
+      return { fillColor: '#64748b', strokeColor: '#334155', scale: 5 };
+  }
+}
+
+export function getProposalMarkerZoomRange(proposal: TransitProposal) {
+  const minZoom = proposal.rendering?.minZoom;
+
+  return {
+    minZoom: isOfficialFutureProposal(proposal)
+      ? Math.max(minZoom ?? FUTURE_STATION_MIN_ZOOM, FUTURE_STATION_MIN_ZOOM)
+      : minZoom,
+    maxZoom: proposal.rendering?.maxZoom
   };
 }
 
@@ -310,7 +360,7 @@ function isWithinZoom(
   return true;
 }
 
-function getProposalInfoContent(
+export function getProposalInfoContent(
   proposal: TransitProposal,
   markerInput?: ProposalMarkerInput
 ): string {
@@ -318,15 +368,45 @@ function getProposalInfoContent(
   const status = formatToken(markerInput?.status ?? proposal.status);
   const confidence = formatToken(proposal.confidence.level);
   const source = proposal.provenance[0];
+  const sourceLabel = source ? source.publisher ?? source.title : undefined;
+  const sourceContent = source
+    ? source.url
+      ? `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceLabel ?? source.title)}</a>`
+      : escapeHtml(sourceLabel ?? source.title)
+    : '';
+  const stationRows = markerInput
+    ? [
+      metadataRow('Station role', markerInput.role ? formatToken(markerInput.role) : undefined),
+      metadataRow('Station phase', markerInput.phase),
+      metadataRow('Station opening', markerInput.openingYear?.toString()),
+      metadataRow('Station confidence', markerInput.confidence ? formatToken(markerInput.confidence) : undefined),
+      metadataRow('Station notes', markerInput.notes)
+    ].join('')
+    : '';
+  const proposalRows = [
+    metadataRow('Classification', formatToken(proposal.classification)),
+    metadataRow('Opening', proposal.timeline?.openingYear?.toString()),
+    metadataRow('Phase', proposal.timeline?.phase),
+    metadataRow('Geometry', proposal.geometry.geometrySource ? formatToken(proposal.geometry.geometrySource) : undefined),
+    metadataRow('Source', sourceContent, true),
+    metadataRow('Uncertainty', proposal.uncertainty.disclaimer ?? proposal.uncertainty.sourceNotes)
+  ].join('');
 
   return `
     <div style="color:#1f2937;font-family:Inter,Arial,sans-serif;max-width:260px;">
       <strong>${escapeHtml(title)}</strong>
       <div style="margin-top:6px;">${escapeHtml(status)} · ${escapeHtml(formatToken(proposal.mode))}</div>
       <div style="margin-top:4px;color:#4b5563;">Confidence: ${escapeHtml(confidence)}</div>
-      ${source ? `<div style="margin-top:4px;color:#4b5563;">Source: ${escapeHtml(source.publisher ?? source.title)}</div>` : ''}
+      ${stationRows}
+      ${proposalRows}
     </div>
   `;
+}
+
+function metadataRow(label: string, value: string | undefined, alreadyEscaped = false): string {
+  if (!value) return '';
+
+  return `<div style="margin-top:4px;color:#4b5563;">${escapeHtml(label)}: ${alreadyEscaped ? value : escapeHtml(value)}</div>`;
 }
 
 function formatToken(value: string): string {

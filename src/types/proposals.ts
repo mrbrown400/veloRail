@@ -248,6 +248,10 @@ export interface ProposalMarkerInput {
   status: ProposalStatus;
   proposalId: string;
   role?: ProposalStation['role'];
+  openingYear?: ProposalStation['openingYear'];
+  phase?: ProposalStation['phase'];
+  confidence?: ProposalStation['confidence'];
+  notes?: ProposalStation['notes'];
 }
 
 export interface ProposalPolylineInput {

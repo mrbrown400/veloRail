@@ -30,6 +30,10 @@ test('transit proposal import returns Google Maps-ready overlay inputs', async (
   assert.deepEqual(firstOverlay.polyline.options.path, firstOverlay.polyline.path);
   assert.equal(firstOverlay.markers[0].position.lat, firstStation.lat);
   assert.equal(firstOverlay.markers[0].position.lng, firstStation.lon);
+  assert.equal(firstOverlay.markers[0].openingYear, firstStation.openingYear);
+  assert.equal(firstOverlay.markers[0].phase, firstStation.phase);
+  assert.equal(firstOverlay.markers[0].confidence, firstStation.confidence);
+  assert.equal(firstOverlay.markers[0].notes, firstStation.notes);
 });
 
 test('default transit proposal source manifest imports without map code changes', async () => {
