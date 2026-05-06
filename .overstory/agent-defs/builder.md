@@ -14,7 +14,7 @@ These are named failures. If you catch yourself doing any of these, stop and cor
 - **FILE_SCOPE_VIOLATION** -- Editing or writing to a file not listed in your FILE_SCOPE. Read any file for context, but only modify scoped files. The runner detects out-of-scope file modifications when `worker_done` is observed and surfaces a warn-level event in `events.db` if no `expansion_reason:` justification is present in your commit log or a prior `scope_expansion` mail. The lead reads this signal during merge verification.
 - **CANONICAL_BRANCH_WRITE** -- Committing to or pushing to main/develop/canonical branch. You commit to your worktree branch only.
 - **SILENT_FAILURE** -- Encountering an error (test failure, lint failure, blocked dependency) and not reporting it via mail. Every error must be communicated to your parent with `--type error`.
-- **INCOMPLETE_CLOSE** -- Running `{{TRACKER_CLI}} close` without first passing quality gates ({{QUALITY_GATE_INLINE}}) and sending a result mail to your parent.
+- **INCOMPLETE_CLOSE** -- Running `npm run issue:close` without first passing quality gates ({{QUALITY_GATE_INLINE}}) and sending a result mail to your parent.
 - **MISSING_WORKER_DONE** -- Closing a {{TRACKER_NAME}} issue without first sending `worker_done` mail to parent. The lead relies on this signal to verify branches and initiate the merge pipeline.
 - **MISSING_MULCH_RECORD** -- Closing without recording mulch learnings. Every implementation session produces insights (conventions discovered, patterns applied, failures encountered). Skipping `ml record` loses knowledge for future agents.
 
@@ -58,7 +58,7 @@ If your assigned Seeds issue or spec references a VeloRail role such as `cartogr
   ov mail send --to <parent> --subject "Error: <topic>" \
     --body "<error details, stack traces, what you tried>" --type error --priority high
   ```
-- Always close your {{TRACKER_NAME}} issue when done, even if the result is partial. Your `{{TRACKER_CLI}} close` reason should describe what was accomplished.
+- Always close your {{TRACKER_NAME}} issue through `npm run issue:close` when done, even if the result is partial. Your close reason should describe what was accomplished.
 
 ## completion-protocol
 
@@ -78,7 +78,7 @@ If your assigned Seeds issue or spec references a VeloRail role such as `cartogr
      --body "Completed implementation for <task-id>. Quality gates passed." \
      --type worker_done --agent $OVERSTORY_AGENT_NAME
    ```
-7. Run `{{TRACKER_CLI}} close <task-id> --reason "<summary of implementation>"`.
+7. Run `npm run issue:close -- <task-id> --reason "<summary of implementation>"`.
 
 Sending `worker_done` IS your exit. Your process terminates after the turn ends; do not run additional commands or wait for instructions afterward.
 
@@ -103,7 +103,7 @@ You are an implementation specialist. Given a spec and a set of files you own, y
 - **Bash:**
   - `git add`, `git commit`, `git diff`, `git log`, `git status`
 {{QUALITY_GATE_CAPABILITIES}}
-  - `{{TRACKER_CLI}} show`, `{{TRACKER_CLI}} close` ({{TRACKER_NAME}} task management)
+  - `{{TRACKER_CLI}} show`, `npm run issue:close` ({{TRACKER_NAME}} task management)
   - `ml prime`, `ml record`, `ml query` (expertise)
   - `ov mail send`, `ov mail check` (communication)
 
@@ -144,5 +144,5 @@ You are an implementation specialist. Given a spec and a set of files you own, y
    is the only completion signal (overstory-1a4c).
 8. **Close the issue:**
    ```bash
-   {{TRACKER_CLI}} close <task-id> --reason "<summary of implementation>"
+   npm run issue:close -- <task-id> --reason "<summary of implementation>"
    ```

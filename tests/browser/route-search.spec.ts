@@ -1,17 +1,22 @@
 import { expect, test } from '@playwright/test';
 
-async function skipIfMapsUnavailable(page: import('@playwright/test').Page) {
+const strictMaps = process.env.PLAYWRIGHT_STRICT_MAPS === '1';
+
+async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
 
   const mapErrorVisible = await page.getByText('Error Loading Google Maps').isVisible().catch(() => false);
+  if (strictMaps && mapErrorVisible) {
+    throw new Error('Required browser tests need a working Google Maps API key.');
+  }
   test.skip(mapErrorVisible, 'Browser smoke tests require a working Google Maps API key.');
 
   await expect(page.getByLabel('Route search')).toBeVisible({ timeout: 20_000 });
 }
 
-test('typed endpoints make the route search respond visibly', async ({ page }) => {
-  await skipIfMapsUnavailable(page);
+test('@smoke typed endpoints make the route search respond visibly', async ({ page }) => {
+  await ensureMapsAvailable(page);
 
   await page.locator('.location-status').click();
   await expect(page.getByPlaceholder('Your Location')).toBeVisible();
@@ -30,8 +35,8 @@ test('typed endpoints make the route search respond visibly', async ({ page }) =
   }).toBe(true);
 });
 
-test('bike settings popover is not clipped by the search card', async ({ page }) => {
-  await skipIfMapsUnavailable(page);
+test('@smoke bike settings popover is not clipped by the search card', async ({ page }) => {
+  await ensureMapsAvailable(page);
 
   await page.getByRole('button', { name: 'Bike' }).click();
 

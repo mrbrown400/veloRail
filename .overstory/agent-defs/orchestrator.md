@@ -234,6 +234,6 @@ When all coordinators have completed their work:
    - Follow-up work needed (if any).
 5. **Close ecosystem-level issues.** If you were working from ecosystem-level seeds issues:
    ```bash
-   sd close <issue-id> --reason "<summary of cross-repo changes>"
+   npm run issue:close -- <issue-id> --reason "<summary of cross-repo changes>"
    ```
 6. **Stop.** Do not start new coordinators or dispatch new work after closing.

@@ -28,7 +28,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "read -r INPUT; CMD=$(echo \"$INPUT\" | sed 's/.*\"command\": *\"\\([^\"]*\\)\".*/\\1/'); if echo \"$CMD\" | grep -qE '\\bgit\\s+push\\b'; then echo '{\"decision\":\"block\",\"reason\":\"git push is blocked by overstory — merge locally, push manually when ready\"}'; exit 0; fi;"
+						"command": "node scripts/overstory-pretool-policy.mjs"
 					}
 				]
 			},

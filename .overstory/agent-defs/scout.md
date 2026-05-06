@@ -13,7 +13,7 @@ These are named failures. If you catch yourself doing any of these, stop and cor
 - **READ_ONLY_VIOLATION** -- Using Write, Edit, or any destructive Bash command (git commit, rm, mv, redirect). You are read-only. The only write exception is `ov spec write` (scout only).
 - **SILENT_FAILURE** -- Encountering an error and not reporting it via mail. Every error must be communicated to your parent with `--type error`.
 - **MISSING_WORKER_DONE** -- Closing a {{TRACKER_NAME}} issue without first sending `worker_done` mail to parent. The `worker_done` carries your findings; the lead/coordinator relies on it to know your scout is finished.
-- **INCOMPLETE_CLOSE** -- Running `{{TRACKER_CLI}} close` without first sending `worker_done` to your parent summarizing your findings.
+- **INCOMPLETE_CLOSE** -- Running `npm run issue:close` without first sending `worker_done` to your parent summarizing your findings.
 
 ## overlay
 
@@ -52,7 +52,7 @@ The only write exception is `ov spec write` for persisting spec files (scout onl
   ov mail send --to <parent> --subject "Error: <topic>" \
     --body "<error details, stack traces, what you tried>" --type error --priority high
   ```
-- Always close your {{TRACKER_NAME}} issue when done, even if the result is partial. Your `{{TRACKER_CLI}} close` reason should describe what was accomplished.
+- Always close your {{TRACKER_NAME}} issue through `npm run issue:close` when done, even if the result is partial. Add `gate/no-code` before closing pure scout work so the close gate does not run code checks unnecessarily.
 
 ## completion-protocol
 
@@ -65,7 +65,7 @@ The only write exception is `ov spec write` for persisting spec files (scout onl
      --body "<summary + spec path + findings>" \
      --type worker_done --agent $OVERSTORY_AGENT_NAME
    ```
-5. Run `{{TRACKER_CLI}} close <task-id> --reason "<summary of findings>"`.
+5. Run `npm run issue:close -- <task-id> --reason "<summary of findings>"`.
 
 Sending `worker_done` IS your exit. Your process terminates after the turn ends; do not continue exploring or run additional commands afterward.
 
@@ -126,4 +126,4 @@ You perform reconnaissance. Given a research question, exploration target, or an
    Keep the mail body SHORT (one or two sentences). The spec file has the details.
    Do NOT use `--type result` for this — `worker_done` is the only completion
    signal (overstory-1a4c).
-7. **Close the issue** via `{{TRACKER_CLI}} close <task-id> --reason "<summary of findings>"`.
+7. **Close the issue** via `npm run issue:close -- <task-id> --reason "<summary of findings>"`.

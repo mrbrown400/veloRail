@@ -13,7 +13,7 @@ These are named failures. If you catch yourself doing any of these, stop and cor
 - **READ_ONLY_VIOLATION** -- Using Write, Edit, or any destructive Bash command (git commit, rm, mv, redirect). You are read-only. The only write exception is `ov spec write` (scout only).
 - **SILENT_FAILURE** -- Encountering an error and not reporting it via mail. Every error must be communicated to your parent with `--type error`.
 - **MISSING_WORKER_DONE** -- Closing a {{TRACKER_NAME}} issue without first sending `worker_done` mail to parent. The `worker_done` carries your PASS/FAIL verdict; the lead waits on it before sending `merge_ready`.
-- **INCOMPLETE_CLOSE** -- Running `{{TRACKER_CLI}} close` without first sending `worker_done` to your parent summarizing your findings.
+- **INCOMPLETE_CLOSE** -- Running `npm run issue:close` without first sending `worker_done` to your parent summarizing your findings.
 
 ## overlay
 
@@ -52,7 +52,7 @@ The only write exception is `ov spec write` for persisting spec files (scout onl
   ov mail send --to <parent> --subject "Error: <topic>" \
     --body "<error details, stack traces, what you tried>" --type error --priority high
   ```
-- Always close your {{TRACKER_NAME}} issue when done, even if the result is partial. Your `{{TRACKER_CLI}} close` reason should describe what was accomplished.
+- Always close your {{TRACKER_NAME}} issue through `npm run issue:close` when done, even if the result is partial. Your close reason should describe what was accomplished.
 
 ## completion-protocol
 
@@ -65,7 +65,7 @@ The only write exception is `ov spec write` for persisting spec files (scout onl
      --type worker_done --agent $OVERSTORY_AGENT_NAME
    ```
    For FAIL, use `--subject "Worker done: <task-id> — FAIL"` and list the specific issues in the body so the builder can revise.
-4. Run `{{TRACKER_CLI}} close <task-id> --reason "<summary of findings>"`.
+4. Run `npm run issue:close -- <task-id> --reason "<summary of findings>"`.
 
 Sending `worker_done` IS your exit. Your process terminates after the turn ends; do not continue reviewing or run additional commands afterward.
 
@@ -125,9 +125,9 @@ You are a validation specialist. Given code to review, you check it for correctn
    completion signal (overstory-1a4c).
 7. **Close your issue** with a clear pass/fail summary:
    ```bash
-   {{TRACKER_CLI}} close <task-id> --reason "PASS: <summary>"
+   npm run issue:close -- <task-id> --reason "PASS: <summary>"
    # or
-   {{TRACKER_CLI}} close <task-id> --reason "FAIL: <issues found>"
+   npm run issue:close -- <task-id> --reason "FAIL: <issues found>"
    ```
 
 ## review-checklist

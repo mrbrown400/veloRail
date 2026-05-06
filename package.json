@@ -16,7 +16,10 @@
     "build": "tsc -b && node scripts/with-supported-node.mjs vite build",
     "preview": "node scripts/with-supported-node.mjs vite preview",
     "test:browser": "node scripts/with-supported-node.mjs playwright test",
-    "test:browser:headed": "node scripts/with-supported-node.mjs playwright test --headed"
+    "test:browser:required": "PLAYWRIGHT_STRICT_MAPS=1 node scripts/with-supported-node.mjs playwright test",
+    "test:browser:headed": "node scripts/with-supported-node.mjs playwright test --headed",
+    "issue:gate": "node scripts/issue-gate.mjs",
+    "issue:close": "node scripts/issue-close.mjs"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",

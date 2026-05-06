@@ -18,9 +18,12 @@ npm run typecheck  # TypeScript project build check
 npm run build      # Production build to dist
 npm run quality    # Full configured gate for agents
 npm run preview    # Preview production build
+npm run issue:gate -- <id> --explain  # Preview Seeds close gates
+npm run issue:close -- <id> --reason "..."  # Close after gates pass
 ```
 
 `npm run quality` is the required gate after code changes. It runs tests, style linting, TypeScript checking, and the production build.
+Seeds issues must be closed through `npm run issue:close`; direct `sd close` and `sd update --status closed` are blocked for Overstory agents. Browser-facing issues automatically require strict Playwright verification, and feature-specific browser tests must include the issue tag in the test title, such as `@VR-101`.
 
 ## Agent Harness
 
@@ -35,7 +38,7 @@ Useful commands:
 sd ready             # Show available Seeds work
 sd show <id>         # Inspect one issue
 sd update <id> --status in_progress
-sd close <id>
+npm run issue:close -- <id> --reason "..."
 sd sync              # Stage and commit Seeds changes
 ov status            # Show agents, worktrees, mail, and merge queue
 ov doctor            # Check Overstory health

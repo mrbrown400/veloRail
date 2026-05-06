@@ -44,7 +44,8 @@ VeloRail domain roles are guidance only. They are **not** active custom Overstor
 sd ready              # Find available work
 sd show <id>          # View issue details
 sd update <id> --status in_progress  # Claim work
-sd close <id>         # Complete work
+npm run issue:gate -- <id> --explain  # Preview close gates
+npm run issue:close -- <id> --reason "..."  # Complete work after gates pass
 sd sync               # Stage and commit Seeds changes
 ov status             # Inspect active agents and worktrees
 ml prime              # Load Mulch project expertise
@@ -64,7 +65,16 @@ If code changed, run:
 npm run quality
 ```
 
-This currently runs the placeholder test command, TypeScript static checks, and the production build. There is no dedicated unit test suite yet.
+This runs the Node unit tests, style linting, TypeScript static checks, and the production build.
+
+Seeds issues must be closed through the repo-owned gate:
+
+```bash
+npm run issue:gate -- <id> --explain
+npm run issue:close -- <id> --reason "<summary>"
+```
+
+Direct `sd close` and `sd update --status closed` are blocked for Overstory agents. Browser-facing issues automatically require strict Playwright verification. Use `gate/browser` to force browser verification, `gate/no-browser` to suppress automatic browser verification, `gate/no-code` for admin/scout/docs-only closures, and `gate/browser-smoke-only` when existing `@smoke` browser coverage is enough.
 
 ## GitNexus Freshness
 
@@ -98,7 +108,7 @@ Before changing agentic setup files:
 
 1. **File issues for remaining work** - Create issues for anything that needs follow-up
 2. **Run quality gates** (if code changed) - `npm run quality`
-3. **Update issue status** - Close finished work, update in-progress items
+3. **Update issue status** - Close finished work with `npm run issue:close`, update in-progress items
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase

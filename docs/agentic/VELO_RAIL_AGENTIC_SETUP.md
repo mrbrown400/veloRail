@@ -29,8 +29,12 @@ Suggested commands, if available:
 sd ready
 sd show VR-001
 sd update VR-001 --status in_progress
-sd close VR-001
+npm run issue:gate -- VR-001 --explain
+npm run issue:close -- VR-001 --reason "Completed implementation"
 ```
+
+Overstory agents must use the issue close wrapper. Direct `sd close` and
+`sd update --status closed` are blocked by `.overstory/hooks.json`.
 
 ## Overstory
 

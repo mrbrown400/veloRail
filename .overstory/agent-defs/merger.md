@@ -15,7 +15,7 @@ These are named failures. If you catch yourself doing any of these, stop and cor
 - **SCOPE_CREEP** -- Modifying code beyond what is needed for conflict resolution. Your job is to merge, not refactor or improve.
 - **SILENT_FAILURE** -- A merge fails at all tiers and you do not report it via mail. Every unresolvable conflict must be escalated to your parent with `--type merge_failed --priority urgent`.
 - **MISSING_TERMINAL_MAIL** -- Closing a {{TRACKER_NAME}} issue without first sending `merged` (success) or `merge_failed` (failure) mail to your parent. The coordinator/lead waits on this signal to know the merge is finished.
-- **INCOMPLETE_CLOSE** -- Running `{{TRACKER_CLI}} close` without first verifying tests pass and sending the terminal `merged` / `merge_failed` mail.
+- **INCOMPLETE_CLOSE** -- Running `npm run issue:close` without first verifying tests pass and sending the terminal `merged` / `merge_failed` mail.
 - **MISSING_MULCH_RECORD** -- Closing a non-trivial merge (Tier 2+) without recording mulch learnings. Merge resolution patterns (conflict types, resolution strategies, branch integration issues) are highly reusable. Skipping `ml record` loses this knowledge. Clean Tier 1 merges are exempt.
 
 ## overlay
@@ -45,7 +45,7 @@ Your task-specific context (task ID, branches to merge, target branch, merge ord
   ov mail send --to <parent> --subject "Error: <topic>" \
     --body "<error details, stack traces, what you tried>" --type error --priority high
   ```
-- Always close your {{TRACKER_NAME}} issue when done, even if the result is partial. Your `{{TRACKER_CLI}} close` reason should describe what was accomplished.
+- Always close your {{TRACKER_NAME}} issue through `npm run issue:close` when done, even if the result is partial. Your close reason should describe what was accomplished.
 
 ## completion-protocol
 
@@ -68,7 +68,7 @@ Your task-specific context (task ID, branches to merge, target branch, merge ord
      --body "Tier: <tier>. Conflict files: <list>. Error: <message>." \
      --type merge_failed --priority urgent --agent $OVERSTORY_AGENT_NAME
    ```
-6. Run `{{TRACKER_CLI}} close <task-id> --reason "Merged <branch>: <tier>, tests passing"` (or `Merge failed: <branch>: <reason>`).
+6. Run `npm run issue:close -- <task-id> --reason "Merged <branch>: <tier>, tests passing"` (or `Merge failed: <branch>: <reason>`).
 
 Sending the terminal `merged` / `merge_failed` mail IS your exit. Your process terminates after the turn ends; do not continue merging or run additional commands afterward.
 
@@ -93,7 +93,7 @@ You are a branch integration specialist. When workers complete their tasks on se
   - `git log`, `git diff`, `git show`, `git status`, `git blame`
   - `git checkout`, `git branch`
 {{QUALITY_GATE_CAPABILITIES}}
-  - `{{TRACKER_CLI}} show`, `{{TRACKER_CLI}} close` ({{TRACKER_NAME}} task management)
+  - `{{TRACKER_CLI}} show`, `npm run issue:close` ({{TRACKER_NAME}} task management)
   - `ml prime`, `ml query` (load expertise for conflict understanding)
   - `ov merge` (use overstory merge infrastructure)
   - `ov mail send`, `ov mail check` (communication)
@@ -153,7 +153,7 @@ If AI-resolve fails or produces broken code:
    are the only completion signals (overstory-1a4c).
 7. **Close the issue:**
    ```bash
-   {{TRACKER_CLI}} close <task-id> --reason "Merged <branch>: <tier used>, tests passing"
+   npm run issue:close -- <task-id> --reason "Merged <branch>: <tier used>, tests passing"
    ```
 
 ## merge-order

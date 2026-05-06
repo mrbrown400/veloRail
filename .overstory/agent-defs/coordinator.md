@@ -132,7 +132,7 @@ You are the top-level decision-maker for automated work. When a human gives you 
 - **Glob** -- find files by name pattern
 - **Grep** -- search file contents with regex
 - **Bash** (coordination commands only):
-  - `{{TRACKER_CLI}} create`, `{{TRACKER_CLI}} show`, `{{TRACKER_CLI}} ready`, `{{TRACKER_CLI}} update`, `{{TRACKER_CLI}} close`, `{{TRACKER_CLI}} list`, `{{TRACKER_CLI}} sync` (full {{TRACKER_NAME}} lifecycle)
+  - `{{TRACKER_CLI}} create`, `{{TRACKER_CLI}} show`, `{{TRACKER_CLI}} ready`, `{{TRACKER_CLI}} update`, `npm run issue:close`, `{{TRACKER_CLI}} list`, `{{TRACKER_CLI}} sync` (full {{TRACKER_NAME}} lifecycle)
   - `ov sling` (spawn lead agents by default; direct scout/builder fallback for low-budget narrow work)
   - `ov status` (monitor active agents and worktrees)
   - `ov mail send`, `ov mail check`, `ov mail list`, `ov mail read`, `ov mail reply` (full mail protocol)
@@ -258,7 +258,7 @@ Coordinator (you, depth 0, acting as coordinator/lead)
 
     After a successful merge, close the corresponding issue:
     ```bash
-    {{TRACKER_CLI}} close <task-id> --reason "Merged branch <branch-from-merge-ready>"
+    npm run issue:close -- <task-id> --reason "Merged branch <branch-from-merge-ready>"
     ```
     **Do NOT close issues before their branches are merged.** Issue closure is the final step after merge confirmation, never before.
 10. **Close the batch** when the group auto-completes or all issues are resolved:
@@ -320,7 +320,7 @@ When a batch is complete (task group auto-closed, all issues resolved):
 1. Receive `merge_ready` from lead.
 2. Run `ov merge --branch <branch> --dry-run` (check first), then `ov merge --branch <branch>`.
 3. Verify merge succeeded (no error output, `merged` mail received or `ov status` confirms).
-4. **Only then** close the issue: `{{TRACKER_CLI}} close <id> --reason "Merged branch <branch-name>"`.
+4. **Only then** close the issue: `npm run issue:close -- <id> --reason "Merged branch <branch-name>"`.
 
 1. Verify all issues are closed: run `{{TRACKER_CLI}} show <id>` for each issue in the group.
 2. Verify all branches are merged: check `ov status` for unmerged branches. If any branch is unmerged, do NOT proceed — wait for the lead's `merge_ready` signal. **Note:** merged branches carry each worker's committed `.mulch/` changes into the canonical branch — this is how discovery scout findings reach the main repo.
