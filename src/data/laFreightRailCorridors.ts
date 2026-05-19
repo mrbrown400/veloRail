@@ -12,6 +12,7 @@ export const LA_FREIGHT_RAIL_CORRIDOR_DATASET: TransitProposalDataset = {
   updatedAt: ACCESSED_AT,
   migrationNotes: [
     'VR-402 initial LA freight corridor batch. Sources are public agency, FRA/Caltrans rail network, freight-owner, and port pages checked on 2026-05-19.',
+    'VR-404/VR-405 adds deterministic passenger-conversion scenarios to selected freight records while keeping the freight records themselves freight_only.',
     'Geometry is simplified centerline geometry for Google Maps polyline rendering; it is not surveyed railroad engineering geometry.',
     'Google Maps remains the renderer only. The Google basemap is not used as a source for corridor existence, ownership, operations, or geometry.'
   ],
@@ -102,6 +103,28 @@ export const LA_FREIGHT_RAIL_CORRIDOR_DATASET: TransitProposalDataset = {
         ownershipSourceId: 'acta-corridor-home',
         usageSourceId: 'port-la-rail-page',
         electrificationSourceId: 'fra-narn-lines',
+        conversionScenarioId: 'alameda-corridor-south-alameda-passenger-conversion',
+        conversionScenarios: [
+          {
+            id: 'alameda-corridor-south-alameda-passenger-conversion',
+            name: 'Alameda Corridor South Alameda passenger conversion concept',
+            status: 'converted_passenger',
+            targetMode: 'commuter_rail',
+            sourceFreightCorridorId: 'la-freight-alameda-corridor',
+            serviceConcept: 'Hypothetical Metro or Metrolink-style passenger overlay using the sourced Alameda Corridor freight right-of-way between San Pedro Bay and downtown Los Angeles.',
+            stationAssumptions: [
+              'Southern station would need a new passenger access point near the port rail complex.',
+              'South Alameda/Slauson is a planning placeholder for the South Alameda feedback corridor, not a sourced station plan.',
+              'Downtown interface would need a separate terminal, transfer, and freight-conflict study.'
+            ],
+            assumptions: [
+              'The source records support an existing freight right-of-way, not approved passenger service.',
+              'Passenger conversion would require public acquisition, dispatching, safety, platform, and freight-conflict analysis.',
+              'The South Alameda framing is derived from the current Alameda Corridor geometry and user feedback, not from an official service plan.'
+            ],
+            notes: 'Captures the South Alameda feedback where the current sourced Alameda Corridor record supports an existing freight right-of-way.'
+          }
+        ],
         suitability: {
           rating: 'unknown',
           factors: [
@@ -208,6 +231,28 @@ export const LA_FREIGHT_RAIL_CORRIDOR_DATASET: TransitProposalDataset = {
         ownershipSourceId: 'caltrans-california-rail-network',
         usageSourceId: 'bnsf-facility-listings',
         electrificationSourceId: 'caltrans-california-rail-network',
+        conversionScenarioId: 'bnsf-la-san-bernardino-passenger-conversion',
+        conversionScenarios: [
+          {
+            id: 'bnsf-la-san-bernardino-passenger-conversion',
+            name: 'BNSF LA to San Bernardino passenger conversion concept',
+            status: 'converted_passenger',
+            targetMode: 'commuter_rail',
+            sourceFreightCorridorId: 'la-freight-bnsf-los-angeles-san-bernardino',
+            serviceConcept: 'Hypothetical regional passenger overlay on the sourced BNSF freight corridor between the LA freight terminal area and San Bernardino.',
+            stationAssumptions: [
+              'Western station would need a passenger access point near Hobart/Commerce freight facilities.',
+              'Intermediate transfer area is a corridor placeholder only.',
+              'San Bernardino terminal would need a separate interface with existing passenger services and freight operations.'
+            ],
+            assumptions: [
+              'The source records support BNSF freight anchors and network presence, not an approved passenger service.',
+              'Station spacing, dispatching priority, and freight capacity are unresolved.',
+              'The generalized line is sufficient for Google Maps overlay planning, not operational design.'
+            ],
+            notes: 'Generated as an inland regional conversion candidate from the current freight record.'
+          }
+        ],
         suitability: {
           rating: 'unknown',
           factors: [
@@ -314,6 +359,28 @@ export const LA_FREIGHT_RAIL_CORRIDOR_DATASET: TransitProposalDataset = {
         ownershipSourceId: 'up-california-guide',
         usageSourceId: 'up-california-guide',
         electrificationSourceId: 'fra-narn-lines',
+        conversionScenarioId: 'up-la-inland-empire-passenger-conversion',
+        conversionScenarios: [
+          {
+            id: 'up-la-inland-empire-passenger-conversion',
+            name: 'Union Pacific LA to Inland Empire passenger conversion concept',
+            status: 'converted_passenger',
+            targetMode: 'commuter_rail',
+            sourceFreightCorridorId: 'la-freight-union-pacific-los-angeles-inland-empire',
+            serviceConcept: 'Hypothetical passenger overlay using the sourced Union Pacific freight corridor from Los Angeles toward Inland Empire gateways.',
+            stationAssumptions: [
+              'Western terminal is a planning placeholder near LA basin freight yards.',
+              'San Gabriel Valley interface is a midpoint assumption and not a sourced station site.',
+              'Inland Empire gateway terminal would need separate passenger access and service integration work.'
+            ],
+            assumptions: [
+              'The source records support Union Pacific freight presence and regional reach, not passenger conversion approval.',
+              'Segment ownership, dispatching, track capacity, and grade-crossing impacts are unresolved.',
+              'The converted line inherits approximate geometry from the freight overlay only.'
+            ],
+            notes: 'Generated as a regional conversion candidate from the current freight record.'
+          }
+        ],
         suitability: {
           rating: 'unknown',
           factors: [

@@ -8,6 +8,10 @@ import { LA_FREIGHT_RAIL_CORRIDOR_DATASET } from './laFreightRailCorridors';
 import {
   importTransitProposalSources
 } from './transitProposalImport';
+import {
+  FREIGHT_PASSENGER_CONVERSION_SOURCE_NAME,
+  createFreightPassengerConversionDataset
+} from '@/services/freightPassengerConversion';
 import type {
   TransitProposalImportResult,
   TransitProposalSourceFile
@@ -19,6 +23,9 @@ export const OFFICIAL_FUTURE_TRANSIT_SOURCE_MANIFEST = {
   reviewPolicy: OFFICIAL_FUTURE_TRANSIT_REVIEW_POLICY,
   sourceWatchTargets: OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS
 } as const;
+
+export const NATIONALIZED_RAIL_PASSENGER_CONVERSION_DATASET =
+  createFreightPassengerConversionDataset(LA_FREIGHT_RAIL_CORRIDOR_DATASET);
 
 export const TRANSIT_PROPOSAL_SOURCE_FILES = [
   {
@@ -32,6 +39,10 @@ export const TRANSIT_PROPOSAL_SOURCE_FILES = [
   {
     name: 'la-freight-rail-corridors.v1.ts',
     dataset: LA_FREIGHT_RAIL_CORRIDOR_DATASET
+  },
+  {
+    name: FREIGHT_PASSENGER_CONVERSION_SOURCE_NAME,
+    dataset: NATIONALIZED_RAIL_PASSENGER_CONVERSION_DATASET
   }
 ] satisfies readonly TransitProposalSourceFile[];
 

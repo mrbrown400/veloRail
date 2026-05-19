@@ -62,6 +62,7 @@ test('map overlay legend items come from current registry and proposal labels', 
   assert.equal(byLabel.get('Future heavy rail')?.scenario, 'future');
   assert.equal(byLabel.get('Visionary concept')?.overlayId, 'visionary-concepts');
   assert.equal(byLabel.get('Freight corridor')?.scenario, 'nationalized');
+  assert.equal(byLabel.get('Passenger conversion')?.scenario, 'nationalized');
   assert.ok(legendItems.every((item) => item.color));
 });
 
@@ -83,18 +84,12 @@ test('overlay style config drives proposal rendering and native legend metadata'
   const freight = getProposalOverlayInputsByGroup('freight').find(
     ({ proposal }) => proposal.id === 'la-freight-alameda-corridor'
   );
+  const convertedPassenger = getProposalOverlayInputsByGroup('converted_passenger').find(
+    ({ proposal }) => proposal.id === 'alameda-corridor-south-alameda-passenger-conversion'
+  );
 
   assert.ok(freight);
-
-  const convertedPassenger = {
-    ...freight.proposal,
-    status: 'converted_passenger',
-    style: undefined,
-    rendering: {
-      ...freight.proposal.rendering,
-      layerGroup: 'converted_passenger'
-    }
-  };
+  assert.ok(convertedPassenger);
 
   assert.equal(getProposalOverlayStyle(future.proposal).key, 'future');
   assert.equal(getProposalOverlayStyle(future.proposal).legend.label, 'Future heavy rail');
@@ -102,7 +97,7 @@ test('overlay style config drives proposal rendering and native legend metadata'
   assert.equal(getProposalOverlayStyle(visionary.proposal).line.strokePattern, 'dashed');
   assert.equal(getProposalOverlayStyle(freight.proposal).key, 'freight_only');
   assert.equal(getProposalOverlayStyle(freight.proposal).line.strokePattern, 'dotted');
-  assert.equal(getProposalOverlayStyle(convertedPassenger).key, 'converted_passenger');
+  assert.equal(getProposalOverlayStyle(convertedPassenger.proposal).key, 'converted_passenger');
 
   const legendItems = getMapOverlayLegendItems();
   const byLabel = new Map(legendItems.map((item) => [item.label, item]));
@@ -144,11 +139,17 @@ test('proposal overlay groups expose imported sample layers independently', asyn
     'la-freight-alameda-corridor',
     'la-freight-bnsf-los-angeles-san-bernardino',
     'la-freight-union-pacific-los-angeles-inland-empire',
-    'la-freight-pacific-harbor-line-port-complex'
+    'la-freight-pacific-harbor-line-port-complex',
+    'alameda-corridor-south-alameda-passenger-conversion',
+    'bnsf-la-san-bernardino-passenger-conversion',
+    'up-la-inland-empire-passenger-conversion'
   ]);
   assert.ok(future[0].polyline.path.length > 1);
   assert.ok(nationalized.every(({ polyline }) => polyline.path.length > 1));
   assert.ok(future[0].markers.length > 1);
+  assert.ok(nationalized.filter(({ proposal }) => proposal.status === 'converted_passenger').every(
+    ({ markers }) => markers.length >= 3
+  ));
   assert.ok(future.every(({ proposal }) => proposal.classification === 'official'));
 });
 
@@ -236,6 +237,33 @@ test('freight corridor metadata includes ownership, uncertainty, and source link
   assert.equal(details.get('Track usage'), 'freight');
   assert.match(metadata.disclaimer, /approximate VeloRail geometry/i);
   assert.ok(metadata.sources.some(source => source.url && source.accessedAt === '2026-05-19'));
+});
+
+test('converted passenger metadata links back to source freight corridor and station assumptions', async () => {
+  const {
+    getProposalMetadata,
+    getProposalOverlayInputsByGroup
+  } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
+
+  const converted = getProposalOverlayInputsByGroup('converted_passenger').find(
+    ({ proposal }) => proposal.id === 'alameda-corridor-south-alameda-passenger-conversion'
+  );
+
+  assert.ok(converted);
+
+  const metadata = getProposalMetadata(converted.proposal);
+  const stationMetadata = getProposalMetadata(converted.proposal, converted.markers[1]);
+  const details = new Map(metadata.details.map((detail) => [detail.label, detail.value]));
+
+  assert.equal(metadata.kind, 'line');
+  assert.equal(metadata.badgeLabel, 'Passenger conversion');
+  assert.equal(metadata.statusLabel, 'converted passenger');
+  assert.equal(metadata.classificationLabel, 'speculative');
+  assert.equal(details.get('Source corridor'), 'la-freight-alameda-corridor');
+  assert.match(details.get('Station assumptions'), /South Alameda\/Slauson/);
+  assert.match(metadata.disclaimer, /Hypothetical passenger-conversion planning concept/);
+  assert.equal(stationMetadata.kind, 'station');
+  assert.equal(stationMetadata.title, 'South Alameda / Slauson');
 });
 
 test('map overlay store toggles one overlay without mutating others', async () => {
