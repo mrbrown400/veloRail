@@ -6,6 +6,7 @@ VR-001 adds a parallel schema for VeloRail-owned proposal data. It does not repl
 
 - Types: `src/types/proposals.ts`
 - Example records and Google Maps adapters: `src/data/transitProposals.ts`
+- Production LA freight corridor source: `src/data/laFreightRailCorridors.ts`
 - Validation helpers: `src/data/transitProposalValidation.ts`
 - Import helpers and source manifest: `src/data/transitProposalImport.ts` and `src/data/transitProposalSources.ts`
 
@@ -72,7 +73,9 @@ Google Maps may show freight rails on the basemap, but VeloRail does not treat b
 
 These examples exercise the schema and renderer contract. The Alameda Corridor example includes owner/operator metadata, freight usage, unknown electrification, source-id references, suitability placeholders, and a nested `converted_passenger` scenario. They are not the authoritative future or freight datasets.
 
-VR-105 adds the first bounded official LA-area future transit batch in `src/data/officialFutureTransitProposals.ts`. See `docs/architecture/official-future-transit-dataset.md` for source criteria, included and excluded projects, and the approximation policy. VR-402 should replace approximate freight geometry with sourced production data.
+VR-105 adds the first bounded official LA-area future transit batch in `src/data/officialFutureTransitProposals.ts`. See `docs/architecture/official-future-transit-dataset.md` for source criteria, included and excluded projects, and the approximation policy.
+
+VR-402 adds the first bounded LA freight corridor batch in `src/data/laFreightRailCorridors.ts`. See `docs/architecture/freight-rail-corridor-dataset.md` for selected public sources, license and terms notes, included corridors, known gaps, and the approximation policy. The seed `freight-alameda-corridor` remains an example record, while the VR-402 source is the production freight batch registered through the import manifest.
 
 ## Validation Strategy
 

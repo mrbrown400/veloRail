@@ -1,5 +1,6 @@
 import { TRANSIT_PROPOSAL_DATASET } from './transitProposals';
 import { OFFICIAL_LA_FUTURE_TRANSIT_DATASET } from './officialFutureTransitProposals';
+import { LA_FREIGHT_RAIL_CORRIDOR_DATASET } from './laFreightRailCorridors';
 import {
   importTransitProposalSources
 } from './transitProposalImport';
@@ -16,6 +17,10 @@ export const TRANSIT_PROPOSAL_SOURCE_FILES = [
   {
     name: 'official-la-future-transit.v1.ts',
     dataset: OFFICIAL_LA_FUTURE_TRANSIT_DATASET
+  },
+  {
+    name: 'la-freight-rail-corridors.v1.ts',
+    dataset: LA_FREIGHT_RAIL_CORRIDOR_DATASET
   }
 ] satisfies readonly TransitProposalSourceFile[];
 

@@ -62,9 +62,14 @@ test('proposal overlay groups expose imported sample layers independently', asyn
     'vision-vermont-rapid-rail'
   ]);
   assert.deepEqual(nationalized.map(({ proposal }) => proposal.id), [
-    'freight-alameda-corridor'
+    'freight-alameda-corridor',
+    'la-freight-alameda-corridor',
+    'la-freight-bnsf-los-angeles-san-bernardino',
+    'la-freight-union-pacific-los-angeles-inland-empire',
+    'la-freight-pacific-harbor-line-port-complex'
   ]);
   assert.ok(future[0].polyline.path.length > 1);
+  assert.ok(nationalized.every(({ polyline }) => polyline.path.length > 1));
   assert.ok(future[0].markers.length > 1);
   assert.ok(future.every(({ proposal }) => proposal.classification === 'official'));
 });

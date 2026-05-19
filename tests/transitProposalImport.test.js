@@ -42,7 +42,7 @@ test('default transit proposal source manifest imports without map code changes'
     TRANSIT_PROPOSAL_SOURCE_FILES
   } = await loadAppModule('/src/data/transitProposalSources.ts');
 
-  assert.equal(TRANSIT_PROPOSAL_SOURCE_FILES.length, 2);
+  assert.equal(TRANSIT_PROPOSAL_SOURCE_FILES.length, 3);
   assert.equal(IMPORTED_TRANSIT_PROPOSALS.dataset.schemaVersion, '1.0.0');
   assert.equal(
     IMPORTED_TRANSIT_PROPOSALS.overlays.length,
@@ -108,8 +108,53 @@ test('merged default manifest keeps official future records separate from vision
     'vision-vermont-rapid-rail'
   ]);
   assert.deepEqual(freightRecords.map(proposal => proposal.id), [
-    'freight-alameda-corridor'
+    'freight-alameda-corridor',
+    'la-freight-alameda-corridor',
+    'la-freight-bnsf-los-angeles-san-bernardino',
+    'la-freight-union-pacific-los-angeles-inland-empire',
+    'la-freight-pacific-harbor-line-port-complex'
   ]);
+});
+
+test('LA freight rail corridor batch validates source, license, and overlay metadata', async () => {
+  const {
+    LA_FREIGHT_RAIL_CORRIDOR_DATASET
+  } = await loadAppModule('/src/data/laFreightRailCorridors.ts');
+  const {
+    importTransitProposalDataset
+  } = await loadAppModule('/src/data/transitProposalImport.ts');
+
+  const result = importTransitProposalDataset(LA_FREIGHT_RAIL_CORRIDOR_DATASET, {
+    sourceName: 'la-freight-rail-corridors.v1.ts'
+  });
+  const proposalIds = result.dataset.proposals.map(proposal => proposal.id);
+
+  assert.deepEqual(proposalIds, [
+    'la-freight-alameda-corridor',
+    'la-freight-bnsf-los-angeles-san-bernardino',
+    'la-freight-union-pacific-los-angeles-inland-empire',
+    'la-freight-pacific-harbor-line-port-complex'
+  ]);
+  assert.equal(result.dataset.updatedAt, '2026-05-19');
+  assert.equal(result.overlays.length, 4);
+
+  for (const overlay of result.overlays) {
+    const { proposal, polyline } = overlay;
+    const provenanceIds = new Set(proposal.provenance.map(source => source.sourceId));
+
+    assert.equal(proposal.classification, 'official');
+    assert.equal(proposal.rendering.layerGroup, 'freight');
+    assert.ok(['freight_rail', 'mixed_rail'].includes(proposal.mode));
+    assert.equal(proposal.geometry.geometrySource, 'approximate');
+    assert.match(proposal.geometry.geometryNotes, /Approximate|approximate/);
+    assert.ok(polyline.path.length >= 2);
+    assert.ok(proposal.provenance.length >= 3);
+    assert.ok(proposal.provenance.every(source => source.accessedAt === '2026-05-19'));
+    assert.ok(proposal.provenance.every(source => source.note.includes('License/terms:')));
+    assert.ok(provenanceIds.has(proposal.freight.ownershipSourceId));
+    assert.ok(provenanceIds.has(proposal.freight.usageSourceId));
+    assert.ok(provenanceIds.has(proposal.freight.electrificationSourceId));
+  }
 });
 
 test('transit proposal import fails fast on invalid ids, status, coordinates, and provenance', async () => {
