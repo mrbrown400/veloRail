@@ -39,6 +39,13 @@ export function evaluateBashCommand(command) {
     };
   }
 
+  if (/\bov\s+mail\s+check\b/.test(normalized) && !/\s--help\b/.test(normalized)) {
+    return {
+      decision: 'block',
+      reason: 'ov mail check marks messages read and fails when the Overstory mail DB is read-only. Use: ov mail list --to $OVERSTORY_AGENT_NAME --unread'
+    };
+  }
+
   if (/\bsd\s+close\b/.test(normalized)) {
     return {
       decision: 'block',
@@ -58,4 +65,3 @@ export function evaluateBashCommand(command) {
     reason: ''
   };
 }
-

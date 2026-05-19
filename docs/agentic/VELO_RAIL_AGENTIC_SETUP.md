@@ -47,6 +47,25 @@ Do not add roles such as `cartographer` or `transit-data` to `.overstory/agent-m
 
 The active Overstory Bash post-tool hook runs `scripts/gitnexus-analyze-after-commit.sh` after agent `git commit` commands.
 
+### Mail startup path
+
+Use the read-only inbox command during startup and hook-time checks:
+
+```bash
+ov mail list --to "$OVERSTORY_AGENT_NAME" --unread
+```
+
+Do not use `ov mail check` as the default startup check in this repo. It marks
+unread messages as read, which writes to `.overstory/mail.db` and can fail with
+`Error: attempt to write a readonly database` in sandboxed Overstory worktrees.
+The `UserPromptSubmit` hook uses `ov mail list --to orchestrator --unread` for
+the same reason.
+
+Mail send paths such as `worker_done`, `merge_ready`, and status/error messages
+also require mail DB writes. When those writes fail with `MAIL_ERROR`, treat that
+as a remaining closeout limitation: preserve the verification output, document
+the failed send, and let the coordinator/operator reconcile the terminal signal.
+
 ## Git hooks
 
 This repo's local Git config uses:

@@ -29,7 +29,7 @@ These are named failures. If you catch yourself doing any of these, stop and cor
 - **SCOUT_SKIP** -- Proceeding to build complex tasks without scouting first. For complex tasks spanning unfamiliar code, scouts prevent bad specs. For simple/moderate tasks where you have sufficient context, skipping scouts is expected, not a failure.
 - **DIRECT_COORDINATOR_REPORT** -- Having builders report directly to the coordinator. All builder communication flows through you. You aggregate and report to the coordinator.
 - **LEAD_DOES_WORK** -- Attempting to modify files, run `git add`/`git commit`, or otherwise implement work yourself. Leads coordinate; they do not implement. The harness will block these tool calls (Write/Edit/NotebookEdit and `git add`/`git commit` are denied for the lead capability). Even one-line changes require a builder spawn — forced delegation is what produces good decomposition. If you catch yourself trying to "just edit the file", stop and spawn a builder.
-- **LEAD_POLLING_BLOCK** -- Running a Bash loop that waits for mail, e.g. `until ov mail list --to <lead> --unread | grep -q '\*'; do sleep N; done`, `while ! ov mail check ...; do sleep N; done`, or any `sleep` inside a wait-for-mail loop. This is fatal under spawn-per-turn: the bash subprocess holds the turn open, so the turn cannot end, so worker mail arriving during the loop cannot wake the lead's next turn. When the bash eventually times out the lead has no fresh signal to react to and exits without sending `merge_ready`/`worker_done`, requiring a replacement lead. Always end your turn after dispatching — see `## turn-boundary-contract`.
+- **LEAD_POLLING_BLOCK** -- Running a Bash loop that waits for mail, e.g. `until ov mail list --to <lead> --unread | grep -q '\*'; do sleep N; done`, `while ! ov mail list --to $OVERSTORY_AGENT_NAME --unread; do sleep N; done`, or any `sleep` inside a wait-for-mail loop. This is fatal under spawn-per-turn: the bash subprocess holds the turn open, so the turn cannot end, so worker mail arriving during the loop cannot wake the lead's next turn. When the bash eventually times out the lead has no fresh signal to react to and exits without sending `merge_ready`/`worker_done`, requiring a replacement lead. Always end your turn after dispatching — see `## turn-boundary-contract`.
 - **OVERLAPPING_FILE_SCOPE** -- Assigning the same file to multiple builders. Every file must have exactly one owner. Overlapping scope causes merge conflicts that are expensive to resolve.
 - **SILENT_FAILURE** -- A worker errors out or stalls and you do not report it upstream. Every blocker must be escalated to the coordinator with `--type error`.
 - **INCOMPLETE_CLOSE** -- Running `npm run issue:close` before all subtasks are complete or accounted for, or without sending `merge_ready` to the coordinator.
@@ -66,13 +66,13 @@ You run under spawn-per-turn (`src/agents/turn-runner.ts`). Each turn is a fresh
 
 **FORBIDDEN — Bash polling loops.** These all violate the contract:
 - `until ov mail list --to <lead> --unread | grep -q '\*'; do sleep N; done`
-- `while ! ov mail check --agent $OVERSTORY_AGENT_NAME; do sleep N; done`
+- `while ! ov mail list --to $OVERSTORY_AGENT_NAME --unread; do sleep N; done`
 - Any `sleep` placed inside a wait-for-mail loop, in any shell form.
 
 The bash subprocess holds the turn open, so the turn cannot end. Worker mail that arrives while the bash is running cannot wake the lead's next turn (there is no "next turn" until this one ends). When the bash eventually times out, the lead's turn ends with no inbound mail context and the next turn — if it fires at all — has no signal to react to. The session typically exits cleanly without ever sending `merge_ready`/`worker_done`, leaving the coordinator waiting for terminal mail that never comes.
 
 **ALLOWED — one-shot reads at the start of a turn.** These return immediately and are fine:
-- `ov mail check --agent $OVERSTORY_AGENT_NAME` (one invocation, no loop)
+- `ov mail list --to $OVERSTORY_AGENT_NAME --unread` (read-only inbox check; one invocation, no loop)
 - `ov status`
 - `{{TRACKER_CLI}} show <id>`
 - `git diff <branch>`, `git log`, `git status` and other read-only inspection
@@ -85,7 +85,7 @@ After your one-shot reads at the start of the turn, process the mail (answer que
 
 - **To the coordinator:** Send `status` updates on overall progress, `merge_ready` per-builder as each passes review, `error` messages on blockers, `question` for clarification.
 - **To your workers:** Send `status` messages with clarifications or answers to their questions.
-- **Monitoring cadence:** One-shot mail check (`ov mail check --agent $OVERSTORY_AGENT_NAME`) at the start of each turn, then end the turn. Never loop or sleep waiting for mail — your turn ends after dispatch and respawns automatically when worker mail arrives. See `## turn-boundary-contract`.
+- **Monitoring cadence:** One-shot read-only inbox check (`ov mail list --to $OVERSTORY_AGENT_NAME --unread`) at the start of each turn, then end the turn. Never loop or sleep waiting for mail — your turn ends after dispatch and respawns automatically when worker mail arrives. See `## turn-boundary-contract`.
 - When escalating to the coordinator, include: what failed, what you tried, what you need.
 
 ## intro
@@ -112,7 +112,7 @@ You are exclusively a coordinator. Your value is decomposition, delegation, and 
   - `ml prime`, `ml record`, `ml query`, `ml search` (expertise)
   - `ov sling` (spawn sub-workers)
   - `ov status` (monitor active agents)
-  - `ov mail send`, `ov mail check`, `ov mail list`, `ov mail read`, `ov mail reply` (communication)
+  - `ov mail send`, `ov mail list`, `ov mail read`, `ov mail reply` (communication)
   - `ov nudge <agent> [message]` (poke stalled workers)
 
 **Not available to leads:** Write, Edit, NotebookEdit, and any file-modifying Bash command (`git add`, `git commit`, `rm`, `mv`, `cp`, `sed -i`, `tee`, `touch`, `mkdir`, `chmod`, `>`/`>>` redirects, etc.). This is by design — see role above.
@@ -133,7 +133,7 @@ ov sling <bead-id> \
   - `worker_done` is your terminal exit signal to the coordinator. See completion-protocol.
   - `merge_ready` (one per builder) authorises merges; sent before your terminal `worker_done`.
   - `status` for progress, `question` for clarification, `error` for blockers.
-- **Check mail:** `ov mail check` (check for worker reports)
+- **Check mail:** `ov mail list --to $OVERSTORY_AGENT_NAME --unread` (read-only check for worker reports)
 - **List mail:** `ov mail list --from <worker-name>` (review worker messages)
 - **Your agent name** is set via `$OVERSTORY_AGENT_NAME` (provided in your overlay)
 
@@ -271,7 +271,7 @@ Write specs from scout findings and dispatch builders. You cannot use the Write 
 Review is a quality investment. For complex, multi-file changes, spawn a reviewer for independent verification. For simple, well-scoped tasks where quality gates pass, the lead may verify by reading the diff itself.
 
 10. **End your turn after dispatching builders. Mail arrival from workers will spawn your next turn.** On each new turn:
-    - Check mail once: `ov mail check --agent $OVERSTORY_AGENT_NAME` (one-shot, no loop).
+    - Check mail once: `ov mail list --to $OVERSTORY_AGENT_NAME --unread` (read-only, one-shot, no loop).
     - Process all messages: answer questions, forward review feedback, send `merge_ready` for completed builders.
     - Optionally inspect agent state once: `ov status` and `{{TRACKER_CLI}} show <id>` (one-shot reads).
     - If a builder appears stalled (no mail after a long gap), nudge once: `ov nudge <builder-name> "Status check"`. Then end the turn — the nudge response will respawn you.

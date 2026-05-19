@@ -70,7 +70,7 @@ This file tells you HOW to coordinate. Your objectives come from the channels ab
 - **Your agent name** is set via `$OVERSTORY_AGENT_NAME` (provided in your overlay)
 
 #### Receiving Mail
-- **Check inbox:** `ov mail check --agent $OVERSTORY_AGENT_NAME`
+- **Check inbox:** `ov mail list --to $OVERSTORY_AGENT_NAME --unread` (read-only; does not mark messages read)
 - **List mail:** `ov mail list [--from <agent>] [--to $OVERSTORY_AGENT_NAME] [--unread]`
 - **Read message:** `ov mail read <id> --agent $OVERSTORY_AGENT_NAME`
 
@@ -135,7 +135,7 @@ You are the top-level decision-maker for automated work. When a human gives you 
   - `{{TRACKER_CLI}} create`, `{{TRACKER_CLI}} show`, `{{TRACKER_CLI}} ready`, `{{TRACKER_CLI}} update`, `npm run issue:close`, `{{TRACKER_CLI}} list`, `{{TRACKER_CLI}} sync` (full {{TRACKER_NAME}} lifecycle)
   - `ov sling` (spawn lead agents by default; direct scout/builder fallback for low-budget narrow work)
   - `ov status` (monitor active agents and worktrees)
-  - `ov mail send`, `ov mail check`, `ov mail list`, `ov mail read`, `ov mail reply` (full mail protocol)
+  - `ov mail send`, `ov mail list`, `ov mail read`, `ov mail reply` (full mail protocol)
   - `ov nudge <agent> [message]` (poke stalled leads)
   - `ov group create`, `ov group status`, `ov group add`, `ov group remove`, `ov group list` (task group management)
   - `ov merge --branch <name>`, `ov merge --all`, `ov merge --dry-run` (merge completed branches)
@@ -187,7 +187,7 @@ Coordinator (you, depth 0, acting as coordinator/lead)
 
 ### Communication
 - **Send typed mail:** `ov mail send --to <agent> --subject "<subject>" --body "<body>" --type <type> --priority <priority>`
-- **Check inbox:** `ov mail check` (unread messages)
+- **Check inbox:** `ov mail list --to $OVERSTORY_AGENT_NAME --unread` (read-only unread messages)
 - **List mail:** `ov mail list [--from <agent>] [--to <agent>] [--unread]`
 - **Read message:** `ov mail read <id>`
 - **Reply in thread:** `ov mail reply <id> --body "<reply>"`
@@ -245,7 +245,7 @@ Coordinator (you, depth 0, acting as coordinator/lead)
    ov group create '<batch-name>' <task-id-1> <task-id-2> [<task-id-3>...]
    ```
 8. **Monitor the batch.** Enter a monitoring loop:
-   - `ov mail check` -- process incoming messages from leads.
+   - `ov mail list --to $OVERSTORY_AGENT_NAME --unread` -- process incoming messages from leads without marking messages read.
    - `ov status` -- check agent states (booting, working, completed, zombie).
    - `ov group status <group-id>` -- check batch progress.
    - Handle each message by type (see Escalation Routing below).
@@ -375,7 +375,7 @@ The coordinator is long-lived. It survives across work batches and can recover c
   1. Reading your checkpoint: `.overstory/agents/coordinator/checkpoint.json`
   2. Checking active groups: `ov group list` and `ov group status`
   3. Checking agent states: `ov status`
-  4. Checking unread mail: `ov mail check`
+  4. Checking unread mail: `ov mail list --to $OVERSTORY_AGENT_NAME --unread`
   5. Loading expertise: `ml prime`
   6. Reviewing open issues: `{{TRACKER_CLI}} ready`
 - **State lives in external systems**, not in your conversation history. {{TRACKER_NAME}} tracks issues, groups.json tracks batches, mail.db tracks communications, sessions.json tracks agents.

@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   evaluateBashCommand,
   extractCommand
@@ -10,6 +11,19 @@ test('git push remains blocked', () => {
 
   assert.equal(decision.decision, 'block');
   assert.match(decision.reason, /git push/);
+});
+
+test('readonly unsafe mail check is blocked', () => {
+  const decision = evaluateBashCommand('ov mail check --agent builder-vr101');
+
+  assert.equal(decision.decision, 'block');
+  assert.match(decision.reason, /ov mail list --to/);
+});
+
+test('mail check help remains allowed', () => {
+  const decision = evaluateBashCommand('ov mail check --help');
+
+  assert.equal(decision.decision, 'allow');
 });
 
 test('direct sd close is blocked', () => {
@@ -50,3 +64,14 @@ test('hook input command is extracted from nested tool input', () => {
   assert.equal(command, 'sd close VR-101');
 });
 
+test('user prompt hook uses read-only mail listing', () => {
+  const hooks = JSON.parse(readFileSync('.overstory/hooks.json', 'utf8'));
+  const userPromptCommands = hooks.hooks.UserPromptSubmit.flatMap((entry) => (
+    entry.hooks.map((hook) => hook.command)
+  ));
+
+  assert.ok(userPromptCommands.some((command) => (
+    command.includes('ov mail list --to orchestrator --unread')
+  )));
+  assert.ok(userPromptCommands.every((command) => !command.includes('ov mail check')));
+});

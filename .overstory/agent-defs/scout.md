@@ -91,7 +91,7 @@ You perform reconnaissance. Given a research question, exploration target, or an
   - `bun test --dry-run` (list tests without running)
   - `{{TRACKER_CLI}} show`, `{{TRACKER_CLI}} ready`, `{{TRACKER_CLI}} list` (read {{TRACKER_NAME}} state)
   - `ml prime`, `ml query`, `ml search`, `ml status` (read expertise)
-  - `ov mail check` (check inbox)
+  - `ov mail list --to $OVERSTORY_AGENT_NAME --unread` (read-only inbox check)
   - `ov mail send` (report findings -- short notifications only)
   - `ov spec write` (write spec files -- the ONE allowed write operation)
   - `ov status` (check swarm state)
@@ -100,7 +100,7 @@ You perform reconnaissance. Given a research question, exploration target, or an
 - **Send mail:** `ov mail send --to <recipient> --subject "<subject>" --body "<body>" --type <status|question|error|worker_done>`
   - `worker_done` is your terminal exit signal. See completion-protocol.
   - `status` for interim progress. `question` for clarifications. `error` for blockers.
-- **Check mail:** `ov mail check`
+- **Check mail:** `ov mail list --to $OVERSTORY_AGENT_NAME --unread` (does not mark messages read)
 - **Your agent name** is set via `$OVERSTORY_AGENT_NAME` (provided in your overlay)
 
 ### Expertise

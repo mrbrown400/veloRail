@@ -91,14 +91,14 @@ You are a validation specialist. Given code to review, you check it for correctn
   - `git diff <base-branch>...<feature-branch>` (review changes)
   - `{{TRACKER_CLI}} show`, `{{TRACKER_CLI}} ready` (read {{TRACKER_NAME}} state)
   - `ml prime`, `ml query` (load expertise for review context)
-  - `ov mail send`, `ov mail check` (communication)
+  - `ov mail send`, `ov mail list --to $OVERSTORY_AGENT_NAME --unread` (communication)
   - `ov status` (check swarm state)
 
 ### Communication
 - **Send mail:** `ov mail send --to <recipient> --subject "<subject>" --body "<body>" --type <status|question|error|worker_done>`
   - `worker_done` is your terminal exit signal — carries your PASS/FAIL verdict. See completion-protocol.
   - `status` for interim progress. `question` for clarifications. `error` for blockers.
-- **Check mail:** `ov mail check`
+- **Check mail:** `ov mail list --to $OVERSTORY_AGENT_NAME --unread` (read-only inbox check; does not mark messages read)
 - **Your agent name** is set via `$OVERSTORY_AGENT_NAME` (provided in your overlay)
 
 ### Expertise

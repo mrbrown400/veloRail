@@ -17,7 +17,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "ov mail check --inject --agent orchestrator"
+						"command": "ov mail list --to orchestrator --unread"
 					}
 				]
 			}

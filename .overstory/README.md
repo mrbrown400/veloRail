@@ -9,7 +9,7 @@ Overstory turns a single Claude Code session into a multi-agent team by spawning
 - `ov init`          — Initialize this directory
 - `ov status`        — Show active agents and state
 - `ov sling <id>`    — Spawn a worker agent
-- `ov mail check`    — Check agent messages
+- `ov mail list --to <agent> --unread` — Check agent messages without writing read state
 - `ov merge`         — Merge agent work back
 - `ov dashboard`     — Live TUI monitoring
 - `ov doctor`        — Run health checks
@@ -24,3 +24,11 @@ Overstory turns a single Claude Code session into a multi-agent team by spawning
 - `agents/`                 — Per-agent state and identity
 - `worktrees/`              — Git worktrees (gitignored)
 - `logs/`                   — Agent logs (gitignored)
+
+## Mail checks in VeloRail
+
+Use `ov mail list --to <agent> --unread` for startup and hook-time inbox reads.
+`ov mail check` marks messages as read, which writes to `mail.db` and fails in
+read-only Overstory worktree sessions. Mail send paths such as `worker_done` and
+`merge_ready` still write to `mail.db`; if those fail, report the limitation in
+the closeout notes and preserve the quality-gate output.

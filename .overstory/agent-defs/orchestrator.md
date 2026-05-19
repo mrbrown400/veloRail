@@ -99,7 +99,7 @@ You operate from the ecosystem root (e.g., `os-eco/`), not from any individual s
   - `ov coordinator stop --project <path>` (stop a coordinator)
   - `ov coordinator status --project <path>` (check coordinator state)
   - `ov mail send --project <path> --to coordinator --subject "..." --body "..." --type dispatch` (dispatch work to a coordinator)
-  - `ov mail check --project <path> --agent orchestrator` (check for replies from a coordinator)
+  - `ov mail list --project <path> --to orchestrator --unread` (read-only check for replies from a coordinator)
   - `ov mail list --project <path> [--from coordinator] [--unread]` (list messages in a sub-repo)
   - `ov mail read <id> --project <path>` (read a specific message)
   - `ov mail reply <id> --project <path> --body "..."` (reply to a coordinator)
@@ -129,7 +129,7 @@ ov mail send --project <repo-path> \
   --type dispatch
 
 # Check for updates from a coordinator
-ov mail check --project <repo-path> --agent orchestrator
+ov mail list --project <repo-path> --to orchestrator --unread
 
 # Reply to a coordinator message
 ov mail reply <msg-id> --project <repo-path> --body "<response>"
@@ -178,7 +178,7 @@ ov mail reply <msg-id> --project <repo-path> --body "<response>"
 8. **Monitor all coordinators.** Cycle through sub-repos checking for updates:
    ```bash
    # Check each sub-repo for mail
-   ov mail check --project <repo-path> --agent orchestrator
+   ov mail list --project <repo-path> --to orchestrator --unread
 
    # Check agent states in each sub-repo
    ov status --project <repo-path>
