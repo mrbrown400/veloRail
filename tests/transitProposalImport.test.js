@@ -1,4 +1,4 @@
-import { after, test } from 'node:test';
+ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { closeAppModuleLoader, loadAppModule } from './helpers/viteSsr.js';
 
@@ -178,12 +178,18 @@ test('merged default manifest keeps official future records separate from vision
   const freightRecords = IMPORTED_TRANSIT_PROPOSALS.dataset.proposals.filter(
     proposal => proposal.rendering?.layerGroup === 'freight'
   );
+  const convertedPassengerRecords = IMPORTED_TRANSIT_PROPOSALS.dataset.proposals.filter(
+    proposal => proposal.rendering?.layerGroup === 'converted_passenger'
+  );
 
   assert.equal(futureRecords.length, 7);
   assert.ok(futureRecords.every(proposal => proposal.classification === 'official'));
   assert.deepEqual(unofficialRecords.map(proposal => proposal.id), [
     'vision-vermont-rapid-rail',
-    'vision-la-river-rail'
+    'vision-la-river-rail',
+    'alameda-corridor-south-alameda-passenger-conversion',
+    'bnsf-la-san-bernardino-passenger-conversion',
+    'up-la-inland-empire-passenger-conversion'
   ]);
   assert.deepEqual(freightRecords.map(proposal => proposal.id), [
     'freight-alameda-corridor',
@@ -192,6 +198,12 @@ test('merged default manifest keeps official future records separate from vision
     'la-freight-union-pacific-los-angeles-inland-empire',
     'la-freight-pacific-harbor-line-port-complex'
   ]);
+  assert.deepEqual(convertedPassengerRecords.map(proposal => proposal.id), [
+    'alameda-corridor-south-alameda-passenger-conversion',
+    'bnsf-la-san-bernardino-passenger-conversion',
+    'up-la-inland-empire-passenger-conversion'
+  ]);
+  assert.ok(convertedPassengerRecords.every(proposal => proposal.classification === 'speculative'));
 });
 
 test('LA freight rail corridor batch validates source, license, and overlay metadata', async () => {
@@ -233,6 +245,54 @@ test('LA freight rail corridor batch validates source, license, and overlay meta
     assert.ok(provenanceIds.has(proposal.freight.usageSourceId));
     assert.ok(provenanceIds.has(proposal.freight.electrificationSourceId));
   }
+
+  const alameda = result.dataset.proposals.find(
+    proposal => proposal.id === 'la-freight-alameda-corridor'
+  );
+
+  assert.ok(alameda.freight.conversionScenarios.some(
+    scenario => scenario.id === 'alameda-corridor-south-alameda-passenger-conversion'
+  ));
+  assert.match(
+    alameda.freight.conversionScenarios[0].stationAssumptions.join(' '),
+    /South Alameda\/Slauson/
+  );
+});
+
+test('freight passenger conversion generator creates speculative overlay records from corridor scenarios', async () => {
+  const {
+    LA_FREIGHT_RAIL_CORRIDOR_DATASET
+  } = await loadAppModule('/src/data/laFreightRailCorridors.ts');
+  const {
+    FREIGHT_PASSENGER_CONVERSION_SOURCE_NAME,
+    createFreightPassengerConversionDataset
+  } = await loadAppModule('/src/services/freightPassengerConversion.ts');
+  const {
+    importTransitProposalDataset
+  } = await loadAppModule('/src/data/transitProposalImport.ts');
+
+  const conversionDataset = createFreightPassengerConversionDataset(LA_FREIGHT_RAIL_CORRIDOR_DATASET);
+  const result = importTransitProposalDataset(conversionDataset, {
+    sourceName: FREIGHT_PASSENGER_CONVERSION_SOURCE_NAME
+  });
+
+  assert.deepEqual(result.dataset.proposals.map(proposal => proposal.id), [
+    'alameda-corridor-south-alameda-passenger-conversion',
+    'bnsf-la-san-bernardino-passenger-conversion',
+    'up-la-inland-empire-passenger-conversion'
+  ]);
+
+  const alameda = result.dataset.proposals[0];
+
+  assert.equal(alameda.status, 'converted_passenger');
+  assert.equal(alameda.classification, 'speculative');
+  assert.equal(alameda.rendering.layerGroup, 'converted_passenger');
+  assert.equal(alameda.freight.conversionScenarioId, 'alameda-corridor-south-alameda-passenger-conversion');
+  assert.equal(alameda.freight.conversionScenarios[0].sourceFreightCorridorId, 'la-freight-alameda-corridor');
+  assert.equal(alameda.stations[1].name, 'South Alameda / Slauson');
+  assert.ok(alameda.provenance.some(source => source.sourceType === 'internal_example'));
+  assert.match(alameda.uncertainty.disclaimer, /Not approved/);
+  assert.ok(result.overlays.every(overlay => overlay.markers.length >= 3));
 });
 
 test('transit proposal import fails fast on invalid ids, status, coordinates, and provenance', async () => {

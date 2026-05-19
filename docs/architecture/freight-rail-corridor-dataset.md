@@ -1,6 +1,6 @@
 # LA Freight Rail Corridor Dataset
 
-VR-402 adds the first production freight corridor source batch for the Nationalized Rail overlay. The data lives in `src/data/laFreightRailCorridors.ts` and is registered through `TRANSIT_PROPOSAL_SOURCE_FILES`, so the existing import pipeline validates it before Google Maps receives any polylines.
+VR-402 adds the first production freight corridor source batch for the Nationalized Rail overlay. VR-404 and VR-405 extend that batch with a default-off hypothetical passenger-conversion planning layer. The source freight data lives in `src/data/laFreightRailCorridors.ts`; generated passenger records are created by `src/services/freightPassengerConversion.ts` and registered through `TRANSIT_PROPOSAL_SOURCE_FILES`, so the existing import pipeline validates everything before Google Maps receives any polylines.
 
 ## Scope
 
@@ -23,6 +23,34 @@ Records are excluded when the source evidence only supports a passenger concept,
 | `la-freight-pacific-harbor-line-port-complex` | Owner: port rail infrastructure owners. Operator: Pacific Harbor Line. | PHL company profile, UP PHL short-line page, Port of Los Angeles rail page. | Schematic port-terminal loop; it abstracts detailed yard and terminal tracks. |
 
 The existing `freight-alameda-corridor` seed remains in `src/data/transitProposals.ts` for schema examples. VR-402 does not edit the seed file because the production batch is a separate source file and must keep source registration decoupled from map components.
+
+## Passenger Conversion Layer
+
+The layer panel places the Nationalized Rail work with the other scenario controls as `Passenger Conversion`. Its accessible label and hover text use this disclaimer wording: "Hypothetical passenger-conversion planning over sourced freight corridors; not approved service." The overlay remains independent from Future Transit and Visionary Concepts and is off by default.
+
+The conversion model is deterministic and intentionally simple:
+
+- Freight records stay `status: freight_only` and `rendering.layerGroup: freight`.
+- Selected freight records carry nested `freight.conversionScenarios` with `stationAssumptions`, `assumptions`, and `sourceFreightCorridorId`.
+- `createFreightPassengerConversionDataset()` emits separate `status: converted_passenger`, `classification: speculative`, `rendering.layerGroup: converted_passenger` line records.
+- Converted records inherit source freight geometry, owner, operator, electrification, provenance links, and suitability notes.
+- Converted records add an `internal_example` provenance source that explains the generation step and repeats that source documents support freight corridors only.
+
+Generated records in the current batch:
+
+| Converted record | Source corridor | Station assumptions |
+| --- | --- | --- |
+| `alameda-corridor-south-alameda-passenger-conversion` | `la-freight-alameda-corridor` | San Pedro Bay terminal, South Alameda/Slauson placeholder, downtown rail yards interface. |
+| `bnsf-la-san-bernardino-passenger-conversion` | `la-freight-bnsf-los-angeles-san-bernardino` | Hobart/Commerce terminal, intermediate transfer placeholder, San Bernardino freight gateway. |
+| `up-la-inland-empire-passenger-conversion` | `la-freight-union-pacific-los-angeles-inland-empire` | LA River rail yards, San Gabriel Valley interface, Inland Empire gateway. |
+
+Pacific Harbor Line remains freight context only because the current source batch supports terminal/switching freight use and explicitly does not support passenger conversion.
+
+## Feedback Candidates
+
+User feedback called out existing track or right-of-way around South Alameda Street and Randolph Street. The current checked-in data supports a South Alameda planning placeholder through the sourced Alameda Corridor record, so VR-404/VR-405 generates the `alameda-corridor-south-alameda-passenger-conversion` record from that source corridor.
+
+Randolph Street remains documented as a candidate to investigate, but it is not rendered as its own line in this batch. The current source records are regional freight corridors and do not yet provide enough segment-level, source-linked data to distinguish a Randolph Street corridor from surrounding BNSF/UP regional trackage without risking an unsupported passenger-service implication.
 
 ## Source Watch List
 
@@ -64,7 +92,9 @@ All VR-402 records use `geometrySource: 'approximate'`. Approximate geometry mus
 - Exact subdivision segmentation, mileposts, track counts, turnouts, yard leads, and dispatching boundaries are not encoded.
 - Port terminal rail geometry is schematic and intentionally avoids detailed terminal and customer tracks.
 - Electrification is `unknown` because this import did not find a checked official source that can be used as a systemwide electrification inventory for the included records.
-- Suitability for passenger conversion is not scored in VR-402.
+- Suitability for passenger conversion is not scored. Converted records inherit source suitability as context only.
+- Generated station records are assumptions for overlay rendering and metadata. They are not official station plans.
+- Randolph Street needs a future source pass before it can become a separate rendered corridor.
 - Future refresh work should decide whether to derive more precise simplified geometry from FRA NARN or Caltrans GeoJSON through a repeatable script.
 
 ## Verification
@@ -74,4 +104,4 @@ Useful checks after edits:
 - `npm run test -- tests/transitProposalImport.test.js tests/mapOverlayRegistry.test.js`
 - `npm run quality`
 
-The import tests assert that the LA freight source validates, every provenance record has an access date and `License/terms:` note, freight source-id references resolve to provenance, and the Nationalized Rail overlay receives the new freight records without map component changes.
+The import tests assert that the LA freight source validates, every provenance record has an access date and `License/terms:` note, freight source-id references resolve to provenance, converted passenger records link back to source corridors, and the Nationalized Rail overlay receives both freight and passenger-conversion records without a second map renderer.

@@ -348,8 +348,8 @@ export const MAP_OVERLAY_DEFINITIONS: MapOverlayDefinition[] = [
   },
   {
     id: 'nationalized-rail',
-    label: 'Nationalized',
-    description: 'Freight and conversion corridor overlays',
+    label: 'Passenger Conversion',
+    description: 'Hypothetical passenger-conversion planning over sourced freight corridors; not approved service',
     scenario: 'nationalized',
     order: 40,
     defaultVisible: false,
@@ -390,8 +390,8 @@ const MAP_OVERLAY_GROUP_DEFINITIONS: MapOverlayGroupDefinition[] = [
   },
   {
     id: 'nationalized',
-    label: 'Nationalized',
-    description: 'Freight and passenger-conversion corridor overlays',
+    label: 'Nationalized Rail Planning',
+    description: 'Hypothetical passenger-conversion planning over existing freight rights-of-way',
     order: 40,
     overlayIds: ['nationalized-rail']
   }
@@ -777,6 +777,9 @@ export function getProposalMetadata(
   const kind: MapOverlayMetadataKind = markerInput ? 'station' : proposal.kind;
   const title = markerInput?.title ?? proposal.shortName ?? proposal.name;
   const status = markerInput?.status ?? proposal.status;
+  const conversionScenario = proposal.status === 'converted_passenger'
+    ? getActiveConversionScenario(proposal)
+    : undefined;
   const details = [
     metadataDetail('Status', formatToken(status)),
     metadataDetail('Classification', formatToken(proposal.classification)),
@@ -790,7 +793,10 @@ export function getProposalMetadata(
     metadataDetail('Operator', proposal.freight?.operator),
     metadataDetail('Track usage', proposal.freight?.trackUsage ? formatToken(proposal.freight.trackUsage) : undefined),
     metadataDetail('Electrification', proposal.freight?.electrification ? formatToken(proposal.freight.electrification) : undefined),
-    metadataDetail('Suitability', proposal.freight?.suitability?.rating ? formatToken(proposal.freight.suitability.rating) : undefined)
+    metadataDetail('Suitability', proposal.freight?.suitability?.rating ? formatToken(proposal.freight.suitability.rating) : undefined),
+    metadataDetail('Source corridor', conversionScenario?.sourceFreightCorridorId),
+    metadataDetail('Conversion scenario', conversionScenario?.name),
+    metadataDetail('Station assumptions', conversionScenario?.stationAssumptions?.join(' '))
   ].filter((detail): detail is MapOverlayMetadataDetail => Boolean(detail));
 
   return {
@@ -816,6 +822,15 @@ export function getProposalMetadata(
       note: source.note
     }))
   };
+}
+
+function getActiveConversionScenario(proposal: TransitProposal) {
+  const scenarioId = proposal.freight?.conversionScenarioId;
+  const scenarios = proposal.freight?.conversionScenarios ?? [];
+
+  if (!scenarioId) return scenarios[0];
+
+  return scenarios.find((scenario) => scenario.id === scenarioId);
 }
 
 function getProposalStyleKey(proposal: TransitProposal): MapOverlayStyleKey {
