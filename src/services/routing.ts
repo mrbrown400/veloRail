@@ -9,6 +9,10 @@ import {
   calculateWalkRailRoute,
   calculateGoogleDrivingRoute
 } from './multimodalRouter';
+import {
+  calculateBikeDuration,
+  loadBikeSettings
+} from './bikeDurationService';
 import type {
   Location,
   Station,
@@ -47,6 +51,38 @@ export function formatDuration(seconds: number): string {
   const hr = Math.floor(min / 60);
   const m = min % 60;
   return `${hr} hr ${m} min`;
+}
+
+export const ROUTING_SPEEDS_KMH = {
+  bike: 20,
+  walk: 5,
+  transit_bus: 15
+} as const;
+
+async function estimateSurfaceDurationSeconds(
+  travelMode: TravelMode,
+  distanceKm: number,
+  geometry?: RouteLeg['geometry']
+): Promise<number> {
+  if (travelMode === 'bike') {
+    const bikeSettings = loadBikeSettings();
+    if (geometry && typeof google !== 'undefined' && google.maps) {
+      const estimate = await calculateBikeDuration(geometry, distanceKm, bikeSettings);
+      return estimate.totalDuration;
+    }
+
+    return (distanceKm / bikeSettings.baseSpeedKmh) * 3600;
+  }
+
+  if (travelMode === 'walk') {
+    return (distanceKm / ROUTING_SPEEDS_KMH.walk) * 3600;
+  }
+
+  if (travelMode === 'transit_bus') {
+    return (distanceKm / ROUTING_SPEEDS_KMH.transit_bus) * 3600;
+  }
+
+  return 0;
 }
 
 
@@ -431,11 +467,6 @@ export async function calculateRoute(
   if (isWalking) profile = 'walking';
   if (isBus) profile = 'driving';
 
-  let fallbackSpeed = 20;
-  if (isWalking) fallbackSpeed = 5;
-  if (isBus) fallbackSpeed = 15;
-
-  const fallbackSpeedMs = fallbackSpeed / 3.6;
   const busPenaltySeconds = isBus ? 600 : 0;
 
   const entryStation = findNearestStation(startLoc.lat, startLoc.lon, queryTime, includeFuture);
@@ -497,16 +528,17 @@ export async function calculateRoute(
     ], profile);
 
     const distKm = route ? route.distance : directDist;
-    const duration = route ? route.duration : (distKm * 1000 / fallbackSpeedMs);
+    const geometry = route?.geometry || {
+      type: "LineString" as const,
+      coordinates: [[startLoc.lon, startLoc.lat], [endLoc.lon, endLoc.lat]] as [number, number][]
+    };
+    const duration = await estimateSurfaceDurationSeconds(travelMode, distKm, geometry);
 
     legs.push({
       mode: travelMode,
       from: startLoc,
       to: endLoc,
-      geometry: route?.geometry || {
-        type: "LineString",
-        coordinates: [[startLoc.lon, startLoc.lat], [endLoc.lon, endLoc.lat]]
-      },
+      geometry,
       distance: distKm,
       duration: duration + busPenaltySeconds
     });
@@ -520,16 +552,17 @@ export async function calculateRoute(
     ], profile);
 
     const d1 = l1 ? l1.distance : getDistance(startLoc.lat, startLoc.lon, entryStation.lat, entryStation.lon);
-    const dur1 = l1 ? l1.duration : (d1 * 1000 / fallbackSpeedMs);
+    const geometry1 = l1?.geometry || {
+      type: "LineString" as const,
+      coordinates: [[startLoc.lon, startLoc.lat], [entryStation.lon, entryStation.lat]] as [number, number][]
+    };
+    const dur1 = await estimateSurfaceDurationSeconds(travelMode, d1, geometry1);
 
     legs.push({
       mode: travelMode,
       from: startLoc,
       to: entryStation,
-      geometry: l1?.geometry || {
-        type: "LineString",
-        coordinates: [[startLoc.lon, startLoc.lat], [entryStation.lon, entryStation.lat]]
-      },
+      geometry: geometry1,
       distance: d1,
       duration: dur1 + busPenaltySeconds
     });
@@ -640,16 +673,17 @@ export async function calculateRoute(
     ], profile);
 
     const d3 = l3 ? l3.distance : getDistance(exitStation.lat, exitStation.lon, endLoc.lat, endLoc.lon);
-    const dur3 = l3 ? l3.duration : (d3 * 1000 / fallbackSpeedMs);
+    const geometry3 = l3?.geometry || {
+      type: "LineString" as const,
+      coordinates: [[exitStation.lon, exitStation.lat], [endLoc.lon, endLoc.lat]] as [number, number][]
+    };
+    const dur3 = await estimateSurfaceDurationSeconds(travelMode, d3, geometry3);
 
     legs.push({
       mode: travelMode,
       from: exitStation,
       to: endLoc,
-      geometry: l3?.geometry || {
-        type: "LineString",
-        coordinates: [[exitStation.lon, exitStation.lat], [endLoc.lon, endLoc.lat]]
-      },
+      geometry: geometry3,
       distance: d3,
       duration: dur3 + busPenaltySeconds
     });

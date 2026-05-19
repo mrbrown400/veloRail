@@ -235,6 +235,10 @@ export function estimateBikeDuration(
 const STORAGE_KEY = 'velorail_bike_settings';
 
 export function loadBikeSettings(): BikeSettings {
+  if (typeof localStorage === 'undefined') {
+    return { ...DEFAULT_BIKE_SETTINGS };
+  }
+
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -251,6 +255,10 @@ export function loadBikeSettings(): BikeSettings {
 }
 
 export function saveBikeSettings(settings: BikeSettings): void {
+  if (typeof localStorage === 'undefined') {
+    return;
+  }
+
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   } catch (e) {

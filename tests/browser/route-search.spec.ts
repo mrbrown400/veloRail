@@ -70,6 +70,66 @@ test('@smoke @VR-304 @VR-305 typed endpoints make the route search respond visib
   }).toBe(true);
 });
 
+test('@veloRail-8982 bike and walk rail estimates use different surface speeds', async ({ page }) => {
+  await page.route('https://nominatim.openstreetmap.org/search?**', async (route) => {
+    const requestUrl = new URL(route.request().url());
+    const query = requestUrl.searchParams.get('q')?.toLowerCase() || '';
+    const isHollywood = query.includes('hollywood');
+
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{
+        lat: isHollywood ? '34.1013225' : '34.0486587',
+        lon: isHollywood ? '-118.325586' : '-118.258743',
+        display_name: isHollywood ? 'Hollywood/Vine Station' : '7th St/Metro Center'
+      }])
+    });
+  });
+
+  await page.route('https://router.project-osrm.org/route/v1/**', async (route) => {
+    const requestUrl = new URL(route.request().url());
+    const [profileAndCoords] = requestUrl.pathname.split('/route/v1/').slice(1);
+    const [profile, coordinateText] = profileAndCoords.split('/');
+    const coordinates = coordinateText.split(';').map((pair) => pair.split(',').map(Number));
+    const isDriving = profile === 'driving';
+
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 'Ok',
+        routes: [{
+          distance: isDriving ? 10_800 : 1_000,
+          duration: isDriving ? 1_020 : 60,
+          geometry: {
+            type: 'LineString',
+            coordinates
+          }
+        }]
+      })
+    });
+  });
+
+  await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
+
+  await page.locator('.location-status').click();
+  await page.getByPlaceholder('Your Location').fill('Hollywood/Vine Station');
+  await page.getByPlaceholder('Where to?').fill('7th St/Metro Center');
+  await page.getByRole('button', { name: 'Find Route' }).click();
+
+  const bikeOption = page.locator('.route-option', { hasText: 'Bike + Rail' }).first();
+  const walkOption = page.locator('.route-option', { hasText: 'Walk + Rail' }).first();
+
+  await expect(bikeOption).toBeVisible({ timeout: 20_000 });
+  await expect(walkOption).toBeVisible();
+
+  const bikeDuration = await bikeOption.locator('.route-option-duration').innerText();
+  const walkDuration = await walkOption.locator('.route-option-duration').innerText();
+
+  expect(parseDurationMinutes(walkDuration)).toBeGreaterThan(parseDurationMinutes(bikeDuration));
+});
+
 test('@smoke @VR-306 @VR-307 @VR-308 bike settings popover is not clipped by the search card', async ({ page }) => {
   await ensureMapsAvailable(page);
 
@@ -204,3 +264,9 @@ test('@VR-306 @VR-307 route results can close and reopen when options are availa
   await reopenButton.click();
   await expect(page.locator('.results-sidebar.open')).toBeVisible();
 });
+
+function parseDurationMinutes(duration: string): number {
+  const hourMatch = duration.match(/(\d+)\s*hr/);
+  const minuteMatch = duration.match(/(\d+)\s*min/);
+  return (hourMatch ? Number(hourMatch[1]) * 60 : 0) + (minuteMatch ? Number(minuteMatch[1]) : 0);
+}
