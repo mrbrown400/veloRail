@@ -15,6 +15,8 @@ interface SearchCardProps {
   className?: string;
 }
 
+const ROUTE_SEARCH_FEEDBACK_ID = 'route-search-feedback';
+
 export function SearchCard({ className = '' }: SearchCardProps) {
   const { searchParams, setSearchParams, isLoading, error, setError } = useRouteStore();
   const { searchMode, expandSearch, isUsingGeolocation, currentLocation } = useUIStore();
@@ -155,8 +157,17 @@ export function SearchCard({ className = '' }: SearchCardProps) {
   };
 
   return (
-    <Card className={`search-card ${className}`} ariaLabel="Route search">
-      <form className="search-form" onSubmit={handleSearch}>
+    <Card
+      className={`search-card ${className}`}
+      ariaLabel="Route search"
+      aria-describedby={error || searchMessage ? ROUTE_SEARCH_FEEDBACK_ID : undefined}
+    >
+      <form
+        className="search-form"
+        onSubmit={handleSearch}
+        aria-label="Route search form"
+        aria-busy={isLoading || isResolvingPlaces}
+      >
         {/* Header */}
         <div className="search-header">
           <span className="search-logo">
@@ -244,6 +255,7 @@ export function SearchCard({ className = '' }: SearchCardProps) {
 
         {(error || searchMessage) && (
           <div
+            id={ROUTE_SEARCH_FEEDBACK_ID}
             className={`search-feedback ${error ? 'search-feedback--error' : ''}`}
             role={error ? 'alert' : 'status'}
             aria-live="polite"
@@ -260,6 +272,7 @@ export function SearchCard({ className = '' }: SearchCardProps) {
             variant="primary"
             fullWidth
             type="submit"
+            aria-describedby={error || searchMessage ? ROUTE_SEARCH_FEEDBACK_ID : undefined}
           >
             {isResolvingPlaces ? 'Looking up...' : isLoading ? 'Calculating...' : 'Find Route'}
           </Button>

@@ -15,7 +15,7 @@ async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   await expect(page.getByLabel('Route search')).toBeVisible({ timeout: 20_000 });
 }
 
-test('@VR-003 @VR-004 @VR-403 @VR-404 @VR-405 @veloRail-967a nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
+test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @veloRail-967a nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const nationalizedToggle = page.getByRole('button', {
@@ -68,7 +68,7 @@ test('@VR-003 @VR-004 @VR-403 @VR-404 @VR-405 @veloRail-967a nationalized overla
     }));
   });
 
-  const metadataPanel = page.getByLabel('Selected map overlay metadata');
+  const metadataPanel = page.getByRole('region', { name: 'Alameda Corridor' });
   await expect(metadataPanel).toBeVisible();
   await expect(metadataPanel).toContainText('Alameda Corridor South Alameda passenger conversion concept');
   await expect(metadataPanel).toContainText('Passenger conversion');
