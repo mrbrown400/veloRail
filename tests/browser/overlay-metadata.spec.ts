@@ -76,3 +76,66 @@ test('@VR-003 @VR-004 @VR-403 nationalized overlay exposes freight legend and me
   await metadataPanel.getByRole('button', { name: 'Close metadata' }).click();
   await expect(metadataPanel).toBeHidden();
 });
+
+test('@VR-202 @VR-203 visionary overlay exposes speculative legend and metadata panel', async ({ page }) => {
+  await ensureMapsAvailable(page);
+
+  const visionaryToggle = page.getByRole('button', {
+    name: /unofficial visionary rail concepts/i
+  });
+
+  await expect(visionaryToggle).toHaveAttribute('aria-pressed', 'false');
+  await visionaryToggle.click();
+  await expect(visionaryToggle).toHaveAttribute('aria-pressed', 'true');
+
+  await page.getByRole('button', { name: /legend/i }).click();
+  const legend = page.getByLabel('Visible layer legend');
+  await expect(legend).toContainText('Visionary concept');
+  await expect(legend).toContainText('Speculative river rail vision');
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('velorail:map-overlay-metadata-selected', {
+      detail: {
+        id: 'vision-la-river-rail-line',
+        proposalId: 'vision-la-river-rail',
+        kind: 'line',
+        title: 'LA River Rail Vision',
+        subtitle: 'line · light rail',
+        badgeLabel: 'Visionary',
+        badgeClassName: 'map-overlay-metadata__badge--visionary',
+        statusLabel: 'vision',
+        classificationLabel: 'speculative',
+        confidenceLabel: 'low',
+        uncertaintyLabel: 'high',
+        disclaimer: 'Speculative VeloRail scenario. Not an approved agency project, funded project, or Google Maps transit route.',
+        details: [
+          { label: 'Status', value: 'vision' },
+          { label: 'Classification', value: 'speculative' },
+          { label: 'Confidence', value: 'low' },
+          { label: 'Geometry', value: 'conceptual' }
+        ],
+        sources: [
+          {
+            title: 'VeloRail LA River rail vision registry example',
+            publisher: 'VeloRail',
+            sourceType: 'internal_example',
+            accessedAt: '2026-05-19',
+            note: 'Internal scenario record created to exercise the dedicated visionary registry.'
+          }
+        ]
+      }
+    }));
+  });
+
+  const metadataPanel = page.getByLabel('Selected map overlay metadata');
+  await expect(metadataPanel).toBeVisible();
+  await expect(metadataPanel).toContainText('LA River Rail Vision');
+  await expect(metadataPanel).toContainText('Visionary');
+  await expect(metadataPanel).toContainText('speculative');
+  await expect(metadataPanel).toContainText('Speculative VeloRail scenario');
+  await expect(metadataPanel).toContainText('VeloRail');
+  await expect(metadataPanel).toContainText('2026-05-19');
+
+  await metadataPanel.getByRole('button', { name: 'Close metadata' }).click();
+  await expect(metadataPanel).toBeHidden();
+});
