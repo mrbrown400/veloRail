@@ -16,6 +16,15 @@ import type {
 
 type ProposalLayerGroup = NonNullable<ProposalRenderingMetadata['layerGroup']>;
 type LegendLinePattern = 'solid' | 'dashed' | 'dotted';
+type MapOverlayStyleKey =
+  | 'current'
+  | 'context'
+  | 'future'
+  | 'visionary'
+  | 'freight_only'
+  | 'converted_passenger';
+
+type MapOverlayMetadataKind = 'line' | 'corridor' | 'station';
 
 export type MapOverlayGroupId = 'current' | 'future' | 'visionary' | 'nationalized';
 
@@ -37,6 +46,77 @@ export interface MapOverlayLegendItem {
   scenario: MapOverlayScenario;
 }
 
+interface MapOverlayLineStyle {
+  strokeColor: string;
+  strokeOpacity: number;
+  strokeWeight: number;
+  strokePattern: LegendLinePattern;
+  symbolScale: number;
+  symbolStrokeWeight: number;
+  repeat: string;
+}
+
+interface MapOverlayMarkerStyle {
+  fillColor: string;
+  strokeColor: string;
+  scale: number;
+}
+
+interface MapOverlayLegendMetadata {
+  label: string;
+  description: string;
+  color: string;
+  pattern: LegendLinePattern;
+  scenario: MapOverlayScenario;
+}
+
+interface MapOverlayBadgeMetadata {
+  label: string;
+  className: string;
+}
+
+interface MapOverlayStyleDefinition {
+  line: MapOverlayLineStyle;
+  marker: MapOverlayMarkerStyle;
+  legend: MapOverlayLegendMetadata;
+  badge: MapOverlayBadgeMetadata;
+}
+
+export interface ResolvedMapOverlayStyle extends MapOverlayStyleDefinition {
+  key: MapOverlayStyleKey;
+}
+
+export interface MapOverlayMetadataSource {
+  title: string;
+  publisher?: string;
+  url?: string;
+  sourceType: string;
+  accessedAt?: string;
+  note?: string;
+}
+
+export interface MapOverlayMetadataDetail {
+  label: string;
+  value: string;
+}
+
+export interface MapOverlayMetadata {
+  id: string;
+  proposalId: string;
+  kind: MapOverlayMetadataKind;
+  title: string;
+  subtitle: string;
+  badgeLabel: string;
+  badgeClassName: string;
+  statusLabel: string;
+  classificationLabel: string;
+  confidenceLabel: string;
+  uncertaintyLabel: string;
+  disclaimer?: string;
+  details: MapOverlayMetadataDetail[];
+  sources: MapOverlayMetadataSource[];
+}
+
 interface SetMapOverlay {
   setMap: (map: google.maps.Map | null) => void;
 }
@@ -56,6 +136,172 @@ const OFFICIAL_FUTURE_STATUSES: ReadonlySet<ProposalStatus> = new Set([
   'under_construction'
 ]);
 export const FUTURE_STATION_MIN_ZOOM = 11;
+export const MAP_OVERLAY_METADATA_EVENT = 'velorail:map-overlay-metadata-selected';
+
+export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyleDefinition> = {
+  current: {
+    line: {
+      strokeColor: '#1a73e8',
+      strokeOpacity: 0.9,
+      strokeWeight: 5,
+      strokePattern: 'solid',
+      symbolScale: 2,
+      symbolStrokeWeight: 3,
+      repeat: '18px'
+    },
+    marker: {
+      fillColor: '#1a73e8',
+      strokeColor: '#ffffff',
+      scale: 5
+    },
+    legend: {
+      label: 'Google transit',
+      description: 'Current transit routes',
+      color: '#1a73e8',
+      pattern: 'solid',
+      scenario: 'current'
+    },
+    badge: {
+      label: 'Current',
+      className: 'map-overlay-metadata__badge--current'
+    }
+  },
+  context: {
+    line: {
+      strokeColor: '#188038',
+      strokeOpacity: 0.86,
+      strokeWeight: 4,
+      strokePattern: 'solid',
+      symbolScale: 2,
+      symbolStrokeWeight: 3,
+      repeat: '18px'
+    },
+    marker: {
+      fillColor: '#188038',
+      strokeColor: '#ffffff',
+      scale: 5
+    },
+    legend: {
+      label: 'Google bicycling',
+      description: 'Bike lanes and trails',
+      color: '#188038',
+      pattern: 'solid',
+      scenario: 'context'
+    },
+    badge: {
+      label: 'Context',
+      className: 'map-overlay-metadata__badge--context'
+    }
+  },
+  future: {
+    line: {
+      strokeColor: '#7e22ce',
+      strokeOpacity: 0.88,
+      strokeWeight: 6,
+      strokePattern: 'solid',
+      symbolScale: 2,
+      symbolStrokeWeight: 3,
+      repeat: '18px'
+    },
+    marker: {
+      fillColor: '#7e22ce',
+      strokeColor: '#ffffff',
+      scale: 5.25
+    },
+    legend: {
+      label: 'Official future project',
+      description: 'Official planned, funded, or under-construction service',
+      color: '#7e22ce',
+      pattern: 'solid',
+      scenario: 'future'
+    },
+    badge: {
+      label: 'Official future',
+      className: 'map-overlay-metadata__badge--future'
+    }
+  },
+  visionary: {
+    line: {
+      strokeColor: '#be185d',
+      strokeOpacity: 0.72,
+      strokeWeight: 5,
+      strokePattern: 'dashed',
+      symbolScale: 2,
+      symbolStrokeWeight: 3,
+      repeat: '18px'
+    },
+    marker: {
+      fillColor: '#be185d',
+      strokeColor: '#831843',
+      scale: 4.75
+    },
+    legend: {
+      label: 'Visionary concept',
+      description: 'Unofficial or speculative scenario',
+      color: '#be185d',
+      pattern: 'dashed',
+      scenario: 'visionary'
+    },
+    badge: {
+      label: 'Visionary',
+      className: 'map-overlay-metadata__badge--visionary'
+    }
+  },
+  freight_only: {
+    line: {
+      strokeColor: '#475569',
+      strokeOpacity: 0.78,
+      strokeWeight: 5,
+      strokePattern: 'dotted',
+      symbolScale: 2.25,
+      symbolStrokeWeight: 3,
+      repeat: '14px'
+    },
+    marker: {
+      fillColor: '#475569',
+      strokeColor: '#1e293b',
+      scale: 4.75
+    },
+    legend: {
+      label: 'Freight corridor',
+      description: 'Freight-only rail corridor',
+      color: '#475569',
+      pattern: 'dotted',
+      scenario: 'nationalized'
+    },
+    badge: {
+      label: 'Freight only',
+      className: 'map-overlay-metadata__badge--freight'
+    }
+  },
+  converted_passenger: {
+    line: {
+      strokeColor: '#0f766e',
+      strokeOpacity: 0.82,
+      strokeWeight: 5,
+      strokePattern: 'dashed',
+      symbolScale: 2,
+      symbolStrokeWeight: 3,
+      repeat: '18px'
+    },
+    marker: {
+      fillColor: '#0f766e',
+      strokeColor: '#134e4a',
+      scale: 4.9
+    },
+    legend: {
+      label: 'Passenger conversion',
+      description: 'Passenger service concept on freight corridor',
+      color: '#0f766e',
+      pattern: 'dashed',
+      scenario: 'nationalized'
+    },
+    badge: {
+      label: 'Passenger conversion',
+      className: 'map-overlay-metadata__badge--converted'
+    }
+  }
+};
 
 export function getProposalOverlayInputsByGroup(groups: ProposalLayerGroup | ProposalLayerGroup[]) {
   const layerGroups = new Set(Array.isArray(groups) ? groups : [groups]);
@@ -152,24 +398,8 @@ const MAP_OVERLAY_GROUP_DEFINITIONS: MapOverlayGroupDefinition[] = [
 ];
 
 const NATIVE_MAP_LEGEND_ITEMS: MapOverlayLegendItem[] = [
-  {
-    id: 'current-transit-google-transit',
-    overlayId: 'current-transit',
-    label: 'Google transit',
-    description: 'Current transit routes',
-    color: '#1a73e8',
-    pattern: 'solid',
-    scenario: 'current'
-  },
-  {
-    id: 'bicycling-google-bicycling',
-    overlayId: 'bicycling',
-    label: 'Google bicycling',
-    description: 'Bike lanes and trails',
-    color: '#188038',
-    pattern: 'solid',
-    scenario: 'context'
-  }
+  createNativeLegendItem('current-transit', 'current-transit-google-transit', 'current'),
+  createNativeLegendItem('bicycling', 'bicycling-google-bicycling', 'context')
 ];
 
 export function getOrderedMapOverlayDefinitions(): MapOverlayDefinition[] {
@@ -210,9 +440,10 @@ function getProposalLegendItems(
   const seen = new Set<string>();
 
   return getProposalOverlayInputsByGroup(groups).flatMap(({ proposal }) => {
-    const label = proposal.style?.legendLabel ?? proposal.shortName ?? proposal.name;
-    const color = proposal.style?.strokeColor ?? '#2563eb';
-    const pattern = proposal.style?.strokePattern ?? 'solid';
+    const style = getProposalOverlayStyle(proposal);
+    const label = proposal.style?.legendLabel ?? style.legend.label;
+    const color = style.legend.color;
+    const pattern = style.legend.pattern;
     const key = `${overlayId}:${label}:${color}:${pattern}`;
 
     if (seen.has(key)) {
@@ -225,12 +456,30 @@ function getProposalLegendItems(
       id: `${overlayId}-${slugifyLegendLabel(label)}-${seen.size}`,
       overlayId,
       label,
-      description: `${formatToken(proposal.status)} · ${formatToken(proposal.confidence.level)}`,
+      description: `${style.legend.description} · ${formatToken(proposal.confidence.level)} confidence`,
       color,
       pattern,
       scenario
     }];
   });
+}
+
+function createNativeLegendItem(
+  overlayId: MapOverlayId,
+  id: string,
+  styleKey: Extract<MapOverlayStyleKey, 'current' | 'context'>
+): MapOverlayLegendItem {
+  const { legend } = MAP_OVERLAY_STYLE_CONFIG[styleKey];
+
+  return {
+    id,
+    overlayId,
+    label: legend.label,
+    description: legend.description,
+    color: legend.color,
+    pattern: legend.pattern,
+    scenario: legend.scenario
+  };
 }
 
 function createGoogleTransitLayer(map: google.maps.Map): MapOverlayHandle {
@@ -325,6 +574,7 @@ function createProposalOverlays(
     listeners.push(line.addListener('click', (event: google.maps.MapMouseEvent) => {
       if (!event.latLng) return;
 
+      publishMapOverlayMetadata(getProposalMetadata(proposal));
       infoWindow.setContent(getProposalInfoContent(proposal));
       infoWindow.setPosition(event.latLng);
       infoWindow.open(map);
@@ -344,6 +594,7 @@ function createProposalOverlays(
 
     if (rendering?.clickable ?? true) {
       listeners.push(marker.addListener('click', () => {
+        publishMapOverlayMetadata(getProposalMetadata(proposal, markerInput));
         infoWindow.setContent(getProposalInfoContent(proposal, markerInput));
         infoWindow.open(map, marker);
       }));
@@ -358,50 +609,46 @@ function getProposalPolylineOptions(
   polyline: ProposalPolylineInput,
   zIndex: number
 ): google.maps.PolylineOptions {
-  const strokeColor = polyline.options.strokeColor ?? proposal.style?.strokeColor ?? '#2563eb';
-  const strokeOpacity = polyline.options.strokeOpacity ?? proposal.style?.strokeOpacity ?? 0.85;
-  const strokePattern = proposal.style?.strokePattern ?? 'solid';
-  const isPatterned = strokePattern === 'dashed' || strokePattern === 'dotted';
+  const style = getProposalOverlayStyle(proposal);
+  const lineStyle = style.line;
+  const isPatterned = lineStyle.strokePattern === 'dashed' || lineStyle.strokePattern === 'dotted';
 
   return {
     ...polyline.options,
     path: polyline.path,
     clickable: proposal.rendering?.clickable ?? true,
-    strokeColor,
-    strokeOpacity: isPatterned ? 0 : strokeOpacity,
+    strokeColor: lineStyle.strokeColor,
+    strokeOpacity: isPatterned ? 0 : lineStyle.strokeOpacity,
+    strokeWeight: lineStyle.strokeWeight,
     zIndex,
     icons: isPatterned
       ? [{
-        icon: getLineSymbol(strokePattern, strokeColor, strokeOpacity),
+        icon: getLineSymbol(lineStyle),
         offset: '0',
-        repeat: strokePattern === 'dotted' ? '14px' : '18px'
+        repeat: lineStyle.repeat
       }]
       : undefined
   };
 }
 
-function getLineSymbol(
-  strokePattern: 'dashed' | 'dotted',
-  strokeColor: string,
-  strokeOpacity: number
-): google.maps.Symbol {
-  if (strokePattern === 'dotted') {
+function getLineSymbol(lineStyle: MapOverlayLineStyle): google.maps.Symbol {
+  if (lineStyle.strokePattern === 'dotted') {
     return {
       path: google.maps.SymbolPath.CIRCLE,
-      scale: 2,
-      fillColor: strokeColor,
-      fillOpacity: strokeOpacity,
-      strokeColor,
-      strokeOpacity
+      scale: lineStyle.symbolScale,
+      fillColor: lineStyle.strokeColor,
+      fillOpacity: lineStyle.strokeOpacity,
+      strokeColor: lineStyle.strokeColor,
+      strokeOpacity: lineStyle.strokeOpacity
     };
   }
 
   return {
     path: 'M 0,-1 0,1',
-    strokeColor,
-    strokeOpacity,
-    strokeWeight: 3,
-    scale: 2
+    strokeColor: lineStyle.strokeColor,
+    strokeOpacity: lineStyle.strokeOpacity,
+    strokeWeight: lineStyle.symbolStrokeWeight,
+    scale: lineStyle.symbolScale
   };
 }
 
@@ -411,6 +658,7 @@ function getProposalMarkerOptions(
   zIndex: number
 ): google.maps.MarkerOptions {
   const statusStyle = getStationStatusStyle(markerInput.status);
+  const proposalStyle = getProposalOverlayStyle(proposal);
 
   return {
     position: markerInput.position,
@@ -420,10 +668,10 @@ function getProposalMarkerOptions(
     zIndex,
     icon: {
       path: google.maps.SymbolPath.CIRCLE,
-      scale: proposal.style?.stationScale ?? statusStyle.scale,
-      fillColor: statusStyle.fillColor ?? proposal.style?.stationFillColor ?? proposal.style?.strokeColor ?? '#2563eb',
+      scale: proposal.style?.stationScale ?? statusStyle.scale ?? proposalStyle.marker.scale,
+      fillColor: proposal.style?.stationFillColor ?? statusStyle.fillColor ?? proposalStyle.marker.fillColor,
       fillOpacity: 1,
-      strokeColor: proposal.style?.stationStrokeColor ?? statusStyle.strokeColor,
+      strokeColor: proposal.style?.stationStrokeColor ?? statusStyle.strokeColor ?? proposalStyle.marker.strokeColor,
       strokeWeight: 2
     }
   };
@@ -436,24 +684,8 @@ interface StationStatusStyle {
 }
 
 export function getStationStatusStyle(status: ProposalStatus): StationStatusStyle {
-  switch (status) {
-    case 'under_construction':
-      return { fillColor: '#f59e0b', strokeColor: '#78350f', scale: 5.5 };
-    case 'funded':
-      return { fillColor: '#059669', strokeColor: '#064e3b', scale: 5.25 };
-    case 'planned':
-      return { fillColor: '#2563eb', strokeColor: '#1e3a8a', scale: 5 };
-    case 'operational':
-      return { fillColor: '#7e22ce', strokeColor: '#4c1d95', scale: 5 };
-    case 'vision':
-    case 'concept':
-      return { fillColor: '#db2777', strokeColor: '#831843', scale: 4.75 };
-    case 'freight_only':
-    case 'converted_passenger':
-      return { fillColor: '#475569', strokeColor: '#1e293b', scale: 4.75 };
-    default:
-      return { fillColor: '#64748b', strokeColor: '#334155', scale: 5 };
-  }
+  const { marker } = MAP_OVERLAY_STYLE_CONFIG[getStatusStyleKey(status)];
+  return { ...marker };
 }
 
 export function getProposalMarkerZoomRange(proposal: TransitProposal) {
@@ -482,49 +714,144 @@ export function getProposalInfoContent(
   proposal: TransitProposal,
   markerInput?: ProposalMarkerInput
 ): string {
-  const title = markerInput?.title ?? proposal.shortName ?? proposal.name;
-  const status = formatToken(markerInput?.status ?? proposal.status);
-  const confidence = formatToken(proposal.confidence.level);
-  const source = proposal.provenance[0];
-  const sourceLabel = source ? source.publisher ?? source.title : undefined;
-  const sourceContent = source
-    ? source.url
-      ? `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceLabel ?? source.title)}</a>`
-      : escapeHtml(sourceLabel ?? source.title)
-    : '';
-  const stationRows = markerInput
-    ? [
-      metadataRow('Station role', markerInput.role ? formatToken(markerInput.role) : undefined),
-      metadataRow('Station phase', markerInput.phase),
-      metadataRow('Station opening', markerInput.openingYear?.toString()),
-      metadataRow('Station confidence', markerInput.confidence ? formatToken(markerInput.confidence) : undefined),
-      metadataRow('Station notes', markerInput.notes)
-    ].join('')
-    : '';
-  const proposalRows = [
-    metadataRow('Classification', formatToken(proposal.classification)),
-    metadataRow('Opening', proposal.timeline?.openingYear?.toString()),
-    metadataRow('Phase', proposal.timeline?.phase),
-    metadataRow('Geometry', proposal.geometry.geometrySource ? formatToken(proposal.geometry.geometrySource) : undefined),
-    metadataRow('Source', sourceContent, true),
-    metadataRow('Uncertainty', proposal.uncertainty.disclaimer ?? proposal.uncertainty.sourceNotes)
-  ].join('');
+  const metadata = getProposalMetadata(proposal, markerInput);
+  const details = metadata.details.map((detail) => metadataRow(detail.label, detail.value)).join('');
+  const sources = metadata.sources.slice(0, 3).map((source) => {
+    const label = source.publisher ?? source.title;
+    const sourceTitle = `${label}${source.accessedAt ? ` (${source.accessedAt})` : ''}`;
+
+    return source.url
+      ? `<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceTitle)}</a></li>`
+      : `<li>${escapeHtml(sourceTitle)}</li>`;
+  }).join('');
 
   return `
-    <div style="color:#1f2937;font-family:Inter,Arial,sans-serif;max-width:260px;">
-      <strong>${escapeHtml(title)}</strong>
-      <div style="margin-top:6px;">${escapeHtml(status)} · ${escapeHtml(formatToken(proposal.mode))}</div>
-      <div style="margin-top:4px;color:#4b5563;">Confidence: ${escapeHtml(confidence)}</div>
-      ${stationRows}
-      ${proposalRows}
+    <div class="map-overlay-info-window">
+      <div class="map-overlay-info-window__header">
+        <strong>${escapeHtml(metadata.title)}</strong>
+        <span class="map-overlay-info-window__badge ${escapeHtml(metadata.badgeClassName)}">${escapeHtml(metadata.badgeLabel)}</span>
+      </div>
+      <div class="map-overlay-info-window__subtitle">${escapeHtml(metadata.subtitle)}</div>
+      ${details}
+      ${sources ? `<div class="map-overlay-info-window__sources-title">Sources</div><ul class="map-overlay-info-window__sources">${sources}</ul>` : ''}
+      ${metadata.disclaimer ? metadataRow('Uncertainty', metadata.disclaimer) : ''}
     </div>
   `;
+}
+
+export function getProposalOverlayStyle(proposal: TransitProposal): ResolvedMapOverlayStyle {
+  const key = getProposalStyleKey(proposal);
+  const base = MAP_OVERLAY_STYLE_CONFIG[key];
+  const style = proposal.style;
+
+  return {
+    key,
+    line: {
+      ...base.line,
+      strokeColor: style?.strokeColor ?? base.line.strokeColor,
+      strokeOpacity: style?.strokeOpacity ?? base.line.strokeOpacity,
+      strokeWeight: style?.strokeWeight ?? base.line.strokeWeight,
+      strokePattern: style?.strokePattern ?? base.line.strokePattern
+    },
+    marker: {
+      ...base.marker,
+      fillColor: style?.stationFillColor ?? style?.strokeColor ?? base.marker.fillColor,
+      strokeColor: style?.stationStrokeColor ?? base.marker.strokeColor,
+      scale: style?.stationScale ?? base.marker.scale
+    },
+    legend: {
+      ...base.legend,
+      label: style?.legendLabel ?? base.legend.label,
+      color: style?.strokeColor ?? base.legend.color,
+      pattern: style?.strokePattern ?? base.legend.pattern
+    },
+    badge: base.badge
+  };
+}
+
+export function getProposalMetadata(
+  proposal: TransitProposal,
+  markerInput?: ProposalMarkerInput
+): MapOverlayMetadata {
+  const style = getProposalOverlayStyle(proposal);
+  const kind: MapOverlayMetadataKind = markerInput ? 'station' : proposal.kind;
+  const title = markerInput?.title ?? proposal.shortName ?? proposal.name;
+  const status = markerInput?.status ?? proposal.status;
+  const details = [
+    metadataDetail('Status', formatToken(status)),
+    metadataDetail('Classification', formatToken(proposal.classification)),
+    metadataDetail('Confidence', formatToken(markerInput?.confidence ?? proposal.confidence.level)),
+    metadataDetail('Geometry', proposal.geometry.geometrySource ? formatToken(proposal.geometry.geometrySource) : undefined),
+    metadataDetail('Opening', markerInput?.openingYear?.toString() ?? proposal.timeline?.openingYear?.toString()),
+    metadataDetail('Phase', markerInput?.phase ?? proposal.timeline?.phase),
+    metadataDetail('Station role', markerInput?.role ? formatToken(markerInput.role) : undefined),
+    metadataDetail('Station notes', markerInput?.notes),
+    metadataDetail('Owner', proposal.freight?.owner),
+    metadataDetail('Operator', proposal.freight?.operator),
+    metadataDetail('Track usage', proposal.freight?.trackUsage ? formatToken(proposal.freight.trackUsage) : undefined),
+    metadataDetail('Electrification', proposal.freight?.electrification ? formatToken(proposal.freight.electrification) : undefined),
+    metadataDetail('Suitability', proposal.freight?.suitability?.rating ? formatToken(proposal.freight.suitability.rating) : undefined)
+  ].filter((detail): detail is MapOverlayMetadataDetail => Boolean(detail));
+
+  return {
+    id: `${proposal.id}-${kind}${markerInput ? `-${markerInput.id}` : ''}`,
+    proposalId: proposal.id,
+    kind,
+    title,
+    subtitle: `${formatToken(kind)} · ${formatToken(proposal.mode)}`,
+    badgeLabel: style.badge.label,
+    badgeClassName: style.badge.className,
+    statusLabel: formatToken(status),
+    classificationLabel: formatToken(proposal.classification),
+    confidenceLabel: formatToken(markerInput?.confidence ?? proposal.confidence.level),
+    uncertaintyLabel: formatToken(proposal.uncertainty.level),
+    disclaimer: proposal.uncertainty.disclaimer ?? proposal.uncertainty.sourceNotes,
+    details,
+    sources: proposal.provenance.map((source) => ({
+      title: source.title,
+      publisher: source.publisher,
+      url: source.url,
+      sourceType: source.sourceType,
+      accessedAt: source.accessedAt,
+      note: source.note
+    }))
+  };
+}
+
+function getProposalStyleKey(proposal: TransitProposal): MapOverlayStyleKey {
+  if (proposal.status === 'freight_only') return 'freight_only';
+  if (proposal.status === 'converted_passenger') return 'converted_passenger';
+  if (proposal.rendering?.layerGroup === 'visionary') return 'visionary';
+  if (proposal.classification !== 'official') return 'visionary';
+  if (proposal.rendering?.layerGroup === 'future') return 'future';
+  if (proposal.status === 'operational') return 'current';
+  return getStatusStyleKey(proposal.status);
+}
+
+function getStatusStyleKey(status: ProposalStatus): MapOverlayStyleKey {
+  if (status === 'freight_only') return 'freight_only';
+  if (status === 'converted_passenger') return 'converted_passenger';
+  if (status === 'vision' || status === 'concept') return 'visionary';
+  if (status === 'operational') return 'current';
+  return 'future';
+}
+
+function metadataDetail(
+  label: string,
+  value: string | undefined
+): MapOverlayMetadataDetail | undefined {
+  return value ? { label, value } : undefined;
+}
+
+function publishMapOverlayMetadata(metadata: MapOverlayMetadata) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(MAP_OVERLAY_METADATA_EVENT, { detail: metadata }));
 }
 
 function metadataRow(label: string, value: string | undefined, alreadyEscaped = false): string {
   if (!value) return '';
 
-  return `<div style="margin-top:4px;color:#4b5563;">${escapeHtml(label)}: ${alreadyEscaped ? value : escapeHtml(value)}</div>`;
+  return `<div class="map-overlay-info-window__row"><span>${escapeHtml(label)}:</span> ${alreadyEscaped ? value : escapeHtml(value)}</div>`;
 }
 
 function formatToken(value: string): string {

@@ -65,6 +65,52 @@ test('map overlay legend items come from current registry and proposal labels', 
   assert.ok(legendItems.every((item) => item.color));
 });
 
+test('overlay style config drives proposal rendering and native legend metadata', async () => {
+  const {
+    MAP_OVERLAY_STYLE_CONFIG,
+    getMapOverlayLegendItems,
+    getProposalOverlayStyle,
+    getProposalOverlayInputsByGroup
+  } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
+
+  assert.equal(MAP_OVERLAY_STYLE_CONFIG.future.legend.scenario, 'future');
+  assert.equal(MAP_OVERLAY_STYLE_CONFIG.visionary.line.strokePattern, 'dashed');
+  assert.equal(MAP_OVERLAY_STYLE_CONFIG.freight_only.line.strokePattern, 'dotted');
+  assert.equal(MAP_OVERLAY_STYLE_CONFIG.converted_passenger.legend.scenario, 'nationalized');
+
+  const [future] = getProposalOverlayInputsByGroup('future');
+  const [visionary] = getProposalOverlayInputsByGroup('visionary');
+  const freight = getProposalOverlayInputsByGroup('freight').find(
+    ({ proposal }) => proposal.id === 'la-freight-alameda-corridor'
+  );
+
+  assert.ok(freight);
+
+  const convertedPassenger = {
+    ...freight.proposal,
+    status: 'converted_passenger',
+    style: undefined,
+    rendering: {
+      ...freight.proposal.rendering,
+      layerGroup: 'converted_passenger'
+    }
+  };
+
+  assert.equal(getProposalOverlayStyle(future.proposal).key, 'future');
+  assert.equal(getProposalOverlayStyle(future.proposal).legend.label, 'Future heavy rail');
+  assert.equal(getProposalOverlayStyle(visionary.proposal).key, 'visionary');
+  assert.equal(getProposalOverlayStyle(visionary.proposal).line.strokePattern, 'dashed');
+  assert.equal(getProposalOverlayStyle(freight.proposal).key, 'freight_only');
+  assert.equal(getProposalOverlayStyle(freight.proposal).line.strokePattern, 'dotted');
+  assert.equal(getProposalOverlayStyle(convertedPassenger).key, 'converted_passenger');
+
+  const legendItems = getMapOverlayLegendItems();
+  const byLabel = new Map(legendItems.map((item) => [item.label, item]));
+
+  assert.equal(byLabel.get('Google transit')?.color, MAP_OVERLAY_STYLE_CONFIG.current.legend.color);
+  assert.equal(byLabel.get('Google bicycling')?.color, MAP_OVERLAY_STYLE_CONFIG.context.legend.color);
+});
+
 test('proposal overlay groups expose imported sample layers independently', async () => {
   const {
     getProposalOverlayInputsByGroup
@@ -149,17 +195,47 @@ test('future station markers use zoom-aware visibility and status styling', asyn
 test('proposal metadata exposes station details and reachable provenance', async () => {
   const {
     getProposalInfoContent,
+    getProposalMetadata,
     getProposalOverlayInputsByGroup
   } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
 
   const [future] = getProposalOverlayInputsByGroup('future');
   const station = future.markers.find(marker => marker.openingYear);
+  const metadata = getProposalMetadata(future.proposal, station);
   const content = getProposalInfoContent(future.proposal, station);
 
-  assert.match(content, /Source:/);
+  assert.equal(metadata.kind, 'station');
+  assert.equal(metadata.statusLabel, 'under construction');
+  assert.equal(metadata.classificationLabel, 'official');
+  assert.ok(metadata.sources.some(source => source.url));
+  assert.match(content, /Sources/);
   assert.match(content, /href=/);
-  assert.match(content, /Station opening:/);
-  assert.match(content, /Station phase:/);
+  assert.match(content, /Opening:/);
+  assert.match(content, /Phase:/);
+});
+
+test('freight corridor metadata includes ownership, uncertainty, and source links', async () => {
+  const {
+    getProposalMetadata,
+    getProposalOverlayInputsByGroup
+  } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
+
+  const freight = getProposalOverlayInputsByGroup('freight').find(
+    ({ proposal }) => proposal.id === 'la-freight-alameda-corridor'
+  );
+
+  assert.ok(freight);
+
+  const metadata = getProposalMetadata(freight.proposal);
+  const details = new Map(metadata.details.map((detail) => [detail.label, detail.value]));
+
+  assert.equal(metadata.kind, 'corridor');
+  assert.equal(metadata.badgeLabel, 'Freight only');
+  assert.equal(metadata.statusLabel, 'freight only');
+  assert.equal(details.get('Owner'), 'Alameda Corridor Transportation Authority');
+  assert.equal(details.get('Track usage'), 'freight');
+  assert.match(metadata.disclaimer, /approximate VeloRail geometry/i);
+  assert.ok(metadata.sources.some(source => source.url && source.accessedAt === '2026-05-19'));
 });
 
 test('map overlay store toggles one overlay without mutating others', async () => {

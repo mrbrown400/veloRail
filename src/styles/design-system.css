@@ -27,6 +27,13 @@
   --vr-color-layer-future: #7e22ce;
   --vr-color-layer-visionary: #be185d;
   --vr-color-layer-nationalized: #334155;
+  --vr-color-overlay-converted: #0f766e;
+  --vr-color-overlay-current-bg: #e8f0fe;
+  --vr-color-overlay-context-bg: #dcfce7;
+  --vr-color-overlay-future-bg: #f3e8ff;
+  --vr-color-overlay-visionary-bg: #fce7f3;
+  --vr-color-overlay-freight-bg: #f1f5f9;
+  --vr-color-overlay-converted-bg: #ccfbf1;
 
   /* Typography */
   --vr-font-family-sans: "Roboto", "Arial", sans-serif;

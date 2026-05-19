@@ -4,14 +4,17 @@ import { MapOverlayRenderer } from './MapOverlayRenderer';
 import { RouteOverlay } from './RouteOverlay';
 import { VehicleMarker } from './VehicleMarker';
 import {
+  MAP_OVERLAY_METADATA_EVENT,
   getMapOverlayGroupDefinitions,
   getMapOverlayLegendItems,
-  getOrderedMapOverlayDefinitions
+  getOrderedMapOverlayDefinitions,
+  type MapOverlayMetadata
 } from './mapOverlayRegistry';
 import {
   BikeIcon,
   Button,
   Chip,
+  CloseIcon,
   FreightRailIcon,
   FutureRailIcon,
   LayersIcon,
@@ -64,6 +67,7 @@ interface MapContainerProps {
 export function MapContainer({ onMapLoad }: MapContainerProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLegendOpen, setIsLegendOpen] = useState(false);
+  const [selectedOverlayMetadata, setSelectedOverlayMetadata] = useState<MapOverlayMetadata | null>(null);
   const { selectedRoute } = useRouteStore();
   const { vehiclePosition, trackedVehicle } = useRealtimeStore();
   const overlayVisibility = useMapOverlayStore((state) => state.visibility);
@@ -87,6 +91,19 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
 
   const onUnmount = useCallback(() => {
     setMap(null);
+  }, []);
+
+  useEffect(() => {
+    const handleMetadataSelected = (event: Event) => {
+      const customEvent = event as CustomEvent<MapOverlayMetadata>;
+      setSelectedOverlayMetadata(customEvent.detail);
+    };
+
+    window.addEventListener(MAP_OVERLAY_METADATA_EVENT, handleMetadataSelected);
+
+    return () => {
+      window.removeEventListener(MAP_OVERLAY_METADATA_EVENT, handleMetadataSelected);
+    };
   }, []);
 
   // Fit bounds when route changes
@@ -217,6 +234,71 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
           </div>
         )}
       </Panel>
+
+      {selectedOverlayMetadata && (
+        <Panel
+          as="aside"
+          className="map-overlay-metadata-panel"
+          ariaLabel="Selected map overlay metadata"
+        >
+          <div className="map-overlay-metadata__header">
+            <div className="map-overlay-metadata__title-block">
+              <span className={`map-overlay-metadata__badge ${selectedOverlayMetadata.badgeClassName}`}>
+                {selectedOverlayMetadata.badgeLabel}
+              </span>
+              <h2 className="map-overlay-metadata__title">{selectedOverlayMetadata.title}</h2>
+              <span className="map-overlay-metadata__subtitle">{selectedOverlayMetadata.subtitle}</span>
+            </div>
+            <Button
+              className="map-overlay-metadata__close"
+              variant="ghost"
+              size="icon"
+              aria-label="Close metadata"
+              onClick={() => setSelectedOverlayMetadata(null)}
+              leftIcon={<CloseIcon />}
+            />
+          </div>
+
+          <dl className="map-overlay-metadata__details">
+            {selectedOverlayMetadata.details.map((detail) => (
+              <div key={`${detail.label}-${detail.value}`} className="map-overlay-metadata__detail">
+                <dt>{detail.label}</dt>
+                <dd>{detail.value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {selectedOverlayMetadata.disclaimer && (
+            <p className="map-overlay-metadata__disclaimer">
+              {selectedOverlayMetadata.disclaimer}
+            </p>
+          )}
+
+          {selectedOverlayMetadata.sources.length > 0 && (
+            <div className="map-overlay-metadata__sources">
+              <span className="map-overlay-metadata__sources-title">Sources</span>
+              <ul>
+                {selectedOverlayMetadata.sources.map((source) => (
+                  <li key={`${source.title}-${source.url ?? source.accessedAt ?? source.sourceType}`}>
+                    {source.url ? (
+                      <a href={source.url} target="_blank" rel="noopener noreferrer">
+                        {source.publisher ?? source.title}
+                      </a>
+                    ) : (
+                      <span>{source.publisher ?? source.title}</span>
+                    )}
+                    {source.accessedAt && (
+                      <span className="map-overlay-metadata__source-date">
+                        {source.accessedAt}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Panel>
+      )}
     </div>
   );
 }
