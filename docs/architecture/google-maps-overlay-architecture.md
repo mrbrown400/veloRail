@@ -23,7 +23,7 @@ Overlay definitions live in `src/components/Map/mapOverlayRegistry.ts`. Each def
 
 The current layer uses Google Maps `TransitLayer`. The future, visionary, and nationalized layers render imported proposal adapter output through Google Maps polylines and station markers:
 
-- Future: official planned, funded, or under-construction proposals such as the D Line Extension seed proposal.
+- Future: official planned, funded, or under-construction proposals such as the D Line Extension Sections 2 and 3 seed proposal.
 - Visionary: Vermont Avenue Rapid Rail seed concept.
 - Nationalized: Alameda Corridor freight seed corridor.
 

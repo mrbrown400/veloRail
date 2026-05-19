@@ -195,6 +195,28 @@ test('future overlay only accepts official planned, funded, or under-constructio
   assert.equal(isOfficialFutureProposal({ ...futureProposal, classification: 'speculative' }), false);
 });
 
+test('D Line future overlay excludes opened Section 1 stations and geometry', async () => {
+  const {
+    getProposalOverlayInputsByGroup
+  } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
+
+  const dLine = getProposalOverlayInputsByGroup('future').find(
+    ({ proposal }) => proposal.id === 'metro-d-line-extension-westwood'
+  );
+
+  assert.ok(dLine);
+  assert.equal(dLine.polyline.path[0].lng, -118.3769);
+  assert.deepEqual(dLine.markers.map(marker => marker.title), [
+    'Wilshire/Rodeo',
+    'Century City/Constellation',
+    'Westwood/UCLA',
+    'Westwood/VA Hospital'
+  ]);
+  assert.ok(dLine.markers.every(marker => marker.openingYear === 2027));
+  assert.ok(!dLine.markers.some(marker => /La Brea|Fairfax|La Cienega/.test(marker.title)));
+  assert.ok(!dLine.polyline.path.some(point => point.lng === -118.3440 || point.lng === -118.3614));
+});
+
 test('future station markers use zoom-aware visibility and status styling', async () => {
   const {
     FUTURE_STATION_MIN_ZOOM,

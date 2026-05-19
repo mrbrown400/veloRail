@@ -26,11 +26,12 @@ const DEFAULT_STYLE: Required<Pick<
 
 export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
   schemaVersion: TRANSIT_PROPOSAL_SCHEMA_VERSION,
-  updatedAt: '2026-05-05',
+  updatedAt: '2026-05-19',
   migrationNotes: [
     'Existing TRANSIT_LINES records remain the operational routing source for VR-001.',
     'Proposal statuses use operational instead of the existing routing status operating; migration should map operating to operational when proposal records are derived from live service.',
-    'Proposal geometry uses GeoJSON LineString coordinates in [lon, lat] order and converts to Google Maps {lat, lng} paths through adapter helpers.'
+    'Proposal geometry uses GeoJSON LineString coordinates in [lon, lat] order and converts to Google Maps {lat, lng} paths through adapter helpers.',
+    'D Line Section 1 opened on 2026-05-08, so the seed future overlay now starts west of Wilshire/La Cienega and only represents Sections 2 and 3.'
   ],
   proposals: [
     {
@@ -44,11 +45,8 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
       geometry: {
         type: 'LineString',
         geometrySource: 'approximate',
-        geometryNotes: 'Seed example follows station-to-station alignment points. Replace with official alignment geometry in the import pipeline.',
+        geometryNotes: 'Seed example follows station-to-station alignment points for the still-future westward extension only. Section 1 to Wilshire/La Cienega is current service as of 2026-05-08.',
         coordinates: [
-          [-118.3088, 34.0618],
-          [-118.3440, 34.0621],
-          [-118.3614, 34.0623],
           [-118.3769, 34.0625],
           [-118.4003, 34.0627],
           [-118.4172, 34.0553],
@@ -57,46 +55,6 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
         ]
       },
       stations: [
-        {
-          id: 'd-line-wilshire-western',
-          name: 'Wilshire/Western',
-          lat: 34.0618,
-          lon: -118.3088,
-          status: 'operational',
-          role: 'transfer',
-          existingLines: ['Purple'],
-          notes: 'Connection to current D Line service.'
-        },
-        {
-          id: 'd-line-wilshire-la-brea',
-          name: 'Wilshire/La Brea',
-          lat: 34.0621,
-          lon: -118.3440,
-          status: 'under_construction',
-          role: 'intermediate',
-          openingYear: 2025,
-          phase: 'Section 2'
-        },
-        {
-          id: 'd-line-wilshire-fairfax',
-          name: 'Wilshire/Fairfax',
-          lat: 34.0623,
-          lon: -118.3614,
-          status: 'under_construction',
-          role: 'intermediate',
-          openingYear: 2025,
-          phase: 'Section 2'
-        },
-        {
-          id: 'd-line-wilshire-la-cienega',
-          name: 'Wilshire/La Cienega',
-          lat: 34.0625,
-          lon: -118.3769,
-          status: 'under_construction',
-          role: 'intermediate',
-          openingYear: 2025,
-          phase: 'Section 2'
-        },
         {
           id: 'd-line-wilshire-rodeo',
           name: 'Wilshire/Rodeo',
@@ -146,8 +104,8 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
           sourceType: 'official_project',
           publisher: 'Los Angeles County Metropolitan Transportation Authority',
           url: 'https://www.metro.net/projects/westside/',
-          accessedAt: '2026-05-05',
-          note: 'Seed example uses approximate station points already present in the app.'
+          accessedAt: '2026-05-19',
+          note: 'Metro lists Section 1 as open on May 8, 2026, with Sections 2 and 3 still under construction; this seed record now tracks only the still-future westward extension.'
         }
       ],
       confidence: {
@@ -155,17 +113,18 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
         geometry: 'medium',
         stations: 'high',
         status: 'high',
-        notes: 'Project and station list are official; geometry is simplified for schema coverage.'
+        notes: 'Sections 2 and 3 project and station list are official; geometry is simplified for schema coverage.'
       },
       uncertainty: {
         level: 'low',
-        sourceNotes: 'Official Metro project materials establish the project and station list; VeloRail seed geometry is simplified for validation coverage.',
+        sourceNotes: 'Official Metro project materials establish Section 1 as open and Sections 2 and 3 as still under construction; VeloRail seed geometry is simplified for validation coverage.',
         disclaimer: 'Official project record with simplified VeloRail geometry.'
       },
       timeline: {
         openingYear: 2027,
         phase: 'Sections 2 and 3',
-        phaseOrder: 2
+        phaseOrder: 2,
+        scheduleNotes: 'Metro project status checked on 2026-05-19: Section 1 is open, while Sections 2 and 3 remain under construction.'
       },
       style: {
         strokeColor: '#A05DA5',
@@ -179,7 +138,7 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
         minZoom: 9,
         clickable: true
       },
-      tags: ['future', 'metro', 'heavy-rail']
+      tags: ['future', 'metro', 'heavy-rail', 'd-line', 'sections-2-3']
     },
     {
       id: 'vision-vermont-rapid-rail',

@@ -48,3 +48,19 @@ test('local station provider finds direct rail connections and estimates duratio
     isEstimate: true
   });
 });
+
+test('local station provider treats opened D Line Section 1 stations as current Purple service', async () => {
+  const {
+    LocalStationDataProvider
+  } = await loadAppModule('/src/services/stationDataProvider.ts');
+  const provider = new LocalStationDataProvider();
+
+  const purpleStations = await provider.getStationsOnLine('Purple');
+  const purpleStationNames = purpleStations.map(station => station.name);
+  const laCienegaLines = await provider.getLinesServingStation('Wilshire/La Cienega');
+
+  assert.ok(purpleStationNames.includes('Wilshire/La Brea'));
+  assert.ok(purpleStationNames.includes('Wilshire/Fairfax'));
+  assert.ok(purpleStationNames.includes('Wilshire/La Cienega'));
+  assert.deepEqual(laCienegaLines, ['Purple']);
+});

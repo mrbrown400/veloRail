@@ -40,7 +40,10 @@ export const TRANSIT_LINES: TransitLines = {
       { name: "7th St/Metro Center", lat: 34.0486, lon: -118.2588 },
       { name: "Wilshire/Vermont", lat: 34.0617, lon: -118.2917 },
       { name: "Wilshire/Normandie", lat: 34.0618, lon: -118.3014 },
-      { name: "Wilshire/Western", lat: 34.0618, lon: -118.3088 }
+      { name: "Wilshire/Western", lat: 34.0618, lon: -118.3088 },
+      { name: "Wilshire/La Brea", lat: 34.0621, lon: -118.3440 },
+      { name: "Wilshire/Fairfax", lat: 34.0623, lon: -118.3614 },
+      { name: "Wilshire/La Cienega", lat: 34.0625, lon: -118.3769 }
     ]
   },
   "Blue": {

@@ -67,7 +67,7 @@ Google Maps may show freight rails on the basemap, but VeloRail does not treat b
 
 `TRANSIT_PROPOSAL_DATASET` includes three seed examples:
 
-- Future line: `metro-d-line-extension-westwood`
+- Future line: `metro-d-line-extension-westwood`, currently limited to still-future D Line Sections 2 and 3 because Section 1 opened on May 8, 2026.
 - Visionary line: `vision-vermont-rapid-rail`
 - Freight corridor: `freight-alameda-corridor`
 

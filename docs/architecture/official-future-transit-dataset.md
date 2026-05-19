@@ -29,7 +29,7 @@ Records are excluded from this batch when any of these are true:
 | `metro-noho-pasadena-brt` | `under_construction` | Metro project page and construction resources | Approximate east-west BRT corridor with representative community anchors. |
 | `metro-vermont-brt` | `planned` | Metro project page and timeline | Approximate Vermont Avenue BRT corridor with major transfer anchors. |
 
-The existing `metro-d-line-extension-westwood` seed remains in the base proposal source. It still validates as an official future record, but VR-105 does not treat it as the new batch.
+The existing `metro-d-line-extension-westwood` seed remains in the base proposal source. It now represents only the still-future Sections 2 and 3 west of Wilshire/La Cienega because Section 1 opened on May 8, 2026. It still validates as an official future record, but VR-105 does not treat it as the new batch.
 
 ## Source Watch List
 
