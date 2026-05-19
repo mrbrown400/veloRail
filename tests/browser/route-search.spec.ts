@@ -15,7 +15,7 @@ async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   await expect(page.getByLabel('Route search')).toBeVisible({ timeout: 20_000 });
 }
 
-test('@smoke typed endpoints make the route search respond visibly', async ({ page }) => {
+test('@smoke @VR-304 typed endpoints make the route search respond visibly', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   await page.locator('.location-status').click();
