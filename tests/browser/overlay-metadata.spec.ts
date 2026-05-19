@@ -12,7 +12,7 @@ async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   }
   test.skip(mapErrorVisible, 'Browser overlay metadata tests require a working Google Maps API key.');
 
-  await expect(page.getByLabel('Route search')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
 }
 
 test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @veloRail-967a nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {

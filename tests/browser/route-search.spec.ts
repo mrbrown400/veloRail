@@ -12,7 +12,7 @@ async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   }
   test.skip(mapErrorVisible, 'Browser smoke tests require a working Google Maps API key.');
 
-  await expect(page.getByLabel('Route search')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
 }
 
 async function dispatchSampleOverlayMetadata(page: import('@playwright/test').Page) {
