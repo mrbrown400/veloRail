@@ -30,6 +30,44 @@ export function BikeIcon(props: IconProps) {
   );
 }
 
+export function WalkIcon(props: IconProps) {
+  return (
+    <svg {...iconProps(props)}>
+      <circle cx="12" cy="4.5" r="2" />
+      <path d="M10.5 8.5 8 13l-1.5 6" />
+      <path d="M12 9l3 3 2 7" />
+      <path d="M9 13h5" />
+      <path d="M11 19h-3" />
+    </svg>
+  );
+}
+
+export function BusIcon(props: IconProps) {
+  return (
+    <svg {...iconProps(props)}>
+      <rect x="5" y="4" width="14" height="14" rx="3" />
+      <path d="M8 8h8" />
+      <path d="M8 12h8" />
+      <circle cx="8.5" cy="16" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="16" r="1" fill="currentColor" stroke="none" />
+      <path d="M8 20v-2" />
+      <path d="M16 20v-2" />
+    </svg>
+  );
+}
+
+export function CarIcon(props: IconProps) {
+  return (
+    <svg {...iconProps(props)}>
+      <path d="M6 16h12" />
+      <path d="M7.5 16 9 10h6l1.5 6" />
+      <path d="M8 10 9.5 7h5L16 10" />
+      <circle cx="8" cy="17.5" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="17.5" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function TrainIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>

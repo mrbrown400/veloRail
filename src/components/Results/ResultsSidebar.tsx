@@ -1,13 +1,14 @@
 import { useCallback } from 'react';
 import { RouteOption } from './RouteOption';
 import { RouteDetails } from './RouteDetails';
-import { CloseIcon, IconButton, Panel, VeloRailMark } from '@/components/ui';
+import { AlertIcon, CloseIcon, IconButton, Panel, VeloRailMark } from '@/components/ui';
 import { useRouteStore, useUIStore } from '@/stores';
 import type { Route } from '@/types';
 
 export function ResultsSidebar() {
-  const { routes, selectedRoute, selectRoute } = useRouteStore();
+  const { routes, selectedRoute, selectRoute, isLoading, error } = useRouteStore();
   const { sidebarOpen, setSidebarOpen } = useUIStore();
+  const hasRoutes = routes.length > 0;
 
   const handleClose = useCallback(() => {
     setSidebarOpen(false);
@@ -32,7 +33,10 @@ export function ResultsSidebar() {
           <span className="search-logo">
             <VeloRailMark />
           </span>
-          <span className="search-brand">VeloRail</span>
+          <div className="sidebar-title-copy">
+            <span className="search-brand">VeloRail</span>
+            <span className="sidebar-subtitle">Route results</span>
+          </div>
         </div>
         <IconButton
           className="sidebar-close-btn"
@@ -46,12 +50,32 @@ export function ResultsSidebar() {
 
       {/* Content */}
       <div className="sidebar-content">
-        {routes.length > 0 && (
+        {isLoading && (
+          <div className="route-results-state route-results-state--loading" role="status" aria-live="polite">
+            <span className="loading-spinner" aria-hidden="true" />
+            <div>
+              <h3>Calculating route options</h3>
+              <p>Comparing walk, bike, and transit segments.</p>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && error && (
+          <div className="route-results-state route-results-state--error" role="alert">
+            <AlertIcon className="route-results-state__icon" />
+            <div>
+              <h3>Route search failed</h3>
+              <p>{error}</p>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && !error && hasRoutes && (
           <>
             {/* Route Options */}
             <div className="route-options">
               <h3 className="route-options-heading">
-                Route Options
+                Route options
               </h3>
               {routes.map((route, index) => (
                 <RouteOption
@@ -68,9 +92,13 @@ export function ResultsSidebar() {
           </>
         )}
 
-        {routes.length === 0 && sidebarOpen && (
-          <div className="empty-state">
-            No routes calculated yet.
+        {!isLoading && !error && !hasRoutes && sidebarOpen && (
+          <div className="route-results-state route-results-state--empty">
+            <VeloRailMark />
+            <div>
+              <h3>No routes calculated yet</h3>
+              <p>Enter a start and destination to compare route options.</p>
+            </div>
           </div>
         )}
       </div>

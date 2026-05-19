@@ -5,6 +5,8 @@ export { ToggleChip } from './ToggleChip';
 export {
   AlertIcon,
   BikeIcon,
+  BusIcon,
+  CarIcon,
   CheckIcon,
   CloseIcon,
   CrosshairIcon,
@@ -19,5 +21,6 @@ export {
   TrainIcon,
   UnavailableIcon,
   VisionIcon,
+  WalkIcon,
   VeloRailMark
 } from './icons';

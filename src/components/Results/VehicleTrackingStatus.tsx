@@ -1,3 +1,4 @@
+import { Chip, MapPinIcon, TrainIcon } from '@/components/ui';
 import { useRealtimeStore } from '@/stores';
 import type { Route } from '@/types';
 
@@ -44,14 +45,14 @@ export function VehicleTrackingStatus({ route }: VehicleTrackingStatusProps) {
   return (
     <div className="vehicle-tracking-status">
       <div className="vehicle-tracking-header">
-        <span className="tracking-icon">{'\u{1F4CD}'}</span>
+        <MapPinIcon className="tracking-icon" />
         <span className="tracking-label">Live Tracking</span>
+        <Chip tone="success" className="tracking-live-badge">Live</Chip>
       </div>
       <div className="vehicle-tracking-info">
+        <TrainIcon className="tracking-line-icon" />
         <strong>{lineInfo}</strong>
-        <span style={{ marginLeft: '8px', color: '#5f6368' }}>
-          {statusText}
-        </span>
+        <span className="tracking-status-text">{statusText}</span>
         {stopsAwayContent}
       </div>
     </div>

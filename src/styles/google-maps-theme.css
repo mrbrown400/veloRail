@@ -563,6 +563,18 @@ body {
   gap: var(--gm-spacing-sm);
 }
 
+.sidebar-title-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-subtitle {
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-xs);
+}
+
 .sidebar-close-btn {
   color: var(--gm-text-secondary);
 }
@@ -593,6 +605,41 @@ body {
   padding: var(--gm-spacing-xl);
   text-align: center;
   color: var(--gm-text-secondary);
+}
+
+.route-results-state {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gm-spacing-md);
+  margin: var(--gm-spacing-lg);
+  padding: var(--gm-spacing-lg);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius-md);
+  background: var(--gm-background-surface);
+  color: var(--gm-text-secondary);
+}
+
+.route-results-state h3 {
+  margin: 0 0 var(--gm-spacing-xs);
+  color: var(--gm-text-primary);
+  font-size: var(--gm-font-size-md);
+  font-weight: 600;
+}
+
+.route-results-state p {
+  margin: 0;
+  font-size: var(--gm-font-size-sm);
+  line-height: var(--vr-line-height-normal);
+}
+
+.route-results-state--error {
+  border-color: rgba(217, 48, 37, 0.26);
+  background: #fce8e6;
+}
+
+.route-results-state__icon {
+  flex: 0 0 auto;
+  color: var(--gm-red);
 }
 
 .route-option {
@@ -643,6 +690,13 @@ body {
   color: var(--gm-text-primary);
 }
 
+.route-option-type {
+  display: block;
+  margin-top: 2px;
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-xs);
+}
+
 .route-option-duration {
   font-size: var(--gm-font-size-xl);
   font-weight: 500;
@@ -652,6 +706,56 @@ body {
 .route-option-summary {
   font-size: var(--gm-font-size-sm);
   color: var(--gm-text-secondary);
+}
+
+.route-mode-sequence,
+.route-option-metrics,
+.route-details-stats,
+.route-leg-details,
+.route-leg-endpoints {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gm-spacing-sm);
+}
+
+.route-mode-sequence {
+  margin: var(--gm-spacing-sm) 0;
+}
+
+.route-mode-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--gm-border);
+  border-radius: 50%;
+  background: var(--gm-background);
+  color: var(--gm-text-secondary);
+}
+
+.route-mode-step--transit,
+.route-mode-step--transit_bus {
+  color: var(--gm-blue);
+}
+
+.route-mode-step--bike {
+  color: var(--gm-green);
+}
+
+.route-mode-step--walk {
+  color: #7c3aed;
+}
+
+.route-mode-step--driving {
+  color: var(--gm-red);
+}
+
+.route-option-metrics {
+  margin-top: var(--gm-spacing-sm);
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-xs);
 }
 
 /* Future Route Badge */
@@ -677,6 +781,10 @@ body {
 }
 
 .route-details-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gm-spacing-md);
   margin-bottom: var(--gm-spacing-lg);
 }
 
@@ -684,6 +792,45 @@ body {
   font-size: var(--gm-font-size-lg);
   font-weight: 500;
   margin-bottom: var(--gm-spacing-xs);
+}
+
+.route-details-header p {
+  margin: 0;
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-sm);
+  line-height: var(--vr-line-height-normal);
+}
+
+.route-details-duration {
+  flex: 0 0 auto;
+  color: var(--gm-green);
+  font-size: var(--gm-font-size-lg);
+  font-weight: 600;
+}
+
+.route-details-stats {
+  margin-bottom: var(--gm-spacing-md);
+}
+
+.route-details-stats span {
+  min-width: 88px;
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-xs);
+}
+
+.route-details-stats strong {
+  display: block;
+  color: var(--gm-text-primary);
+  font-size: var(--gm-font-size-md);
+}
+
+.route-details-future {
+  display: flex;
+  align-items: center;
+  gap: var(--gm-spacing-sm);
+  margin-bottom: var(--gm-spacing-md);
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-sm);
 }
 
 /* Route Legs */
@@ -696,6 +843,12 @@ body {
 .route-leg {
   display: flex;
   gap: var(--gm-spacing-md);
+  list-style: none;
+}
+
+.route-leg-marker {
+  flex: 0 0 auto;
+  padding-top: 2px;
 }
 
 .route-leg-icon {
@@ -705,10 +858,26 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 18px;
+  color: var(--route-line-color, var(--gm-text-secondary));
 }
 
 .route-leg-content {
   flex: 1;
+  min-width: 0;
+}
+
+.route-leg-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gm-spacing-xs);
+}
+
+.route-leg-mode {
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .route-leg-instruction {
@@ -721,6 +890,26 @@ body {
 .route-leg-details {
   font-size: var(--gm-font-size-sm);
   color: var(--gm-text-secondary);
+}
+
+.route-leg-endpoints {
+  margin-bottom: var(--gm-spacing-xs);
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-xs);
+}
+
+.route-line-chip {
+  padding: 2px var(--gm-spacing-sm);
+  border-radius: var(--gm-radius-sm);
+  background: var(--route-line-color, var(--gm-blue));
+  color: white;
+  font-size: var(--gm-font-size-xs);
+  font-weight: 600;
+}
+
+.route-leg-headsign {
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-xs);
 }
 
 /* Wait Time Badge */
