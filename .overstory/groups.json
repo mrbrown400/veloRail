@@ -38,5 +38,16 @@
 		"status": "completed",
 		"createdAt": "2026-05-06T23:34:03.779Z",
 		"completedAt": "2026-05-06T23:49:59.568Z"
+	},
+	{
+		"id": "group-3cf7735a",
+		"name": "official-future-transit-data",
+		"memberIssueIds": [
+			"VR-105",
+			"veloRail-d29c"
+		],
+		"status": "active",
+		"createdAt": "2026-05-19T00:08:28.830Z",
+		"completedAt": null
 	}
 ]
