@@ -62,5 +62,20 @@
 		"status": "active",
 		"createdAt": "2026-05-19T00:57:01.328Z",
 		"completedAt": null
+	},
+	{
+		"id": "group-631d9ad4",
+		"name": "next-ready-seeds-pass",
+		"memberIssueIds": [
+			"VR-003",
+			"VR-004",
+			"VR-403",
+			"veloRail-d29c",
+			"VR-304",
+			"VR-504"
+		],
+		"status": "active",
+		"createdAt": "2026-05-19T01:20:02.435Z",
+		"completedAt": null
 	}
 ]
