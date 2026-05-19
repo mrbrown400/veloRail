@@ -33,7 +33,7 @@ The existing `metro-d-line-extension-westwood` seed remains in the base proposal
 
 ## Source Watch List
 
-Each source record includes `accessedAt: 2026-05-19` and should be refreshed when source pages change status, station lists, opening years, or project names.
+Each source record includes `accessedAt: 2026-05-19`. `veloRail-d29c` adds `OFFICIAL_FUTURE_TRANSIT_REVIEW_POLICY`, `OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS`, and `OFFICIAL_FUTURE_TRANSIT_SOURCE_MANIFEST` so freshness metadata is visible in code review. The current policy is quarterly review, next due `2026-08-17`, stale after 120 days.
 
 - East San Fernando Valley Light Rail Transit: https://www.metro.net/projects/east-sfv/
 - ESFV construction notice coverage: https://thesource.metro.net/upcoming-directional-closures-on-van-nuys-boulevard-for-work-on-east-san-fernando-valley-light-rail-project/
@@ -42,6 +42,8 @@ Each source record includes `accessedAt: 2026-05-19` and should be refreshed whe
 - Eastside Transit Corridor Phase 2: https://www.metro.net/projects/eastside_phase2/
 - North Hollywood to Pasadena Bus Rapid Transit: https://www.metro.net/projects/noho-pasadena-corridor/
 - Vermont Transit Corridor: https://www.metro.net/projects/vermont-corridor/
+
+The watch target manifest records which source supports project status, opening year, station-list, source-URL, and geometry-note drift checks. It is intentionally offline: maintainers inspect the public sources and update checked-in facts after review.
 
 ## Approximation Policy
 
@@ -55,11 +57,12 @@ Approximate geometry must follow these rules:
 - Use station `notes` when a marker represents a station area, transfer anchor, or partial station list.
 - Keep official BRT records separate from speculative rail conversion concepts even when the corridor overlaps.
 
-## Maintenance Handoff
+## Update Workflow
 
-The follow-up issue `veloRail-d29c` should add a repeatable update workflow. The minimum useful workflow is:
+The repeatable workflow is documented in `docs/architecture/official-future-transit-update-workflow.md`.
 
-- Re-check every source in the watch list.
+- Re-check every source in `OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS`.
 - Update `accessedAt`, status, opening years, station names, and approximation notes in `officialFutureTransitProposals.ts`.
-- Run `npm run test -- tests/transitProposalImport.test.js tests/mapOverlayRegistry.test.js` or `npm run quality`.
+- Run `npm run validate:official-future-transit` to catch stale review metadata, missing source URLs, unsupported Future Transit statuses, missing timeline fields, and incomplete source watch coverage.
+- Run `npm run test -- tests/transitProposalValidation.test.js tests/transitProposalImport.test.js` or `npm run quality`.
 - Do not move an unofficial concept into `rendering.layerGroup: 'future'`; the validator and overlay registry expect Future Transit to stay official-only.

@@ -36,6 +36,19 @@ const OFFICIAL_FUTURE_STATUSES = new Set<string>([
   'under_construction',
   'funded'
 ]);
+const OFFICIAL_FUTURE_RENDERABLE_STATUSES = new Set<string>([
+  'planned',
+  'under_construction',
+  'funded'
+]);
+const OFFICIAL_FUTURE_REQUIRED_DRIFT_CHECKS = new Set<string>([
+  'project_status',
+  'opening_year',
+  'station_list',
+  'source_url'
+]);
+const DEFAULT_OFFICIAL_FUTURE_MAX_AGE_DAYS = 120;
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 const VALID_KINDS = new Set<string>(['line', 'corridor']);
 const VALID_MODES = new Set<string>([
   'heavy_rail',
@@ -82,6 +95,33 @@ const FREIGHT_CONVERSION_TARGET_MODES = new Set([
   'people_mover',
   'mixed_rail'
 ]);
+
+export type OfficialFutureTransitDriftCheck =
+  | 'project_status'
+  | 'opening_year'
+  | 'phase'
+  | 'station_list'
+  | 'source_url'
+  | 'geometry_notes';
+
+export interface OfficialFutureTransitSourceWatchTarget {
+  proposalId: string;
+  sourceId: string;
+  label: string;
+  publisher: string;
+  sourceType: ProposalSourceType;
+  url: string;
+  lastReviewedAt: string;
+  nextReviewDue: string;
+  reviewCadenceDays: number;
+  driftChecks: readonly OfficialFutureTransitDriftCheck[];
+  note?: string;
+}
+
+export interface OfficialFutureTransitValidationOptions {
+  asOf?: string;
+  maxSourceAgeDays?: number;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -174,6 +214,25 @@ function validateIsoDate(
   if (!hasText(value) || !ISO_DATE_PATTERN.test(value)) {
     addIssue(issues, path, code, `${label} must use YYYY-MM-DD format.`);
   }
+}
+
+function isoDateToUtcTime(value: string): number | undefined {
+  if (!ISO_DATE_PATTERN.test(value)) return undefined;
+
+  const time = Date.parse(`${value}T00:00:00.000Z`);
+  return Number.isFinite(time) ? time : undefined;
+}
+
+function daysBetweenIsoDates(startDate: string, endDate: string): number | undefined {
+  const startTime = isoDateToUtcTime(startDate);
+  const endTime = isoDateToUtcTime(endDate);
+  if (startTime === undefined || endTime === undefined) return undefined;
+
+  return Math.floor((endTime - startTime) / MILLISECONDS_PER_DAY);
+}
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function validateLonLat(
@@ -705,6 +764,346 @@ function validateConfidence(
       addIssue(issues, `${path}.confidence.${key}`, 'missing_field', 'Proposal confidence detail level is not supported.');
     }
   }
+}
+
+function validateOfficialFutureSourceFreshness(
+  source: Record<string, unknown>,
+  path: string,
+  issues: ProposalValidationIssue[],
+  asOf: string,
+  maxSourceAgeDays: number
+) {
+  if (!hasText(source.url)) {
+    addIssue(
+      issues,
+      `${path}.url`,
+      'invalid_provenance',
+      'Official future sources require a URL so maintainers can check for source drift.'
+    );
+  }
+
+  if (!hasText(source.note)) {
+    addIssue(
+      issues,
+      `${path}.note`,
+      'invalid_provenance',
+      'Official future sources require notes describing which status, timeline, station, or geometry facts they support.'
+    );
+  }
+
+  if (!hasText(source.accessedAt)) {
+    addIssue(
+      issues,
+      `${path}.accessedAt`,
+      'invalid_provenance',
+      'Official future sources require accessedAt review dates.'
+    );
+    return;
+  }
+
+  validateIsoDate(source.accessedAt, `${path}.accessedAt`, issues, 'Official future source accessedAt', 'invalid_provenance');
+
+  const ageDays = daysBetweenIsoDates(source.accessedAt, asOf);
+  if (ageDays === undefined) return;
+
+  if (ageDays < 0) {
+    addIssue(
+      issues,
+      `${path}.accessedAt`,
+      'invalid_provenance',
+      'Official future source accessedAt cannot be later than the validation date.'
+    );
+  } else if (ageDays > maxSourceAgeDays) {
+    addIssue(
+      issues,
+      `${path}.accessedAt`,
+      'invalid_provenance',
+      `Official future source review is ${ageDays} days old; refresh it within ${maxSourceAgeDays} days.`
+    );
+  }
+}
+
+function validateOfficialFutureRecord(
+  record: Record<string, unknown>,
+  path: string,
+  issues: ProposalValidationIssue[],
+  asOf: string,
+  maxSourceAgeDays: number
+) {
+  if (record.classification !== 'official') {
+    addIssue(
+      issues,
+      `${path}.classification`,
+      'invalid_layer_classification',
+      'Official future records must keep classification official.'
+    );
+  }
+
+  if (getLayerGroup(record) !== 'future') {
+    addIssue(
+      issues,
+      `${path}.rendering.layerGroup`,
+      'invalid_layer_classification',
+      'Official future records must render through the future layer.'
+    );
+  }
+
+  if (!OFFICIAL_FUTURE_RENDERABLE_STATUSES.has(String(record.status))) {
+    addIssue(
+      issues,
+      `${path}.status`,
+      'invalid_status',
+      'Official future records must be planned, funded, or under_construction; retire operational records from the Future Transit layer.'
+    );
+  }
+
+  if (!isRecord(record.timeline)) {
+    addIssue(
+      issues,
+      `${path}.timeline`,
+      'missing_field',
+      'Official future records require timeline metadata for opening-year drift checks.'
+    );
+  } else {
+    if (!hasFiniteNumber(record.timeline.openingYear)) {
+      addIssue(
+        issues,
+        `${path}.timeline.openingYear`,
+        'missing_field',
+        'Official future records require timeline.openingYear for update review.'
+      );
+    }
+
+    if (!hasText(record.timeline.phase)) {
+      addIssue(
+        issues,
+        `${path}.timeline.phase`,
+        'missing_field',
+        'Official future records require timeline.phase for status drift checks.'
+      );
+    }
+
+    if (!hasText(record.timeline.scheduleNotes)) {
+      addIssue(
+        issues,
+        `${path}.timeline.scheduleNotes`,
+        'missing_field',
+        'Official future records require timeline.scheduleNotes tying schedule facts to source review.'
+      );
+    }
+  }
+
+  if (!Array.isArray(record.stations) || record.stations.length === 0) {
+    addIssue(
+      issues,
+      `${path}.stations`,
+      'invalid_station',
+      'Official future records require a station list or representative station anchors for station-list drift checks.'
+    );
+  }
+
+  if (Array.isArray(record.provenance)) {
+    record.provenance.forEach((source, index) => {
+      if (isRecord(source)) {
+        validateOfficialFutureSourceFreshness(
+          source,
+          `${path}.provenance[${index}]`,
+          issues,
+          asOf,
+          maxSourceAgeDays
+        );
+      }
+    });
+  }
+}
+
+export function validateOfficialFutureTransitDatasetFreshness(
+  dataset: unknown,
+  options: OfficialFutureTransitValidationOptions = {}
+): ProposalValidationResult {
+  const issues: ProposalValidationIssue[] = [];
+  const structuralResult = validateTransitProposalDataset(dataset);
+  issues.push(...structuralResult.issues);
+
+  if (!isRecord(dataset) || !Array.isArray(dataset.proposals)) {
+    return { valid: issues.length === 0, issues };
+  }
+
+  const asOf = options.asOf ?? todayIsoDate();
+  const maxSourceAgeDays = options.maxSourceAgeDays ?? DEFAULT_OFFICIAL_FUTURE_MAX_AGE_DAYS;
+
+  validateIsoDate(asOf, 'officialFuture.asOf', issues, 'Official future validation date', 'invalid_dataset');
+
+  dataset.proposals.forEach((proposal, index) => {
+    if (isRecord(proposal)) {
+      validateOfficialFutureRecord(
+        proposal,
+        `dataset.proposals[${index}]`,
+        issues,
+        asOf,
+        maxSourceAgeDays
+      );
+    }
+  });
+
+  return { valid: issues.length === 0, issues };
+}
+
+export function validateOfficialFutureTransitSourceWatchTargets(
+  dataset: unknown,
+  watchTargets: unknown,
+  options: OfficialFutureTransitValidationOptions = {}
+): ProposalValidationResult {
+  const issues: ProposalValidationIssue[] = [];
+  const asOf = options.asOf ?? todayIsoDate();
+  const maxSourceAgeDays = options.maxSourceAgeDays ?? DEFAULT_OFFICIAL_FUTURE_MAX_AGE_DAYS;
+
+  validateIsoDate(asOf, 'officialFuture.asOf', issues, 'Official future validation date', 'invalid_dataset');
+
+  if (!isRecord(dataset) || !Array.isArray(dataset.proposals)) {
+    addIssue(issues, 'dataset.proposals', 'invalid_dataset', 'Official future dataset proposals must be available for source watch validation.');
+    return { valid: false, issues };
+  }
+
+  if (!Array.isArray(watchTargets) || watchTargets.length === 0) {
+    addIssue(issues, 'watchTargets', 'invalid_dataset', 'Official future source watch targets are required.');
+    return { valid: false, issues };
+  }
+
+  const proposalById = new Map<string, Record<string, unknown>>();
+  const provenanceByProposalId = new Map<string, Map<string, Record<string, unknown>>>();
+  const driftChecksByProposalId = new Map<string, Set<string>>();
+
+  dataset.proposals.forEach((proposal) => {
+    if (!isRecord(proposal) || !hasText(proposal.id)) return;
+
+    proposalById.set(proposal.id, proposal);
+    provenanceByProposalId.set(proposal.id, new Map());
+    driftChecksByProposalId.set(proposal.id, new Set());
+
+    if (!Array.isArray(proposal.provenance)) return;
+
+    const sources = provenanceByProposalId.get(proposal.id);
+    proposal.provenance.forEach((source) => {
+      if (sources && isRecord(source) && hasText(source.sourceId)) {
+        sources.set(source.sourceId, source);
+      }
+    });
+  });
+
+  const seenTargets = new Set<string>();
+  watchTargets.forEach((target, index) => {
+    const path = `watchTargets[${index}]`;
+
+    if (!isRecord(target)) {
+      addIssue(issues, path, 'invalid_dataset', 'Source watch target must be an object.');
+      return;
+    }
+
+    const targetKey = `${String(target.proposalId)}:${String(target.sourceId)}`;
+    if (seenTargets.has(targetKey)) {
+      addIssue(issues, path, 'invalid_dataset', 'Duplicate source watch target for proposalId and sourceId.');
+    }
+    seenTargets.add(targetKey);
+
+    if (!hasText(target.proposalId)) {
+      addIssue(issues, `${path}.proposalId`, 'missing_field', 'Source watch target requires proposalId.');
+      return;
+    }
+
+    const proposal = proposalById.get(target.proposalId);
+    if (!proposal) {
+      addIssue(issues, `${path}.proposalId`, 'invalid_dataset', 'Source watch target proposalId must match an official future proposal.');
+      return;
+    }
+
+    if (!hasText(target.sourceId)) {
+      addIssue(issues, `${path}.sourceId`, 'missing_field', 'Source watch target requires sourceId.');
+      return;
+    }
+
+    const source = provenanceByProposalId.get(target.proposalId)?.get(target.sourceId);
+    if (!source) {
+      addIssue(issues, `${path}.sourceId`, 'invalid_provenance', 'Source watch target sourceId must match proposal provenance.');
+    }
+
+    if (!hasText(target.url)) {
+      addIssue(issues, `${path}.url`, 'invalid_provenance', 'Source watch target requires a URL.');
+    } else if (source && hasText(source.url) && target.url !== source.url) {
+      addIssue(issues, `${path}.url`, 'invalid_provenance', 'Source watch target URL must match proposal provenance URL.');
+    }
+
+    if (!hasText(target.sourceType)) {
+      addIssue(issues, `${path}.sourceType`, 'invalid_provenance', 'Source watch target requires sourceType.');
+    } else if (source && hasText(source.sourceType) && target.sourceType !== source.sourceType) {
+      addIssue(issues, `${path}.sourceType`, 'invalid_provenance', 'Source watch target sourceType must match proposal provenance sourceType.');
+    }
+
+    if (!hasFiniteNumber(target.reviewCadenceDays) || target.reviewCadenceDays <= 0) {
+      addIssue(issues, `${path}.reviewCadenceDays`, 'invalid_dataset', 'Source watch target reviewCadenceDays must be a positive number.');
+    }
+
+    if (!hasText(target.lastReviewedAt)) {
+      addIssue(issues, `${path}.lastReviewedAt`, 'invalid_provenance', 'Source watch target requires lastReviewedAt.');
+    } else {
+      validateIsoDate(target.lastReviewedAt, `${path}.lastReviewedAt`, issues, 'Source watch target lastReviewedAt', 'invalid_provenance');
+
+      const ageDays = daysBetweenIsoDates(target.lastReviewedAt, asOf);
+      if (ageDays !== undefined && ageDays > maxSourceAgeDays) {
+        addIssue(
+          issues,
+          `${path}.lastReviewedAt`,
+          'invalid_provenance',
+          `Source watch target review is ${ageDays} days old; refresh it within ${maxSourceAgeDays} days.`
+        );
+      }
+    }
+
+    if (!hasText(target.nextReviewDue)) {
+      addIssue(issues, `${path}.nextReviewDue`, 'invalid_provenance', 'Source watch target requires nextReviewDue.');
+    } else {
+      validateIsoDate(target.nextReviewDue, `${path}.nextReviewDue`, issues, 'Source watch target nextReviewDue', 'invalid_provenance');
+    }
+
+    if (!Array.isArray(target.driftChecks) || target.driftChecks.length === 0) {
+      addIssue(issues, `${path}.driftChecks`, 'invalid_dataset', 'Source watch target requires drift checks.');
+    } else {
+      const proposalDriftChecks = driftChecksByProposalId.get(target.proposalId);
+
+      target.driftChecks.forEach((driftCheck, driftCheckIndex) => {
+        if (!hasText(driftCheck)) {
+          addIssue(issues, `${path}.driftChecks[${driftCheckIndex}]`, 'invalid_dataset', 'Drift check must be a non-empty string.');
+          return;
+        }
+
+        proposalDriftChecks?.add(driftCheck);
+      });
+    }
+
+    if (!hasText(target.note)) {
+      addIssue(issues, `${path}.note`, 'invalid_dataset', 'Source watch target requires a review note.');
+    }
+  });
+
+  dataset.proposals.forEach((proposal, index) => {
+    if (!isRecord(proposal) || getLayerGroup(proposal) !== 'future') return;
+
+    const proposalId = hasText(proposal.id) ? proposal.id : `dataset.proposals[${index}]`;
+    const driftChecks = driftChecksByProposalId.get(proposalId) ?? new Set<string>();
+
+    OFFICIAL_FUTURE_REQUIRED_DRIFT_CHECKS.forEach((requiredCheck) => {
+      if (!driftChecks.has(requiredCheck)) {
+        addIssue(
+          issues,
+          `watchTargets.${proposalId}.driftChecks`,
+          'invalid_dataset',
+          `Official future proposal watch targets must cover ${requiredCheck}.`
+        );
+      }
+    });
+  });
+
+  return { valid: issues.length === 0, issues };
 }
 
 export function validateTransitProposalRecord(

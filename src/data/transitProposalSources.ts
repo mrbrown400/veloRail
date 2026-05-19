@@ -1,5 +1,9 @@
 import { TRANSIT_PROPOSAL_DATASET } from './transitProposals';
-import { OFFICIAL_LA_FUTURE_TRANSIT_DATASET } from './officialFutureTransitProposals';
+import {
+  OFFICIAL_FUTURE_TRANSIT_REVIEW_POLICY,
+  OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS,
+  OFFICIAL_LA_FUTURE_TRANSIT_DATASET
+} from './officialFutureTransitProposals';
 import { LA_FREIGHT_RAIL_CORRIDOR_DATASET } from './laFreightRailCorridors';
 import {
   importTransitProposalSources
@@ -9,14 +13,21 @@ import type {
   TransitProposalSourceFile
 } from './transitProposalImport';
 
+export const OFFICIAL_FUTURE_TRANSIT_SOURCE_MANIFEST = {
+  name: OFFICIAL_FUTURE_TRANSIT_REVIEW_POLICY.sourceName,
+  dataset: OFFICIAL_LA_FUTURE_TRANSIT_DATASET,
+  reviewPolicy: OFFICIAL_FUTURE_TRANSIT_REVIEW_POLICY,
+  sourceWatchTargets: OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS
+} as const;
+
 export const TRANSIT_PROPOSAL_SOURCE_FILES = [
   {
     name: 'seed-transit-proposals.v1.ts',
     dataset: TRANSIT_PROPOSAL_DATASET
   },
   {
-    name: 'official-la-future-transit.v1.ts',
-    dataset: OFFICIAL_LA_FUTURE_TRANSIT_DATASET
+    name: OFFICIAL_FUTURE_TRANSIT_SOURCE_MANIFEST.name,
+    dataset: OFFICIAL_FUTURE_TRANSIT_SOURCE_MANIFEST.dataset
   },
   {
     name: 'la-freight-rail-corridors.v1.ts',

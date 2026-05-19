@@ -18,6 +18,7 @@
     "test:browser": "node scripts/with-supported-node.mjs playwright test",
     "test:browser:required": "PLAYWRIGHT_STRICT_MAPS=1 node scripts/with-supported-node.mjs playwright test",
     "test:browser:headed": "node scripts/with-supported-node.mjs playwright test --headed",
+    "validate:official-future-transit": "node scripts/with-supported-node.mjs node scripts/validate-official-future-transit.mjs",
     "issue:gate": "node scripts/issue-gate.mjs",
     "issue:close": "node scripts/issue-close.mjs"
   },

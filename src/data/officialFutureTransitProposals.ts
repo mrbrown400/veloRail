@@ -2,12 +2,148 @@ import {
   TRANSIT_PROPOSAL_SCHEMA_VERSION
 } from '@/types/proposals';
 import type {
+  ProposalSourceType,
   TransitProposalDataset
 } from '@/types/proposals';
+import type {
+  OfficialFutureTransitDriftCheck,
+  OfficialFutureTransitSourceWatchTarget
+} from './transitProposalValidation';
+
+const OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT = '2026-05-19';
+const OFFICIAL_FUTURE_TRANSIT_NEXT_REVIEW_DUE = '2026-08-17';
+const OFFICIAL_FUTURE_TRANSIT_REVIEW_CADENCE_DAYS = 90;
+const OFFICIAL_FUTURE_TRANSIT_STALE_AFTER_DAYS = 120;
+const OFFICIAL_FUTURE_TRANSIT_REQUIRED_STATUSES = [
+  'planned',
+  'funded',
+  'under_construction'
+] as const;
+const OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS = [
+  'project_status',
+  'opening_year',
+  'station_list',
+  'source_url',
+  'geometry_notes'
+] satisfies OfficialFutureTransitDriftCheck[];
+
+export const OFFICIAL_FUTURE_TRANSIT_REVIEW_POLICY = {
+  datasetId: 'official-la-future-transit',
+  sourceName: 'official-la-future-transit.v1.ts',
+  lastReviewedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
+  nextReviewDue: OFFICIAL_FUTURE_TRANSIT_NEXT_REVIEW_DUE,
+  reviewCadenceDays: OFFICIAL_FUTURE_TRANSIT_REVIEW_CADENCE_DAYS,
+  staleAfterDays: OFFICIAL_FUTURE_TRANSIT_STALE_AFTER_DAYS,
+  allowedRenderableStatuses: OFFICIAL_FUTURE_TRANSIT_REQUIRED_STATUSES,
+  reviewChecklist: [
+    'Re-check each official source URL before changing project facts.',
+    'Compare status, opening year, project phase, station list or representative station anchors, source URL, and geometry notes.',
+    'Update provenance accessedAt only after human review of the cited public source.',
+    'Keep advocacy, commentary, and speculative records out of the official future layer.'
+  ]
+} as const;
+
+function officialFutureWatchTarget(
+  proposalId: string,
+  sourceId: string,
+  label: string,
+  publisher: string,
+  sourceType: ProposalSourceType,
+  url: string,
+  driftChecks: readonly OfficialFutureTransitDriftCheck[],
+  note: string
+): OfficialFutureTransitSourceWatchTarget {
+  return {
+    proposalId,
+    sourceId,
+    label,
+    publisher,
+    sourceType,
+    url,
+    lastReviewedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
+    nextReviewDue: OFFICIAL_FUTURE_TRANSIT_NEXT_REVIEW_DUE,
+    reviewCadenceDays: OFFICIAL_FUTURE_TRANSIT_REVIEW_CADENCE_DAYS,
+    driftChecks,
+    note
+  };
+}
+
+export const OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS = [
+  officialFutureWatchTarget(
+    'metro-east-san-fernando-valley-lrt',
+    'metro-east-sfv-project-page',
+    'East San Fernando Valley Light Rail Transit project page',
+    'Los Angeles County Metropolitan Transportation Authority',
+    'official_project',
+    'https://www.metro.net/projects/east-sfv/',
+    OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS,
+    'Primary source for project status, opening year, corridor, station count, and named station areas.'
+  ),
+  officialFutureWatchTarget(
+    'metro-east-san-fernando-valley-lrt',
+    'metro-esfv-construction-notice',
+    'East San Fernando Valley construction notices',
+    'LA Metro The Source',
+    'public_agency',
+    'https://thesource.metro.net/upcoming-directional-closures-on-van-nuys-boulevard-for-work-on-east-san-fernando-valley-light-rail-project/',
+    ['project_status', 'source_url'],
+    'Secondary source for active construction status and corridor work notices.'
+  ),
+  officialFutureWatchTarget(
+    'metro-southeast-gateway-line',
+    'metro-southeast-gateway-project-page',
+    'Southeast Gateway Line project page',
+    'Los Angeles County Metropolitan Transportation Authority',
+    'official_project',
+    'https://www.metro.net/projects/southeastgateway/',
+    OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS,
+    'Primary source for design status, completion target, station count, and published station areas.'
+  ),
+  officialFutureWatchTarget(
+    'metro-k-line-extension-torrance',
+    'metro-k-line-extension-project-page',
+    'K Line Extension to Torrance project page',
+    'Los Angeles County Metropolitan Transportation Authority',
+    'official_project',
+    'https://www.metro.net/projects/green-line-extension/',
+    OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS,
+    'Primary source for approved alignment option, funding status, station count, and completion target.'
+  ),
+  officialFutureWatchTarget(
+    'metro-eastside-transit-corridor-phase-2',
+    'metro-eastside-phase-2-project-page',
+    'Eastside Transit Corridor Phase 2 project page',
+    'Los Angeles County Metropolitan Transportation Authority',
+    'official_project',
+    'https://www.metro.net/projects/eastside_phase2/',
+    OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS,
+    'Primary source for phase status, federal review, opening range, and station list.'
+  ),
+  officialFutureWatchTarget(
+    'metro-noho-pasadena-brt',
+    'metro-noho-pasadena-project-page',
+    'North Hollywood to Pasadena BRT project page',
+    'Los Angeles County Metropolitan Transportation Authority',
+    'official_project',
+    'https://www.metro.net/projects/noho-pasadena-corridor/',
+    OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS,
+    'Primary source for construction status, service target, corridor communities, and station count.'
+  ),
+  officialFutureWatchTarget(
+    'metro-vermont-brt',
+    'metro-vermont-corridor-project-page',
+    'Vermont Transit Corridor project page',
+    'Los Angeles County Metropolitan Transportation Authority',
+    'official_project',
+    'https://www.metro.net/projects/vermont-corridor/',
+    OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS,
+    'Primary source for LPA status, BRT opening target, transfer anchors, and rail-conversion boundary notes.'
+  )
+] as const;
 
 export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
   schemaVersion: TRANSIT_PROPOSAL_SCHEMA_VERSION,
-  updatedAt: '2026-05-19',
+  updatedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
   migrationNotes: [
     'VR-105 initial official LA-area future transit batch. Sources are Metro official project pages and public agency notices checked on 2026-05-19.',
     'Geometry is simplified corridor geometry for Google Maps rendering and must not be treated as surveyed engineering alignment.',
@@ -109,7 +245,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
           sourceType: 'official_project',
           publisher: 'Los Angeles County Metropolitan Transportation Authority',
           url: 'https://www.metro.net/projects/east-sfv/',
-          accessedAt: '2026-05-19',
+          accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
           note: 'Metro lists the project in construction, with a 6.7-mile alignment, 11 stations, 2031 completion, and station areas including Van Nuys G Line, Victory, Sherman Way, Van Nuys Metrolink, Arleta, and San Fernando.'
         },
         {
@@ -118,7 +254,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
           sourceType: 'public_agency',
           publisher: 'LA Metro The Source',
           url: 'https://thesource.metro.net/upcoming-directional-closures-on-van-nuys-boulevard-for-work-on-east-san-fernando-valley-light-rail-project/',
-          accessedAt: '2026-05-19',
+          accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
           note: 'Metro construction notice confirms active utility work and the 6.7-mile line with 11 stations.'
         }
       ],
@@ -244,7 +380,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
           sourceType: 'official_project',
           publisher: 'Los Angeles County Metropolitan Transportation Authority',
           url: 'https://www.metro.net/projects/southeastgateway/',
-          accessedAt: '2026-05-19',
+          accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
           note: 'Metro lists the project in design, with 14.5 miles, nine new light rail stations, one C Line infill station, 2035 completion, and example station areas.'
         }
       ],
@@ -345,7 +481,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
           sourceType: 'official_project',
           publisher: 'Los Angeles County Metropolitan Transportation Authority',
           url: 'https://www.metro.net/projects/green-line-extension/',
-          accessedAt: '2026-05-19',
+          accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
           note: 'Metro lists the 4.5-mile extension, two new stations, January 2026 Final EIR certification and Hawthorne Option approval, planning phase, and late 2036 completion pending funding.'
         }
       ],
@@ -490,7 +626,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
           sourceType: 'official_project',
           publisher: 'Los Angeles County Metropolitan Transportation Authority',
           url: 'https://www.metro.net/projects/eastside_phase2/',
-          accessedAt: '2026-05-19',
+          accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
           note: 'Metro lists the nearly 9-mile E Line extension, planning phase, 2035-2037 completion for the initial segment pending funding, federal environmental review, and six planned station areas.'
         }
       ],
@@ -611,7 +747,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
           sourceType: 'official_project',
           publisher: 'Los Angeles County Metropolitan Transportation Authority',
           url: 'https://www.metro.net/projects/noho-pasadena-corridor/',
-          accessedAt: '2026-05-19',
+          accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
           note: 'Metro lists the project in construction, with a 19-mile corridor, 22 enhanced stations, full construction in 2026-2027, and planned 2028 service.'
         }
       ],
@@ -722,7 +858,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
           sourceType: 'official_project',
           publisher: 'Los Angeles County Metropolitan Transportation Authority',
           url: 'https://www.metro.net/projects/vermont-corridor/',
-          accessedAt: '2026-05-19',
+          accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
           note: 'Metro lists the 12.4-mile BRT from Sunset Boulevard to 120th Street, planning phase, LPA approval, preliminary engineering and NEPA review, and 2028 completion target.'
         }
       ],
