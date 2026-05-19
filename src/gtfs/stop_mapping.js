@@ -136,8 +136,8 @@ const MANUAL_STOP_MAPPING = {
   "Harbor Gateway Transit Center": { metro: "80804" }
 };
 
-// Cache for dynamically built mappings
-let dynamicMappingCache = null;
+// Cache for dynamically built mappings, keyed by resolved feed ID.
+const dynamicMappingCache = new Map();
 
 /**
  * Get GTFS stop_id for a station name
@@ -186,26 +186,28 @@ function normalizeStationName(name) {
  * Build dynamic mapping from loaded GTFS stops
  */
 async function getDynamicMapping(feedId) {
-  if (dynamicMappingCache) {
-    return dynamicMappingCache;
+  const resolvedFeedId = feedId === 'metro' ? 'metro_rail' : feedId;
+  if (dynamicMappingCache.has(resolvedFeedId)) {
+    return dynamicMappingCache.get(resolvedFeedId);
   }
 
   try {
-    const stops = await getStops(feedId === 'metro' ? 'metro_rail' : feedId);
+    const stops = await getStops(resolvedFeedId);
     if (!stops || stops.length === 0) {
       return null;
     }
 
-    dynamicMappingCache = {};
+    const mapping = {};
     for (const stop of stops) {
       const normalized = normalizeStationName(stop.stop_name);
       // Prefer parent stations over child platforms
-      if (!dynamicMappingCache[normalized] || !stop.parent_station) {
-        dynamicMappingCache[normalized] = stop.stop_id;
+      if (!mapping[normalized] || !stop.parent_station) {
+        mapping[normalized] = stop.stop_id;
       }
     }
 
-    return dynamicMappingCache;
+    dynamicMappingCache.set(resolvedFeedId, mapping);
+    return mapping;
   } catch (error) {
     console.warn('[StopMapping] Failed to build dynamic mapping:', error);
     return null;
@@ -216,7 +218,7 @@ async function getDynamicMapping(feedId) {
  * Clear the dynamic mapping cache (call when GTFS data is updated)
  */
 export function clearMappingCache() {
-  dynamicMappingCache = null;
+  dynamicMappingCache.clear();
 }
 
 /**

@@ -8,7 +8,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'velorail_gtfs';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise = null;
 
@@ -18,7 +18,7 @@ let dbPromise = null;
 async function getDB() {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion, newVersion, transaction) {
+      upgrade(db) {
         // Metadata store - feed version info
         if (!db.objectStoreNames.contains('metadata')) {
           db.createObjectStore('metadata', { keyPath: 'feedId' });
@@ -42,6 +42,20 @@ async function getDB() {
         if (!db.objectStoreNames.contains('routes')) {
           const routeStore = db.createObjectStore('routes', { keyPath: ['feedId', 'route_id'] });
           routeStore.createIndex('by_feed', 'feedId');
+        }
+
+        // Trips store - indexed by trip_id
+        if (!db.objectStoreNames.contains('trips')) {
+          const tripStore = db.createObjectStore('trips', { keyPath: ['feedId', 'trip_id'] });
+          tripStore.createIndex('by_route', ['feedId', 'route_id']);
+          tripStore.createIndex('by_service', ['feedId', 'service_id']);
+          tripStore.createIndex('by_feed', 'feedId');
+        }
+
+        // Raw stop sequence store - grouped by trip for export/schedule tooling
+        if (!db.objectStoreNames.contains('trip_stop_times')) {
+          const tripStopStore = db.createObjectStore('trip_stop_times', { keyPath: ['feedId', 'trip_id'] });
+          tripStopStore.createIndex('by_feed', 'feedId');
         }
 
         // Calendar store - service patterns
@@ -80,7 +94,10 @@ export async function storeGTFSData(feedId, agency, gtfsData) {
       stop_name: stop.stop_name,
       stop_lat: parseFloat(stop.stop_lat),
       stop_lon: parseFloat(stop.stop_lon),
-      parent_station: stop.parent_station || null
+      stop_code: stop.stop_code || null,
+      location_type: stop.location_type || '0',
+      parent_station: stop.parent_station || null,
+      wheelchair_boarding: stop.wheelchair_boarding || null
     });
   }
   await tx1.done;
@@ -91,13 +108,37 @@ export async function storeGTFSData(feedId, agency, gtfsData) {
     await tx2.store.put({
       feedId,
       route_id: route.route_id,
+      agency_id: route.agency_id || agency,
       route_short_name: route.route_short_name,
       route_long_name: route.route_long_name,
-      route_color: route.route_color ? `#${route.route_color}` : null,
-      route_type: route.route_type
+      route_desc: route.route_desc || null,
+      route_type: parseInt(route.route_type, 10),
+      route_url: route.route_url || null,
+      route_color: normalizeRouteColor(route.route_color),
+      route_text_color: normalizeRouteColor(route.route_text_color),
+      route_sort_order: route.route_sort_order ? parseInt(route.route_sort_order, 10) : null
     });
   }
   await tx2.done;
+
+  // Store trips
+  const tripTx = db.transaction('trips', 'readwrite');
+  for (const trip of gtfsData.trips || []) {
+    await tripTx.store.put({
+      feedId,
+      route_id: trip.route_id,
+      service_id: trip.service_id,
+      trip_id: trip.trip_id,
+      trip_headsign: trip.trip_headsign || '',
+      trip_short_name: trip.trip_short_name || null,
+      direction_id: trip.direction_id || null,
+      block_id: trip.block_id || null,
+      shape_id: trip.shape_id || null,
+      wheelchair_accessible: trip.wheelchair_accessible || null,
+      bikes_allowed: trip.bikes_allowed || null
+    });
+  }
+  await tripTx.done;
 
   // Store calendar
   const tx3 = db.transaction('calendar', 'readwrite');
@@ -153,6 +194,7 @@ async function processStopTimes(feedId, trips, stopTimes) {
 
   // Group stop_times by stop_id + service_id
   const grouped = new Map();
+  const tripStopTimes = new Map();
 
   for (const st of stopTimes) {
     const tripInfo = tripServiceMap.get(st.trip_id);
@@ -178,12 +220,35 @@ async function processStopTimes(feedId, trips, stopTimes) {
       stop_sequence: parseInt(st.stop_sequence, 10),
       pickup_type: st.pickup_type || '0'
     });
+
+    if (!tripStopTimes.has(st.trip_id)) {
+      tripStopTimes.set(st.trip_id, {
+        feedId,
+        trip_id: st.trip_id,
+        route_id: tripInfo.route_id,
+        service_id: tripInfo.service_id,
+        headsign: tripInfo.headsign,
+        direction_id: tripInfo.direction_id,
+        stops: []
+      });
+    }
+
+    tripStopTimes.get(st.trip_id).stops.push({
+      stop_id: st.stop_id,
+      arrival_time: st.arrival_time,
+      departure_time: st.departure_time,
+      stop_sequence: parseInt(st.stop_sequence, 10),
+      pickup_type: st.pickup_type || '0',
+      drop_off_type: st.drop_off_type || '0',
+      shape_dist_traveled: st.shape_dist_traveled || null,
+      timepoint: st.timepoint || null
+    });
   }
 
   // Sort departures by time and store
   const tx = db.transaction('stop_times', 'readwrite');
 
-  for (const [key, data] of grouped) {
+  for (const data of grouped.values()) {
     // Sort by departure time
     data.departures.sort((a, b) => {
       const timeA = timeToSeconds(a.departure_time);
@@ -195,7 +260,15 @@ async function processStopTimes(feedId, trips, stopTimes) {
   }
 
   await tx.done;
-  console.log(`[GTFS] Stored ${grouped.size} stop/service combinations`);
+
+  const tripTx = db.transaction('trip_stop_times', 'readwrite');
+  for (const data of tripStopTimes.values()) {
+    data.stops.sort((a, b) => a.stop_sequence - b.stop_sequence);
+    await tripTx.store.put(data);
+  }
+  await tripTx.done;
+
+  console.log(`[GTFS] Stored ${grouped.size} stop/service combinations and ${tripStopTimes.size} trip stop sequences`);
 }
 
 /**
@@ -222,7 +295,7 @@ export function secondsToTime(seconds) {
  */
 async function clearFeedData(feedId) {
   const db = await getDB();
-  const stores = ['stops', 'stop_times', 'routes', 'calendar', 'calendar_dates'];
+  const stores = ['stops', 'stop_times', 'routes', 'trips', 'trip_stop_times', 'calendar', 'calendar_dates'];
 
   for (const storeName of stores) {
     const tx = db.transaction(storeName, 'readwrite');
@@ -264,6 +337,15 @@ export async function getStops(feedId) {
 }
 
 /**
+ * Get all routes for a feed
+ */
+export async function getRoutes(feedId) {
+  const db = await getDB();
+  const index = db.transaction('routes').store.index('by_feed');
+  return index.getAll(feedId);
+}
+
+/**
  * Get stop by ID
  */
 export async function getStop(feedId, stopId) {
@@ -286,6 +368,49 @@ export async function getAllStopTimes(feedId, stopId) {
   const db = await getDB();
   const index = db.transaction('stop_times').store.index('by_stop');
   return index.getAll([feedId, stopId]);
+}
+
+/**
+ * Get trip by ID
+ */
+export async function getTrip(feedId, tripId) {
+  const db = await getDB();
+  return db.get('trips', [feedId, tripId]);
+}
+
+/**
+ * Get all trips for a feed
+ */
+export async function getTrips(feedId) {
+  const db = await getDB();
+  const index = db.transaction('trips').store.index('by_feed');
+  return index.getAll(feedId);
+}
+
+/**
+ * Get trips for a route
+ */
+export async function getTripsForRoute(feedId, routeId) {
+  const db = await getDB();
+  const index = db.transaction('trips').store.index('by_route');
+  return index.getAll([feedId, routeId]);
+}
+
+/**
+ * Get stop sequence for a trip
+ */
+export async function getTripStopTimes(feedId, tripId) {
+  const db = await getDB();
+  return db.get('trip_stop_times', [feedId, tripId]);
+}
+
+/**
+ * Get all trip stop sequences for export or offline schedule tooling
+ */
+export async function getAllTripStopTimes(feedId) {
+  const db = await getDB();
+  const index = db.transaction('trip_stop_times').store.index('by_feed');
+  return index.getAll(feedId);
 }
 
 /**
@@ -315,9 +440,56 @@ export async function getCalendarDateExceptions(feedId, date) {
 }
 
 /**
+ * Get all calendar date exceptions for a feed
+ */
+export async function getAllCalendarDates(feedId) {
+  const db = await getDB();
+  const index = db.transaction('calendar_dates').store.index('by_feed');
+  return index.getAll(feedId);
+}
+
+/**
  * Get route by ID
  */
 export async function getRoute(feedId, routeId) {
   const db = await getDB();
   return db.get('routes', [feedId, routeId]);
+}
+
+/**
+ * Export a complete app-owned GTFS snapshot from IndexedDB
+ */
+export async function getGTFSFeedSnapshot(feedId) {
+  const [
+    metadata,
+    stops,
+    routes,
+    trips,
+    tripStopTimes,
+    calendar,
+    calendarDates
+  ] = await Promise.all([
+    getMetadata(feedId),
+    getStops(feedId),
+    getRoutes(feedId),
+    getTrips(feedId),
+    getAllTripStopTimes(feedId),
+    getAllCalendars(feedId),
+    getAllCalendarDates(feedId)
+  ]);
+
+  return {
+    metadata: metadata || null,
+    stops,
+    routes,
+    trips,
+    tripStopTimes,
+    calendar,
+    calendarDates
+  };
+}
+
+function normalizeRouteColor(routeColor) {
+  const color = String(routeColor || '').replace(/^#/, '').trim();
+  return color ? `#${color.toUpperCase()}` : null;
 }

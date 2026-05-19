@@ -25,6 +25,10 @@ import { getGTFSStopId } from './stop_mapping.js';
  * @returns {Promise<Array<{tripId, departureTime, headsign, routeId}>>}
  */
 export async function getNextDepartures(stopId, afterTime, limit = 5, feedId = 'metro_rail') {
+  if (!stopId) {
+    return [];
+  }
+
   // Get active service IDs for this date
   const activeServiceIds = await getActiveServiceIds(feedId, afterTime);
   if (activeServiceIds.length === 0) {
@@ -93,7 +97,8 @@ export async function getNextDepartures(stopId, afterTime, limit = 5, feedId = '
  * @returns {Promise<{waitSeconds, departureTime, headsign, isEstimate} | null>}
  */
 export async function getWaitTimeForStation(stationName, arrivalTime, feedId = 'metro_rail') {
-  const stopId = await getGTFSStopId(stationName);
+  const agency = feedId === 'metro_rail' ? 'metro' : feedId;
+  const stopId = await getGTFSStopId(stationName, agency);
   if (!stopId) {
     return null;
   }
@@ -255,3 +260,11 @@ export async function isGTFSQueryable(feedId = 'metro_rail') {
     return false;
   }
 }
+
+export {
+  getStops,
+  getRoutes,
+  getTrips,
+  getTripStopTimes,
+  getGTFSFeedSnapshot
+} from './gtfs_store.js';
