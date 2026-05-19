@@ -41,6 +41,20 @@ const OFFICIAL_FUTURE_RENDERABLE_STATUSES = new Set<string>([
   'under_construction',
   'funded'
 ]);
+const VISIONARY_RENDERABLE_STATUSES = new Set<string>([
+  'vision',
+  'concept'
+]);
+const VISIONARY_REGISTRY_SOURCE_TYPES = new Set<string>([
+  'advocacy',
+  'commentary',
+  'internal_example',
+  'other'
+]);
+const VISIONARY_GEOMETRY_SOURCES = new Set<string>([
+  'approximate',
+  'conceptual'
+]);
 const OFFICIAL_FUTURE_REQUIRED_DRIFT_CHECKS = new Set<string>([
   'project_status',
   'opening_year',
@@ -182,6 +196,25 @@ function hasSourceNote(record: Record<string, unknown>): boolean {
 function getLayerGroup(record: Record<string, unknown>): unknown {
   if (!isRecord(record.rendering)) return undefined;
   return record.rendering.layerGroup;
+}
+
+function isGoogleMapsSourceUrl(value: unknown): boolean {
+  if (!hasText(value)) return false;
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+    const pathname = url.pathname.toLowerCase();
+
+    return (
+      hostname === 'maps.google.com'
+      || hostname.endsWith('.maps.google.com')
+      || (hostname.startsWith('www.google.') && pathname.startsWith('/maps'))
+      || (hostname.startsWith('google.') && pathname.startsWith('/maps'))
+    );
+  } catch {
+    return /(?:^|\/\/)(?:www\.)?google\.[^/]+\/maps|(?:^|\/\/)maps\.google\./i.test(value);
+  }
 }
 
 function validateMachineId(
@@ -1106,6 +1139,125 @@ export function validateOfficialFutureTransitSourceWatchTargets(
   return { valid: issues.length === 0, issues };
 }
 
+function validateVisionaryRegistryRecord(
+  record: Record<string, unknown>,
+  path: string,
+  issues: ProposalValidationIssue[]
+) {
+  const layerGroup = getLayerGroup(record);
+
+  if (layerGroup !== 'visionary') {
+    addIssue(
+      issues,
+      `${path}.rendering.layerGroup`,
+      'invalid_layer_classification',
+      'Visionary registry records must render through the visionary layer.'
+    );
+  }
+
+  if (!UNOFFICIAL_CLASSIFICATIONS.has(String(record.classification))) {
+    addIssue(
+      issues,
+      `${path}.classification`,
+      'invalid_classification',
+      'Visionary registry records must use commentary_summary, advocacy_derived, or speculative classification.'
+    );
+  }
+
+  if (!VISIONARY_RENDERABLE_STATUSES.has(String(record.status))) {
+    addIssue(
+      issues,
+      `${path}.status`,
+      'invalid_status',
+      'Visionary registry records must use vision or concept status.'
+    );
+  }
+
+  if (isRecord(record.geometry) && record.geometry.geometrySource !== undefined) {
+    if (!VISIONARY_GEOMETRY_SOURCES.has(String(record.geometry.geometrySource))) {
+      addIssue(
+        issues,
+        `${path}.geometry.geometrySource`,
+        'invalid_geometry',
+        'Visionary registry geometry must be approximate or conceptual.'
+      );
+    }
+  }
+
+  if (!hasText(record.notes)) {
+    addIssue(
+      issues,
+      `${path}.notes`,
+      'missing_field',
+      'Visionary registry records require editorial notes for display and review.'
+    );
+  }
+
+  if (!Array.isArray(record.provenance)) return;
+
+  let hasRegistrySource = false;
+  record.provenance.forEach((source, index) => {
+    if (!isRecord(source)) return;
+
+    const sourcePath = `${path}.provenance[${index}]`;
+    if (hasText(source.sourceType) && VISIONARY_REGISTRY_SOURCE_TYPES.has(source.sourceType)) {
+      hasRegistrySource = true;
+    } else if (hasText(source.sourceType)) {
+      addIssue(
+        issues,
+        `${sourcePath}.sourceType`,
+        'invalid_provenance',
+        'Visionary registry sourceType must be commentary, advocacy, internal_example, or other.'
+      );
+    }
+
+    if (isGoogleMapsSourceUrl(source.url)) {
+      addIssue(
+        issues,
+        `${sourcePath}.url`,
+        'invalid_provenance',
+        'Google Maps URLs must not be used as source evidence for visionary proposal geometry.'
+      );
+    }
+  });
+
+  if (!hasRegistrySource) {
+    addIssue(
+      issues,
+      `${path}.provenance`,
+      'invalid_provenance',
+      'Visionary registry records require at least one commentary, advocacy, internal_example, or other source.'
+    );
+  }
+}
+
+export function validateVisionaryTransitProposalDataset(dataset: unknown): ProposalValidationResult {
+  const issues: ProposalValidationIssue[] = [];
+  const structuralResult = validateTransitProposalDataset(dataset);
+  issues.push(...structuralResult.issues);
+
+  if (!isRecord(dataset) || !Array.isArray(dataset.proposals)) {
+    return { valid: issues.length === 0, issues };
+  }
+
+  if (dataset.proposals.length === 0) {
+    addIssue(
+      issues,
+      'dataset.proposals',
+      'invalid_dataset',
+      'Visionary registry dataset must include at least one proposal.'
+    );
+  }
+
+  dataset.proposals.forEach((proposal, index) => {
+    if (isRecord(proposal)) {
+      validateVisionaryRegistryRecord(proposal, `dataset.proposals[${index}]`, issues);
+    }
+  });
+
+  return { valid: issues.length === 0, issues };
+}
+
 export function validateTransitProposalRecord(
   proposal: unknown,
   path = 'proposal'
@@ -1202,4 +1354,13 @@ export function assertValidTransitProposal(proposal: TransitProposal): TransitPr
     throw new Error(`Invalid transit proposal:\n${details}`);
   }
   return proposal;
+}
+
+export function assertValidVisionaryTransitProposalDataset(dataset: TransitProposalDataset): TransitProposalDataset {
+  const result = validateVisionaryTransitProposalDataset(dataset);
+  if (!result.valid) {
+    const details = result.issues.map(issue => `${issue.path}: ${issue.message}`).join('\n');
+    throw new Error(`Invalid visionary transit proposal dataset:\n${details}`);
+  }
+  return dataset;
 }

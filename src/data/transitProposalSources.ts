@@ -4,6 +4,10 @@ import {
   OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS,
   OFFICIAL_LA_FUTURE_TRANSIT_DATASET
 } from './officialFutureTransitProposals';
+import {
+  VISIONARY_TRANSIT_PROPOSAL_DATASET,
+  VISIONARY_TRANSIT_PROPOSAL_REGISTRY_POLICY
+} from './visionaryTransitProposals';
 import { LA_FREIGHT_RAIL_CORRIDOR_DATASET } from './laFreightRailCorridors';
 import {
   importTransitProposalSources
@@ -20,6 +24,12 @@ export const OFFICIAL_FUTURE_TRANSIT_SOURCE_MANIFEST = {
   sourceWatchTargets: OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS
 } as const;
 
+export const VISIONARY_TRANSIT_SOURCE_MANIFEST = {
+  name: VISIONARY_TRANSIT_PROPOSAL_REGISTRY_POLICY.sourceName,
+  dataset: VISIONARY_TRANSIT_PROPOSAL_DATASET,
+  registryPolicy: VISIONARY_TRANSIT_PROPOSAL_REGISTRY_POLICY
+} as const;
+
 export const TRANSIT_PROPOSAL_SOURCE_FILES = [
   {
     name: 'seed-transit-proposals.v1.ts',
@@ -28,6 +38,10 @@ export const TRANSIT_PROPOSAL_SOURCE_FILES = [
   {
     name: OFFICIAL_FUTURE_TRANSIT_SOURCE_MANIFEST.name,
     dataset: OFFICIAL_FUTURE_TRANSIT_SOURCE_MANIFEST.dataset
+  },
+  {
+    name: VISIONARY_TRANSIT_SOURCE_MANIFEST.name,
+    dataset: VISIONARY_TRANSIT_SOURCE_MANIFEST.dataset
   },
   {
     name: 'la-freight-rail-corridors.v1.ts',

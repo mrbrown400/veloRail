@@ -61,6 +61,7 @@ test('map overlay legend items come from current registry and proposal labels', 
   assert.equal(byLabel.get('Google bicycling')?.overlayId, 'bicycling');
   assert.equal(byLabel.get('Future heavy rail')?.scenario, 'future');
   assert.equal(byLabel.get('Visionary concept')?.overlayId, 'visionary-concepts');
+  assert.equal(byLabel.get('Speculative river rail vision')?.overlayId, 'visionary-concepts');
   assert.equal(byLabel.get('Freight corridor')?.scenario, 'nationalized');
   assert.ok(legendItems.every((item) => item.color));
 });
@@ -137,7 +138,8 @@ test('proposal overlay groups expose imported sample layers independently', asyn
     'metro-vermont-brt'
   ]);
   assert.deepEqual(visionary.map(({ proposal }) => proposal.id), [
-    'vision-vermont-rapid-rail'
+    'vision-vermont-rapid-rail',
+    'vision-la-river-rail'
   ]);
   assert.deepEqual(nationalized.map(({ proposal }) => proposal.id), [
     'freight-alameda-corridor',
@@ -150,6 +152,8 @@ test('proposal overlay groups expose imported sample layers independently', asyn
   assert.ok(nationalized.every(({ polyline }) => polyline.path.length > 1));
   assert.ok(future[0].markers.length > 1);
   assert.ok(future.every(({ proposal }) => proposal.classification === 'official'));
+  assert.ok(visionary.every(({ proposal }) => proposal.classification !== 'official'));
+  assert.ok(visionary.every(({ proposal }) => proposal.rendering?.layerGroup === 'visionary'));
 });
 
 test('future overlay only accepts official planned, funded, or under-construction proposals', async () => {
@@ -212,6 +216,37 @@ test('proposal metadata exposes station details and reachable provenance', async
   assert.match(content, /href=/);
   assert.match(content, /Opening:/);
   assert.match(content, /Phase:/);
+});
+
+test('visionary registry metadata includes speculative language and provenance', async () => {
+  const {
+    getProposalInfoContent,
+    getProposalMetadata,
+    getProposalOverlayInputsByGroup
+  } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
+
+  const visionary = getProposalOverlayInputsByGroup('visionary').find(
+    ({ proposal }) => proposal.id === 'vision-la-river-rail'
+  );
+
+  assert.ok(visionary);
+
+  const metadata = getProposalMetadata(visionary.proposal);
+  const details = new Map(metadata.details.map((detail) => [detail.label, detail.value]));
+  const content = getProposalInfoContent(visionary.proposal);
+
+  assert.equal(metadata.kind, 'line');
+  assert.equal(metadata.badgeLabel, 'Visionary');
+  assert.equal(metadata.statusLabel, 'vision');
+  assert.equal(metadata.classificationLabel, 'speculative');
+  assert.equal(metadata.uncertaintyLabel, 'high');
+  assert.equal(details.get('Classification'), 'speculative');
+  assert.equal(details.get('Geometry'), 'conceptual');
+  assert.match(metadata.disclaimer, /Speculative VeloRail scenario/i);
+  assert.ok(metadata.sources.some(source => source.sourceType === 'internal_example'));
+  assert.ok(metadata.sources.some(source => source.publisher === 'VeloRail' && source.accessedAt === '2026-05-19'));
+  assert.match(content, /Sources/);
+  assert.match(content, /Speculative VeloRail scenario/);
 });
 
 test('freight corridor metadata includes ownership, uncertainty, and source links', async () => {

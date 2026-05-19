@@ -42,7 +42,12 @@ test('default transit proposal source manifest imports without map code changes'
     TRANSIT_PROPOSAL_SOURCE_FILES
   } = await loadAppModule('/src/data/transitProposalSources.ts');
 
-  assert.equal(TRANSIT_PROPOSAL_SOURCE_FILES.length, 3);
+  assert.deepEqual(TRANSIT_PROPOSAL_SOURCE_FILES.map(source => source.name), [
+    'seed-transit-proposals.v1.ts',
+    'official-la-future-transit.v1.ts',
+    'visionary-transit-proposals.v1.ts',
+    'la-freight-rail-corridors.v1.ts'
+  ]);
   assert.equal(IMPORTED_TRANSIT_PROPOSALS.dataset.schemaVersion, '1.0.0');
   assert.equal(
     IMPORTED_TRANSIT_PROPOSALS.overlays.length,
@@ -87,6 +92,78 @@ test('official LA future transit batch validates and renders overlay-ready input
   }
 });
 
+test('visionary registry validates policy, source links, and overlay-ready inputs', async () => {
+  const {
+    VISIONARY_TRANSIT_PROPOSAL_DATASET,
+    VISIONARY_TRANSIT_PROPOSAL_REGISTRY_POLICY
+  } = await loadAppModule('/src/data/visionaryTransitProposals.ts');
+  const {
+    importTransitProposalDataset
+  } = await loadAppModule('/src/data/transitProposalImport.ts');
+  const {
+    validateVisionaryTransitProposalDataset
+  } = await loadAppModule('/src/data/transitProposalValidation.ts');
+
+  const validation = validateVisionaryTransitProposalDataset(VISIONARY_TRANSIT_PROPOSAL_DATASET);
+  const result = importTransitProposalDataset(VISIONARY_TRANSIT_PROPOSAL_DATASET, {
+    sourceName: VISIONARY_TRANSIT_PROPOSAL_REGISTRY_POLICY.sourceName
+  });
+  const [overlay] = result.overlays;
+  const [proposal] = result.dataset.proposals;
+
+  assert.equal(validation.valid, true);
+  assert.equal(result.sourceName, 'visionary-transit-proposals.v1.ts');
+  assert.deepEqual(result.dataset.proposals.map(record => record.id), [
+    'vision-la-river-rail'
+  ]);
+  assert.equal(overlay.proposal, proposal);
+  assert.equal(proposal.classification, 'speculative');
+  assert.equal(proposal.status, 'vision');
+  assert.equal(proposal.rendering.layerGroup, 'visionary');
+  assert.equal(proposal.geometry.geometrySource, 'conceptual');
+  assert.equal(proposal.style.strokePattern, 'dashed');
+  assert.equal(proposal.uncertainty.level, 'high');
+  assert.match(proposal.notes, /speculative VeloRail scenario/i);
+  assert.ok(proposal.provenance.every(source => source.sourceType === 'internal_example'));
+  assert.ok(proposal.provenance.every(source => !source.url));
+  assert.match(
+    VISIONARY_TRANSIT_PROPOSAL_REGISTRY_POLICY.sourceLinkingPolicy.join(' '),
+    /Do not cite Google Maps|Google Maps.*not used as source evidence/
+  );
+  assert.ok(overlay.polyline.path.length >= 2);
+  assert.ok(overlay.markers.length >= 3);
+});
+
+test('visionary registry validation rejects official status and Google Maps source leakage', async () => {
+  const {
+    VISIONARY_TRANSIT_PROPOSAL_DATASET
+  } = await loadAppModule('/src/data/visionaryTransitProposals.ts');
+  const {
+    validateVisionaryTransitProposalDataset
+  } = await loadAppModule('/src/data/transitProposalValidation.ts');
+
+  const invalidDataset = clone(VISIONARY_TRANSIT_PROPOSAL_DATASET);
+  const [proposal] = invalidDataset.proposals;
+  proposal.classification = 'official';
+  proposal.status = 'planned';
+  proposal.geometry.geometrySource = 'official';
+  proposal.rendering.layerGroup = 'future';
+  proposal.provenance[0].sourceType = 'official_project';
+  proposal.provenance[0].url = 'https://www.google.com/maps/place/Los+Angeles';
+  proposal.notes = '';
+
+  const validation = validateVisionaryTransitProposalDataset(invalidDataset);
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.issues.some(issue => issue.path.endsWith('.classification')));
+  assert.ok(validation.issues.some(issue => issue.path.endsWith('.status')));
+  assert.ok(validation.issues.some(issue => issue.path.endsWith('.rendering.layerGroup')));
+  assert.ok(validation.issues.some(issue => issue.path.endsWith('.geometry.geometrySource')));
+  assert.ok(validation.issues.some(issue => issue.path.endsWith('.provenance[0].sourceType')));
+  assert.ok(validation.issues.some(issue => issue.path.endsWith('.provenance[0].url')));
+  assert.ok(validation.issues.some(issue => issue.path.endsWith('.notes')));
+});
+
 test('merged default manifest keeps official future records separate from visionary and freight samples', async () => {
   const {
     IMPORTED_TRANSIT_PROPOSALS
@@ -105,7 +182,8 @@ test('merged default manifest keeps official future records separate from vision
   assert.equal(futureRecords.length, 7);
   assert.ok(futureRecords.every(proposal => proposal.classification === 'official'));
   assert.deepEqual(unofficialRecords.map(proposal => proposal.id), [
-    'vision-vermont-rapid-rail'
+    'vision-vermont-rapid-rail',
+    'vision-la-river-rail'
   ]);
   assert.deepEqual(freightRecords.map(proposal => proposal.id), [
     'freight-alameda-corridor',

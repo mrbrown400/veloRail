@@ -41,6 +41,22 @@ The `visionary` layer is for commentary-summary, advocacy-derived, and speculati
 
 Unofficial concepts must use `status: 'vision'` or `status: 'concept'`. They must not use `operational`, `planned`, `under_construction`, or `funded`, because those statuses read as agency commitments.
 
+## Dedicated Registry
+
+VR-202/VR-203 adds `src/data/visionaryTransitProposals.ts` as the production registry for new visionary concepts. The seed `vision-vermont-rapid-rail` record remains in `src/data/transitProposals.ts` as schema sample data, but new maintained concepts should be added to the dedicated registry and registered through `TRANSIT_PROPOSAL_SOURCE_FILES`.
+
+The registry has stricter checks than the shared proposal validator:
+
+- Records must render through `rendering.layerGroup: 'visionary'`.
+- Records must use `classification: 'commentary_summary'`, `advocacy_derived`, or `speculative`.
+- Records must use `status: 'vision'` or `concept`.
+- Geometry must be `conceptual` or `approximate`.
+- Provenance must use `commentary`, `advocacy`, `internal_example`, or `other`.
+- Google Maps URLs must not be used as source evidence for visionary proposal geometry.
+- `notes` must include editorial guidance for display and review.
+
+Use `validateVisionaryTransitProposalDataset` when checking the registry directly. The default import manifest still runs the shared transit proposal validation before returning Google Maps-ready overlay inputs.
+
 ## UI Requirements
 
 Visionary UI surfaces must display classification, source title or publisher, uncertainty level, and disclaimer text near the overlay metadata. The label should use terms such as "Unofficial scenario", "Commentary summary", "Advocacy concept", or "Speculative VeloRail scenario".
