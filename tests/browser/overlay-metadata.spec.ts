@@ -76,3 +76,39 @@ test('@VR-003 @VR-004 @VR-403 nationalized overlay exposes freight legend and me
   await metadataPanel.getByRole('button', { name: 'Close metadata' }).click();
   await expect(metadataPanel).toBeHidden();
 });
+
+test('@VR-104 completed network comparison mode controls official future overlay state', async ({ page }) => {
+  await ensureMapsAvailable(page);
+
+  const layerPanel = page.getByLabel('Map layers and legend');
+  const presentOnlyMode = page.getByRole('button', { name: /Present Only/i });
+  const presentPlusFutureMode = page.getByRole('button', { name: /Present \+ Future/i });
+  const futureOverlayToggle = page.getByRole('button', {
+    name: /Official planned, funded, and under-construction future rail lines and stations/i
+  });
+
+  await expect(layerPanel).toContainText('Present Only');
+  await expect(presentOnlyMode).toHaveAttribute('aria-pressed', 'true');
+  await expect(futureOverlayToggle).toHaveAttribute('aria-pressed', 'false');
+
+  await presentPlusFutureMode.click();
+
+  await expect(presentPlusFutureMode).toHaveAttribute('aria-pressed', 'true');
+  await expect(futureOverlayToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(layerPanel).toContainText('Present + Future');
+
+  await page.getByRole('button', { name: /legend/i }).click();
+
+  const legend = page.getByLabel('Visible layer legend');
+  await expect(legend).toContainText('Comparison mode');
+  await expect(legend).toContainText('Official future context');
+  await expect(legend).toContainText(
+    'Future service is official planned, funded, or under construction overlay context, not current Google Maps operational service.'
+  );
+
+  await presentOnlyMode.click();
+
+  await expect(presentOnlyMode).toHaveAttribute('aria-pressed', 'true');
+  await expect(futureOverlayToggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(layerPanel).toContainText('Present Only');
+});

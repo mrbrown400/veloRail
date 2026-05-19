@@ -57,6 +57,16 @@ Approximate geometry must follow these rules:
 - Use station `notes` when a marker represents a station area, transfer anchor, or partial station list.
 - Keep official BRT records separate from speculative rail conversion concepts even when the corridor overlaps.
 
+## Completed Network Comparison
+
+VR-104 exposes this dataset through a completed network comparison mode in the map layer panel:
+
+- `present-only` keeps the Future Transit overlay off and shows the current Google Maps transit baseline according to the normal layer controls.
+- `present-plus-future` turns on `future-projects` so users can compare the current Google Maps transit layer with official planned, funded, or under construction project context.
+- Switching the Future Transit overlay directly updates the comparison mode because the comparison state is intentionally built on top of the existing overlay visibility model.
+
+Future service remains overlay context only. It is not current Google Maps operational service, and VR-104 does not change routing calculations or make Google Directions include app-owned future project geometry.
+
 ## Update Workflow
 
 The repeatable workflow is documented in `docs/architecture/official-future-transit-update-workflow.md`.

@@ -5,6 +5,9 @@ import { RouteOverlay } from './RouteOverlay';
 import { VehicleMarker } from './VehicleMarker';
 import {
   MAP_OVERLAY_METADATA_EVENT,
+  MAP_OVERLAY_FUTURE_SERVICE_NOTICE,
+  getMapOverlayComparisonModeDefinition,
+  getMapOverlayComparisonModes,
   getMapOverlayGroupDefinitions,
   getMapOverlayLegendItems,
   getOrderedMapOverlayDefinitions,
@@ -26,7 +29,12 @@ import {
 } from '@/components/ui';
 import { useMapOverlayStore, useRouteStore, useRealtimeStore } from '@/stores';
 import { LA_CENTER } from '@/services/config';
-import type { MapOverlayId, MapOverlayScenario } from '@/types/mapOverlays';
+import type {
+  MapOverlayComparisonMode,
+  MapOverlayComparisonModeDefinition,
+  MapOverlayId,
+  MapOverlayScenario
+} from '@/types/mapOverlays';
 
 const mapContainerStyle = {
   width: '100%',
@@ -44,6 +52,7 @@ const overlayControlById = new Map(
 );
 const overlayGroups = getMapOverlayGroupDefinitions();
 const overlayLegendItems = getMapOverlayLegendItems();
+const comparisonModes = getMapOverlayComparisonModes();
 
 // Options are created as a function to avoid using google.maps before it's loaded
 const getMapOptions = (): google.maps.MapOptions => ({
@@ -71,7 +80,10 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
   const { selectedRoute } = useRouteStore();
   const { vehiclePosition, trackedVehicle } = useRealtimeStore();
   const overlayVisibility = useMapOverlayStore((state) => state.visibility);
+  const comparisonMode = useMapOverlayStore((state) => state.comparisonMode);
+  const setComparisonMode = useMapOverlayStore((state) => state.setComparisonMode);
   const toggleOverlay = useMapOverlayStore((state) => state.toggleOverlay);
+  const comparisonModeDefinition = getMapOverlayComparisonModeDefinition(comparisonMode);
   const activeOverlayCount = overlayControls.filter(
     (overlay) => overlayVisibility[overlay.id] ?? false
   ).length;
@@ -180,7 +192,9 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
             <LayersIcon className="map-layer-panel__title-icon" />
             <div>
               <h2 className="map-layer-panel__title">Layers</h2>
-              <span className="map-layer-panel__status">{activeOverlayCount} active</span>
+              <span className="map-layer-panel__status">
+                {comparisonModeDefinition.label} · {activeOverlayCount} active
+              </span>
             </div>
           </div>
           <Button
@@ -197,6 +211,11 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
         </div>
 
         <div className="map-layer-panel__groups">
+          <ComparisonModeControlGroup
+            modes={comparisonModes}
+            selectedMode={comparisonMode}
+            onSelectMode={setComparisonMode}
+          />
           {overlayGroups.map((group) => (
             <LayerControlGroup
               key={group.id}
@@ -214,9 +233,45 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
           <div id="map-layer-legend" className="map-layer-legend" aria-label="Visible layer legend">
             <div className="map-layer-legend__header">
               <span className="map-layer-legend__title">Visible legend</span>
-              <Chip tone="accent">{visibleLegendItems.length}</Chip>
+              <Chip tone={comparisonMode === 'present-plus-future' ? 'future' : 'accent'}>
+                {comparisonModeDefinition.label}
+              </Chip>
             </div>
             <div className="map-layer-legend__list">
+              <div className="map-layer-legend__item">
+                <span
+                  className={`map-layer-legend__swatch map-layer-legend__swatch--${comparisonMode === 'present-plus-future' ? 'solid' : 'dotted'}`}
+                  style={{ color: comparisonMode === 'present-plus-future' ? '#7e22ce' : '#1a73e8' }}
+                  aria-hidden="true"
+                />
+                <span className="map-layer-legend__text">
+                  <span className="map-layer-legend__label">Comparison mode</span>
+                  <span
+                    className="map-layer-legend__description"
+                    title={comparisonModeDefinition.description}
+                  >
+                    {comparisonModeDefinition.description}
+                  </span>
+                </span>
+              </div>
+              {comparisonMode === 'present-plus-future' && (
+                <div className="map-layer-legend__item">
+                  <span
+                    className="map-layer-legend__swatch map-layer-legend__swatch--solid"
+                    style={{ color: '#7e22ce' }}
+                    aria-hidden="true"
+                  />
+                  <span className="map-layer-legend__text">
+                    <span className="map-layer-legend__label">Official future context</span>
+                    <span
+                      className="map-layer-legend__description"
+                      title={MAP_OVERLAY_FUTURE_SERVICE_NOTICE}
+                    >
+                      {MAP_OVERLAY_FUTURE_SERVICE_NOTICE}
+                    </span>
+                  </span>
+                </div>
+              )}
               {visibleLegendItems.map((item) => (
                 <div key={item.id} className="map-layer-legend__item">
                   <span
@@ -300,6 +355,55 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
         </Panel>
       )}
     </div>
+  );
+}
+
+interface ComparisonModeControlGroupProps {
+  modes: MapOverlayComparisonModeDefinition[];
+  selectedMode: MapOverlayComparisonMode;
+  onSelectMode: (mode: MapOverlayComparisonMode) => void;
+}
+
+function ComparisonModeControlGroup({
+  modes,
+  selectedMode,
+  onSelectMode
+}: ComparisonModeControlGroupProps) {
+  return (
+    <section
+      className="map-layer-group map-layer-group-comparison"
+      aria-labelledby="map-layer-group-comparison"
+      aria-label="Completed network comparison mode"
+    >
+      <div className="map-layer-group__header">
+        <span id="map-layer-group-comparison" className="map-layer-group__title">
+          Comparison
+        </span>
+        <span className="map-layer-group__count">Mode</span>
+      </div>
+      <div className="map-layer-group__controls">
+        {modes.map((mode) => {
+          const isActive = mode.id === selectedMode;
+
+          return (
+            <ToggleChip
+              key={mode.id}
+              className={`layer-btn layer-btn-${mode.futureOverlayVisible ? 'future' : 'current'} ${isActive ? 'active layer-btn--active' : ''}`}
+              onClick={() => onSelectMode(mode.id)}
+              title={mode.description}
+              aria-label={`${mode.label}. ${mode.description}. ${isActive ? 'Selected' : 'Not selected'}`}
+              pressed={isActive}
+              icon={mode.futureOverlayVisible ? <FutureRailIcon /> : <TransitIcon />}
+            >
+              <span className="layer-btn__content">
+                <span className="layer-btn-label">{mode.label}</span>
+                <span className="layer-btn-state" aria-hidden="true" />
+              </span>
+            </ToggleChip>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

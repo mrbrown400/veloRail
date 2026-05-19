@@ -7,8 +7,11 @@ after(closeAppModuleLoader);
 test('map overlay registry has deterministic order and default visibility', async () => {
   const {
     getDefaultMapOverlayVisibility,
+    getMapOverlayComparisonModeForVisibility,
+    getMapOverlayComparisonModes,
     getMapOverlayGroupDefinitions,
-    getOrderedMapOverlayDefinitions
+    getOrderedMapOverlayDefinitions,
+    MAP_OVERLAY_FUTURE_SERVICE_NOTICE
   } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
 
   const definitions = getOrderedMapOverlayDefinitions();
@@ -32,6 +35,7 @@ test('map overlay registry has deterministic order and default visibility', asyn
   assert.equal(visibility['visionary-concepts'], false);
   assert.equal(visibility['nationalized-rail'], false);
   assert.equal(visibility.bicycling, false);
+  assert.equal(getMapOverlayComparisonModeForVisibility(visibility), 'present-only');
 
   const groups = getMapOverlayGroupDefinitions();
 
@@ -47,6 +51,16 @@ test('map overlay registry has deterministic order and default visibility', asyn
     ['visionary-concepts'],
     ['nationalized-rail']
   ]);
+
+  const comparisonModes = getMapOverlayComparisonModes();
+
+  assert.deepEqual(comparisonModes.map((mode) => mode.id), [
+    'present-only',
+    'present-plus-future'
+  ]);
+  assert.equal(comparisonModes[0].futureOverlayVisible, false);
+  assert.equal(comparisonModes[1].futureOverlayVisible, true);
+  assert.match(MAP_OVERLAY_FUTURE_SERVICE_NOTICE, /not current Google Maps operational service/);
 });
 
 test('map overlay legend items come from current registry and proposal labels', async () => {
@@ -254,4 +268,31 @@ test('map overlay store toggles one overlay without mutating others', async () =
   assert.equal(after['current-transit'], before['current-transit']);
   assert.equal(after['future-projects'], before['future-projects']);
   assert.equal(after['nationalized-rail'], before['nationalized-rail']);
+});
+
+test('map overlay store synchronizes @VR-104 comparison mode with future overlay visibility', async () => {
+  const {
+    useMapOverlayStore
+  } = await loadAppModule('/src/stores/mapOverlayStore.ts');
+
+  useMapOverlayStore.getState().resetOverlayVisibility();
+
+  assert.equal(useMapOverlayStore.getState().comparisonMode, 'present-only');
+  assert.equal(useMapOverlayStore.getState().visibility['future-projects'], false);
+
+  useMapOverlayStore.getState().setComparisonMode('present-plus-future');
+
+  assert.equal(useMapOverlayStore.getState().comparisonMode, 'present-plus-future');
+  assert.equal(useMapOverlayStore.getState().visibility['future-projects'], true);
+  assert.equal(useMapOverlayStore.getState().visibility['current-transit'], true);
+
+  useMapOverlayStore.getState().toggleOverlay('future-projects');
+
+  assert.equal(useMapOverlayStore.getState().comparisonMode, 'present-only');
+  assert.equal(useMapOverlayStore.getState().visibility['future-projects'], false);
+
+  useMapOverlayStore.getState().setOverlayVisible('future-projects', true);
+
+  assert.equal(useMapOverlayStore.getState().comparisonMode, 'present-plus-future');
+  assert.equal(useMapOverlayStore.getState().visibility['future-projects'], true);
 });

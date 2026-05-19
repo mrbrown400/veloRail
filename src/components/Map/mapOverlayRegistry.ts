@@ -1,5 +1,7 @@
 import { IMPORTED_TRANSIT_PROPOSALS } from '@/data/transitProposalSources';
 import type {
+  MapOverlayComparisonMode,
+  MapOverlayComparisonModeDefinition,
   MapOverlayDefinition,
   MapOverlayHandle,
   MapOverlayId,
@@ -135,8 +137,27 @@ const OFFICIAL_FUTURE_STATUSES: ReadonlySet<ProposalStatus> = new Set([
   'funded',
   'under_construction'
 ]);
+export const CURRENT_TRANSIT_OVERLAY_ID = 'current-transit';
+export const FUTURE_PROJECTS_OVERLAY_ID = 'future-projects';
 export const FUTURE_STATION_MIN_ZOOM = 11;
 export const MAP_OVERLAY_METADATA_EVENT = 'velorail:map-overlay-metadata-selected';
+export const MAP_OVERLAY_FUTURE_SERVICE_NOTICE =
+  'Future service is official planned, funded, or under construction overlay context, not current Google Maps operational service.';
+
+const MAP_OVERLAY_COMPARISON_MODE_DEFINITIONS: MapOverlayComparisonModeDefinition[] = [
+  {
+    id: 'present-only',
+    label: 'Present Only',
+    description: 'Current Google Maps transit with the Future Transit overlay off.',
+    futureOverlayVisible: false
+  },
+  {
+    id: 'present-plus-future',
+    label: 'Present + Future',
+    description: 'Current Google Maps transit with official future project overlay context on.',
+    futureOverlayVisible: true
+  }
+];
 
 export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyleDefinition> = {
   current: {
@@ -320,7 +341,7 @@ export function isOfficialFutureProposal(proposal: TransitProposal): boolean {
 
 export const MAP_OVERLAY_DEFINITIONS: MapOverlayDefinition[] = [
   {
-    id: 'current-transit',
+    id: CURRENT_TRANSIT_OVERLAY_ID,
     label: 'Current',
     description: 'Google Maps current transit layer',
     scenario: 'current',
@@ -329,7 +350,7 @@ export const MAP_OVERLAY_DEFINITIONS: MapOverlayDefinition[] = [
     create: createGoogleTransitLayer
   },
   {
-    id: 'future-projects',
+    id: FUTURE_PROJECTS_OVERLAY_ID,
     label: 'Future Transit',
     description: 'Official planned, funded, and under-construction future rail lines and stations',
     scenario: 'future',
@@ -372,14 +393,14 @@ const MAP_OVERLAY_GROUP_DEFINITIONS: MapOverlayGroupDefinition[] = [
     label: 'Current',
     description: 'Current Google Maps transit and bicycling context layers',
     order: 10,
-    overlayIds: ['current-transit', 'bicycling']
+    overlayIds: [CURRENT_TRANSIT_OVERLAY_ID, 'bicycling']
   },
   {
     id: 'future',
     label: 'Future',
     description: 'Official planned, funded, and under-construction transit projects',
     order: 20,
-    overlayIds: ['future-projects']
+    overlayIds: [FUTURE_PROJECTS_OVERLAY_ID]
   },
   {
     id: 'visionary',
@@ -398,7 +419,7 @@ const MAP_OVERLAY_GROUP_DEFINITIONS: MapOverlayGroupDefinition[] = [
 ];
 
 const NATIVE_MAP_LEGEND_ITEMS: MapOverlayLegendItem[] = [
-  createNativeLegendItem('current-transit', 'current-transit-google-transit', 'current'),
+  createNativeLegendItem(CURRENT_TRANSIT_OVERLAY_ID, 'current-transit-google-transit', 'current'),
   createNativeLegendItem('bicycling', 'bicycling-google-bicycling', 'context')
 ];
 
@@ -410,6 +431,23 @@ export function getMapOverlayGroupDefinitions(): MapOverlayGroupDefinition[] {
   return [...MAP_OVERLAY_GROUP_DEFINITIONS].sort((a, b) => a.order - b.order);
 }
 
+export function getMapOverlayComparisonModes(): MapOverlayComparisonModeDefinition[] {
+  return [...MAP_OVERLAY_COMPARISON_MODE_DEFINITIONS];
+}
+
+export function getMapOverlayComparisonModeDefinition(
+  id: MapOverlayComparisonMode
+): MapOverlayComparisonModeDefinition {
+  return MAP_OVERLAY_COMPARISON_MODE_DEFINITIONS.find((definition) => definition.id === id)
+    ?? MAP_OVERLAY_COMPARISON_MODE_DEFINITIONS[0];
+}
+
+export function getMapOverlayComparisonModeForVisibility(
+  visibility: MapOverlayVisibility
+): MapOverlayComparisonMode {
+  return visibility[FUTURE_PROJECTS_OVERLAY_ID] ? 'present-plus-future' : 'present-only';
+}
+
 export function getMapOverlayDefinition(id: MapOverlayId): MapOverlayDefinition | undefined {
   return MAP_OVERLAY_DEFINITIONS.find((definition) => definition.id === id);
 }
@@ -417,7 +455,7 @@ export function getMapOverlayDefinition(id: MapOverlayId): MapOverlayDefinition 
 export function getMapOverlayLegendItems(): MapOverlayLegendItem[] {
   return [
     ...NATIVE_MAP_LEGEND_ITEMS,
-    ...getProposalLegendItems('future-projects', 'future', FUTURE_GROUPS),
+    ...getProposalLegendItems(FUTURE_PROJECTS_OVERLAY_ID, 'future', FUTURE_GROUPS),
     ...getProposalLegendItems('visionary-concepts', 'visionary', VISIONARY_GROUPS),
     ...getProposalLegendItems('nationalized-rail', 'nationalized', NATIONALIZED_GROUPS)
   ];
