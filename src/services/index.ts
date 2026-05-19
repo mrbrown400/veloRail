@@ -5,6 +5,7 @@ export * from './geocoding';
 export * from './routing';
 export * from './googleRoutesService';
 export * from './multimodalRouter';
+export * from './routingComparison';
 export * from './elevationService';
 export * from './bikeDurationService';
 export * from './stationDataProvider';
