@@ -45,6 +45,22 @@ const overlayControlById = new Map(
 const overlayGroups = getMapOverlayGroupDefinitions();
 const overlayLegendItems = getMapOverlayLegendItems();
 
+const getRouteViewportPadding = (): google.maps.Padding => {
+  const viewportWidth = typeof window === 'undefined' ? 1024 : window.innerWidth;
+
+  if (viewportWidth <= 480) {
+    return { top: 88, right: 28, bottom: 340, left: 28 };
+  }
+
+  if (viewportWidth <= 768) {
+    return { top: 88, right: 40, bottom: 320, left: 40 };
+  }
+
+  return { top: 64, right: 72, bottom: 80, left: 440 };
+};
+
+const panelSafeId = (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, '-');
+
 // Options are created as a function to avoid using google.maps before it's loaded
 const getMapOptions = (): google.maps.MapOptions => ({
   // Use Google's built-in dark mode instead of custom styles to preserve transit colors
@@ -127,9 +143,25 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
         });
       });
 
-      map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 420 });
+      map.fitBounds(bounds, getRouteViewportPadding());
     }
   }, [map, selectedRoute]);
+
+  useEffect(() => {
+    if (!selectedOverlayMetadata) return undefined;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedOverlayMetadata(null);
+      }
+    };
+
+    window.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [selectedOverlayMetadata]);
 
   // Get color for vehicle marker
   const getVehicleColor = () => {
@@ -172,15 +204,18 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
 
       <Panel
         as="aside"
-        className="map-layer-panel"
+        className={`map-layer-panel ${selectedOverlayMetadata ? 'map-layer-panel--metadata-open' : ''}`}
         ariaLabel="Map layers and legend"
+        aria-describedby="map-layer-panel-status"
       >
         <div className="map-layer-panel__header">
           <div className="map-layer-panel__title-row">
             <LayersIcon className="map-layer-panel__title-icon" />
             <div>
               <h2 className="map-layer-panel__title">Layers</h2>
-              <span className="map-layer-panel__status">{activeOverlayCount} active</span>
+              <span id="map-layer-panel-status" className="map-layer-panel__status" aria-live="polite">
+                {activeOverlayCount} active
+              </span>
             </div>
           </div>
           <Button
@@ -211,7 +246,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
         </div>
 
         {isLegendOpen && (
-          <div id="map-layer-legend" className="map-layer-legend" aria-label="Visible layer legend">
+          <div id="map-layer-legend" className="map-layer-legend" role="region" aria-label="Visible layer legend">
             <div className="map-layer-legend__header">
               <span className="map-layer-legend__title">Visible legend</span>
               <Chip tone="accent">{visibleLegendItems.length}</Chip>
@@ -235,18 +270,25 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
         )}
       </Panel>
 
-      {selectedOverlayMetadata && (
+      {selectedOverlayMetadata && (() => {
+        const metadataTitleId = `map-overlay-metadata-title-${panelSafeId(selectedOverlayMetadata.id)}`;
+        const metadataDescriptionId = `map-overlay-metadata-description-${panelSafeId(selectedOverlayMetadata.id)}`;
+
+        return (
         <Panel
           as="aside"
+          id="map-overlay-metadata-panel"
           className="map-overlay-metadata-panel"
-          ariaLabel="Selected map overlay metadata"
+          ariaLabelledBy={metadataTitleId}
+          aria-describedby={metadataDescriptionId}
+          role="region"
         >
           <div className="map-overlay-metadata__header">
             <div className="map-overlay-metadata__title-block">
               <span className={`map-overlay-metadata__badge ${selectedOverlayMetadata.badgeClassName}`}>
                 {selectedOverlayMetadata.badgeLabel}
               </span>
-              <h2 className="map-overlay-metadata__title">{selectedOverlayMetadata.title}</h2>
+              <h2 id={metadataTitleId} className="map-overlay-metadata__title">{selectedOverlayMetadata.title}</h2>
               <span className="map-overlay-metadata__subtitle">{selectedOverlayMetadata.subtitle}</span>
             </div>
             <Button
@@ -258,6 +300,10 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
               leftIcon={<CloseIcon />}
             />
           </div>
+
+          <p id={metadataDescriptionId} className="sr-only">
+            Metadata details for the selected map overlay. Press Escape or Close metadata to dismiss this panel.
+          </p>
 
           <dl className="map-overlay-metadata__details">
             {selectedOverlayMetadata.details.map((detail) => (
@@ -298,7 +344,8 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
             </div>
           )}
         </Panel>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -325,13 +372,15 @@ function LayerControlGroup({
     .filter(Boolean);
   const activeCount = overlayIds.filter((id) => overlayVisibility[id] ?? false).length;
   const headingId = `map-layer-group-${groupId}`;
+  const descriptionId = `${headingId}-description`;
 
   return (
     <section
       className={`map-layer-group map-layer-group-${groupId}`}
       aria-labelledby={headingId}
-      aria-label={description}
+      aria-describedby={descriptionId}
     >
+      <p id={descriptionId} className="sr-only">{description}</p>
       <div className="map-layer-group__header">
         <span id={headingId} className="map-layer-group__title">{label}</span>
         <span className="map-layer-group__count">{activeCount}/{overlayIds.length}</span>

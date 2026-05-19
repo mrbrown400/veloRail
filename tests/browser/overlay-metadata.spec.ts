@@ -15,7 +15,7 @@ async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   await expect(page.getByLabel('Route search')).toBeVisible({ timeout: 20_000 });
 }
 
-test('@VR-003 @VR-004 @VR-403 nationalized overlay exposes freight legend and metadata panel', async ({ page }) => {
+test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 nationalized overlay exposes freight legend and metadata panel', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const nationalizedToggle = page.getByRole('button', {
@@ -65,7 +65,7 @@ test('@VR-003 @VR-004 @VR-403 nationalized overlay exposes freight legend and me
     }));
   });
 
-  const metadataPanel = page.getByLabel('Selected map overlay metadata');
+  const metadataPanel = page.getByRole('region', { name: 'Alameda Corridor' });
   await expect(metadataPanel).toBeVisible();
   await expect(metadataPanel).toContainText('Alameda Corridor');
   await expect(metadataPanel).toContainText('Freight only');
