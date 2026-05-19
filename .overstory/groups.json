@@ -49,5 +49,18 @@
 		"status": "active",
 		"createdAt": "2026-05-19T00:08:28.830Z",
 		"completedAt": null
+	},
+	{
+		"id": "group-a3b3470a",
+		"name": "high-priority-seeds-pass",
+		"memberIssueIds": [
+			"veloRail-f774",
+			"VR-402",
+			"VR-503",
+			"VR-303"
+		],
+		"status": "active",
+		"createdAt": "2026-05-19T00:57:01.328Z",
+		"completedAt": null
 	}
 ]
