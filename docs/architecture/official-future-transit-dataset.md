@@ -1,6 +1,6 @@
 # Official Future Transit Dataset
 
-VR-105 adds the first bounded production batch for the Future Transit overlay. The data lives in `src/data/officialFutureTransitProposals.ts` and is registered through `TRANSIT_PROPOSAL_SOURCE_FILES` so the existing import pipeline validates it before Google Maps receives polylines or station markers.
+VR-105 adds the first bounded production batch for the Future Transit overlay. The data lives in `src/data/officialFutureTransitProposals.ts` and is registered through `TRANSIT_PROPOSAL_SOURCE_FILES` so the existing import pipeline validates it before Google Maps receives polylines. Station records stay available as planning metadata, but they are not rendered as individual station dots by default.
 
 ## Scope
 
@@ -54,7 +54,7 @@ Approximate geometry must follow these rules:
 - Use `[lon, lat]` GeoJSON coordinates in the checked-in dataset.
 - Keep `geometryNotes` explicit about what was approximated.
 - Use `confidence.geometry` and `confidence.stations` to distinguish official project status from approximate coordinates.
-- Use station `notes` when a marker represents a station area, transfer anchor, or partial station list.
+- Use station `notes` when a station record represents an area, transfer anchor, or partial station list.
 - Keep official BRT records separate from speculative rail conversion concepts even when the corridor overlaps.
 
 ## Completed Network Comparison

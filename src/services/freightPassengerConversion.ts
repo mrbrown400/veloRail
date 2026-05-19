@@ -170,7 +170,7 @@ function createConversionRecord(
     style: {
       strokeOpacity: 0.82,
       strokeWeight: 5,
-      strokePattern: 'dashed',
+      strokePattern: 'solid',
       legendLabel: 'Passenger conversion'
     },
     rendering: {

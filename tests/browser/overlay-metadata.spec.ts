@@ -15,7 +15,7 @@ async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
 }
 
-test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @VR-500 @VR-501 @VR-502 @veloRail-967a nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
+test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @VR-500 @VR-501 @VR-502 @veloRail-967a @veloRail-1581 nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const nationalizedToggle = page.getByRole('button', {
@@ -171,7 +171,7 @@ test('@VR-104 completed network comparison mode controls official future overlay
   const presentOnlyMode = page.getByRole('button', { name: /Present Only/i });
   const presentPlusFutureMode = page.getByRole('button', { name: /Present \+ Future/i });
   const futureOverlayToggle = page.getByRole('button', {
-    name: /Official planned, funded, and under-construction future rail lines and stations/i
+    name: /Official planned, funded, and under-construction future rail and BRT alignments/i
   });
 
   await expect(layerPanel).toContainText('Present Only');

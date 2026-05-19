@@ -56,7 +56,7 @@ For rough geometry, provenance notes should say what was copied from the source 
 
 The registry is imported through `TRANSIT_PROPOSAL_SOURCE_FILES`, converted by `importTransitProposalSources`, and filtered by `getProposalOverlayInputsByGroup('visionary')`. The Vision overlay toggle is independent from Future Transit, so turning on visionary concepts does not reveal official future projects and turning on Future Transit does not reveal unofficial scenarios.
 
-Visionary styling should remain visually distinct from official future projects. Use dashed lines, speculative legend labels, and metadata that shows classification, provenance, uncertainty, and disclaimer text.
+Visionary styling should remain visually distinct from official future projects without looking like a separate map product. Use solid Google-like cased lines, speculative legend labels, and metadata that shows classification, provenance, uncertainty, and disclaimer text. Keep illustrative station records in metadata, not as individual station dots on the map.
 
 ## Editorial Workflow
 

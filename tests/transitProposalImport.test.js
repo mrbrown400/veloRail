@@ -124,7 +124,7 @@ test('visionary registry validates policy, source links, and overlay-ready input
   assert.equal(proposal.status, 'vision');
   assert.equal(proposal.rendering.layerGroup, 'visionary');
   assert.equal(proposal.geometry.geometrySource, 'conceptual');
-  assert.equal(proposal.style.strokePattern, 'dashed');
+  assert.equal(proposal.style.strokePattern, 'solid');
   assert.equal(proposal.uncertainty.level, 'high');
   assert.match(proposal.notes, /speculative VeloRail scenario/i);
   assert.ok(proposal.provenance.every(source => source.sourceType === 'internal_example'));

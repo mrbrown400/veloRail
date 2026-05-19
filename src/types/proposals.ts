@@ -179,6 +179,7 @@ export interface ProposalRenderingMetadata {
   minZoom?: number;
   maxZoom?: number;
   clickable?: boolean;
+  stationMarkersVisible?: boolean;
 }
 
 export interface TransitProposal {

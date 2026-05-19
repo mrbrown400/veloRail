@@ -64,7 +64,7 @@ This command validates the checked-in dataset, source watch manifest, source rev
 1. Add at least one official project, public agency, or public plan source.
 2. Add the proposal to `OFFICIAL_LA_FUTURE_TRANSIT_DATASET` with `classification: 'official'` and `rendering.layerGroup: 'future'`.
 3. Use only `planned`, `funded`, or `under_construction` for renderable official future records.
-4. Include `timeline`, provenance `url`, provenance `accessedAt`, and station markers or representative anchors.
+4. Include `timeline`, provenance `url`, provenance `accessedAt`, and station records or representative anchors.
 5. Add a matching watch target that covers `project_status`, `opening_year`, `station_list`, and `source_url`.
 6. Run `npm run validate:official-future-transit` and the focused proposal tests.
 

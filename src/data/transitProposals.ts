@@ -229,9 +229,9 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
       },
       style: {
         strokeColor: '#db2777',
-        strokeOpacity: 0.72,
+        strokeOpacity: 0.9,
         strokeWeight: 5,
-        strokePattern: 'dashed',
+        strokePattern: 'solid',
         stationFillColor: '#db2777',
         legendLabel: 'Visionary concept'
       },
@@ -288,9 +288,9 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
       },
       style: {
         strokeColor: '#64748b',
-        strokeOpacity: 0.75,
+        strokeOpacity: 0.9,
         strokeWeight: 4,
-        strokePattern: 'dotted',
+        strokePattern: 'solid',
         legendLabel: 'Freight corridor'
       },
       rendering: {

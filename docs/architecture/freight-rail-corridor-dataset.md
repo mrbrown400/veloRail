@@ -17,10 +17,10 @@ Records are excluded when the source evidence only supports a passenger concept,
 
 | Record | Owner/operator metadata | Source basis | Geometry policy |
 | --- | --- | --- | --- |
-| `la-freight-alameda-corridor` | Owner: Alameda Corridor Transportation Authority. Operator: BNSF Railway / Union Pacific Railroad. | ACTA overview, Port of Los Angeles rail page, FRA NARN. | Approximate San Pedro Bay to downtown centerline, not ACTA engineering geometry. |
-| `la-freight-bnsf-los-angeles-san-bernardino` | Owner/operator: BNSF Railway. | BNSF facility listings, BNSF network maps, Caltrans California Rail Network. | Approximate regional centerline from Hobart/Commerce toward San Bernardino. |
-| `la-freight-union-pacific-los-angeles-inland-empire` | Owner/operator: Union Pacific Railroad. | UP California guide, UP system map, FRA NARN. | Approximate east-west LA basin to Inland Empire corridor. |
-| `la-freight-pacific-harbor-line-port-complex` | Owner: port rail infrastructure owners. Operator: Pacific Harbor Line. | PHL company profile, UP PHL short-line page, Port of Los Angeles rail page. | Schematic port-terminal loop; it abstracts detailed yard and terminal tracks. |
+| `la-freight-alameda-corridor` | Owner: Alameda Corridor Transportation Authority. Operator: BNSF Railway / Union Pacific Railroad. | ACTA overview, Port of Los Angeles rail page, FRA NARN, Caltrans California Rail Network. | Track-aligned display centerline simplified from Caltrans ACTA/PHL features, not ACTA engineering geometry. |
+| `la-freight-bnsf-los-angeles-san-bernardino` | Owner/operator: BNSF Railway. | BNSF facility listings, BNSF network maps, Caltrans California Rail Network. | Track-aligned display centerline simplified from Caltrans San Bernardino subdivision features. |
+| `la-freight-union-pacific-los-angeles-inland-empire` | Owner/operator: Union Pacific Railroad. | UP California guide, UP system map, FRA NARN, Caltrans California Rail Network. | Track-aligned display centerline simplified from Caltrans Alhambra subdivision features. |
+| `la-freight-pacific-harbor-line-port-complex` | Owner: port rail infrastructure owners. Operator: Pacific Harbor Line. | PHL company profile, UP PHL short-line page, Port of Los Angeles rail page, Caltrans California Rail Network. | Track-aligned display centerline that still abstracts detailed yard and terminal leads. |
 
 The existing `freight-alameda-corridor` seed remains in `src/data/transitProposals.ts` for schema examples. VR-402 does not edit the seed file because the production batch is a separate source file and must keep source registration decoupled from map components.
 

@@ -94,8 +94,8 @@ test('overlay style config drives proposal rendering and native legend metadata'
   } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
 
   assert.equal(MAP_OVERLAY_STYLE_CONFIG.future.legend.scenario, 'future');
-  assert.equal(MAP_OVERLAY_STYLE_CONFIG.visionary.line.strokePattern, 'dashed');
-  assert.equal(MAP_OVERLAY_STYLE_CONFIG.freight_only.line.strokePattern, 'dotted');
+  assert.equal(MAP_OVERLAY_STYLE_CONFIG.visionary.line.strokePattern, 'solid');
+  assert.equal(MAP_OVERLAY_STYLE_CONFIG.freight_only.line.strokePattern, 'solid');
   assert.equal(MAP_OVERLAY_STYLE_CONFIG.converted_passenger.legend.scenario, 'nationalized');
 
   const [future] = getProposalOverlayInputsByGroup('future');
@@ -113,9 +113,9 @@ test('overlay style config drives proposal rendering and native legend metadata'
   assert.equal(getProposalOverlayStyle(future.proposal).key, 'future');
   assert.equal(getProposalOverlayStyle(future.proposal).legend.label, 'Future heavy rail');
   assert.equal(getProposalOverlayStyle(visionary.proposal).key, 'visionary');
-  assert.equal(getProposalOverlayStyle(visionary.proposal).line.strokePattern, 'dashed');
+  assert.equal(getProposalOverlayStyle(visionary.proposal).line.strokePattern, 'solid');
   assert.equal(getProposalOverlayStyle(freight.proposal).key, 'freight_only');
-  assert.equal(getProposalOverlayStyle(freight.proposal).line.strokePattern, 'dotted');
+  assert.equal(getProposalOverlayStyle(freight.proposal).line.strokePattern, 'solid');
   assert.equal(getProposalOverlayStyle(convertedPassenger.proposal).key, 'converted_passenger');
 
   const legendItems = getMapOverlayLegendItems();
@@ -127,7 +127,8 @@ test('overlay style config drives proposal rendering and native legend metadata'
 
 test('proposal overlay groups expose imported sample layers independently', async () => {
   const {
-    getProposalOverlayInputsByGroup
+    getProposalOverlayInputsByGroup,
+    shouldRenderProposalStationMarkers
   } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
   const {
     IMPORTED_TRANSIT_PROPOSALS
@@ -171,6 +172,9 @@ test('proposal overlay groups expose imported sample layers independently', asyn
   assert.ok(future[0].markers.length > 1);
   assert.ok(nationalized.filter(({ proposal }) => proposal.status === 'converted_passenger').every(
     ({ markers }) => markers.length >= 3
+  ));
+  assert.ok([...future, ...visionary, ...nationalized].every(
+    ({ proposal }) => shouldRenderProposalStationMarkers(proposal) === false
   ));
   assert.ok(future.every(({ proposal }) => proposal.classification === 'official'));
   assert.ok(visionary.every(({ proposal }) => proposal.classification !== 'official'));
@@ -217,11 +221,12 @@ test('D Line future overlay excludes opened Section 1 stations and geometry', as
   assert.ok(!dLine.polyline.path.some(point => point.lng === -118.3440 || point.lng === -118.3614));
 });
 
-test('future station markers use zoom-aware visibility and status styling', async () => {
+test('future station metadata stays available without rendering station dots by default', async () => {
   const {
     FUTURE_STATION_MIN_ZOOM,
     getProposalMarkerZoomRange,
-    getStationStatusStyle
+    getStationStatusStyle,
+    shouldRenderProposalStationMarkers
   } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
   const {
     TRANSIT_PROPOSAL_DATASET
@@ -232,6 +237,7 @@ test('future station markers use zoom-aware visibility and status styling', asyn
   );
 
   assert.ok(futureProposal);
+  assert.equal(shouldRenderProposalStationMarkers(futureProposal), false);
   assert.equal(getProposalMarkerZoomRange(futureProposal).minZoom, FUTURE_STATION_MIN_ZOOM);
   assert.notEqual(
     getStationStatusStyle('under_construction').fillColor,
@@ -318,6 +324,26 @@ test('freight corridor metadata includes ownership, uncertainty, and source link
   assert.match(details.get('Missing scoring data'), /passenger demand/);
   assert.match(metadata.disclaimer, /approximate VeloRail geometry/i);
   assert.ok(metadata.sources.some(source => source.url && source.accessedAt === '2026-05-19'));
+});
+
+test('nationalized rail corridors use track-aligned source geometry for map display', async () => {
+  const {
+    getProposalOverlayInputsByGroup
+  } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
+
+  const freight = getProposalOverlayInputsByGroup('freight');
+  const byId = new Map(freight.map(({ proposal, polyline }) => [proposal.id, { proposal, polyline }]));
+
+  assert.ok(byId.get('la-freight-alameda-corridor')?.polyline.path.length > 40);
+  assert.ok(byId.get('la-freight-bnsf-los-angeles-san-bernardino')?.polyline.path.length > 90);
+  assert.ok(byId.get('la-freight-union-pacific-los-angeles-inland-empire')?.polyline.path.length > 50);
+  assert.match(
+    byId.get('la-freight-alameda-corridor')?.proposal.geometry.geometryNotes ?? '',
+    /Caltrans California Rail Network/
+  );
+  assert.ok(byId.get('la-freight-alameda-corridor')?.proposal.provenance.some(
+    source => source.sourceId === 'caltrans-california-rail-network'
+  ));
 });
 
 test('converted passenger metadata links back to source freight corridor and station assumptions', async () => {

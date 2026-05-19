@@ -312,8 +312,8 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
               {isVisionaryOverlayVisible && (
                 <div className="map-layer-legend__item map-layer-legend__notice">
                   <span
-                    className="map-layer-legend__swatch map-layer-legend__swatch--dashed"
-                    style={{ color: '#be185d' }}
+                    className="map-layer-legend__swatch map-layer-legend__swatch--solid"
+                    style={{ color: '#d93025' }}
                     aria-hidden="true"
                   />
                   <span className="map-layer-legend__text">
@@ -330,8 +330,8 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
               {isNationalizedOverlayVisible && (
                 <div className="map-layer-legend__item map-layer-legend__notice">
                   <span
-                    className="map-layer-legend__swatch map-layer-legend__swatch--dashed"
-                    style={{ color: '#0f766e' }}
+                    className="map-layer-legend__swatch map-layer-legend__swatch--solid"
+                    style={{ color: '#1a73e8' }}
                     aria-hidden="true"
                   />
                   <span className="map-layer-legend__text">

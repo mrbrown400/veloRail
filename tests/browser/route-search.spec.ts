@@ -155,7 +155,7 @@ test('@VR-101 @VR-102 @VR-103 @VR-105 future transit overlay control is grouped 
   await ensureMapsAvailable(page);
 
   const futureToggle = page.getByRole('button', {
-    name: /official planned, funded, and under-construction future rail lines and stations/i
+    name: /official planned, funded, and under-construction future rail and BRT alignments/i
   });
 
   await expect(futureToggle).toBeVisible();
@@ -185,7 +185,7 @@ test('@VR-303 layer panel groups overlays and exposes a visible legend', async (
     name: /google maps current transit layer/i
   });
   const futureToggle = page.getByRole('button', {
-    name: /official planned, funded, and under-construction future rail lines and stations/i
+    name: /official planned, funded, and under-construction future rail and BRT alignments/i
   });
 
   await expect(currentTransitToggle).toHaveAttribute('aria-pressed', 'true');

@@ -53,6 +53,9 @@ interface MapOverlayLineStyle {
   strokeOpacity: number;
   strokeWeight: number;
   strokePattern: LegendLinePattern;
+  casingStrokeColor: string;
+  casingStrokeOpacity: number;
+  casingStrokeWeight: number;
   symbolScale: number;
   symbolStrokeWeight: number;
   repeat: string;
@@ -170,6 +173,9 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
       strokeOpacity: 0.9,
       strokeWeight: 5,
       strokePattern: 'solid',
+      casingStrokeColor: '#ffffff',
+      casingStrokeOpacity: 0.88,
+      casingStrokeWeight: 8,
       symbolScale: 2,
       symbolStrokeWeight: 3,
       repeat: '18px'
@@ -197,6 +203,9 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
       strokeOpacity: 0.86,
       strokeWeight: 4,
       strokePattern: 'solid',
+      casingStrokeColor: '#ffffff',
+      casingStrokeOpacity: 0.82,
+      casingStrokeWeight: 7,
       symbolScale: 2,
       symbolStrokeWeight: 3,
       repeat: '18px'
@@ -221,9 +230,12 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
   future: {
     line: {
       strokeColor: '#7e22ce',
-      strokeOpacity: 0.88,
-      strokeWeight: 6,
+      strokeOpacity: 0.94,
+      strokeWeight: 5,
       strokePattern: 'solid',
+      casingStrokeColor: '#ffffff',
+      casingStrokeOpacity: 0.88,
+      casingStrokeWeight: 8,
       symbolScale: 2,
       symbolStrokeWeight: 3,
       repeat: '18px'
@@ -247,10 +259,13 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
   },
   visionary: {
     line: {
-      strokeColor: '#be185d',
-      strokeOpacity: 0.72,
+      strokeColor: '#d93025',
+      strokeOpacity: 0.94,
       strokeWeight: 5,
-      strokePattern: 'dashed',
+      strokePattern: 'solid',
+      casingStrokeColor: '#ffffff',
+      casingStrokeOpacity: 0.86,
+      casingStrokeWeight: 8,
       symbolScale: 2,
       symbolStrokeWeight: 3,
       repeat: '18px'
@@ -263,8 +278,8 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
     legend: {
       label: 'Visionary concept',
       description: 'Unofficial or speculative scenario',
-      color: '#be185d',
-      pattern: 'dashed',
+      color: '#d93025',
+      pattern: 'solid',
       scenario: 'visionary'
     },
     badge: {
@@ -274,10 +289,13 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
   },
   freight_only: {
     line: {
-      strokeColor: '#475569',
-      strokeOpacity: 0.78,
-      strokeWeight: 5,
-      strokePattern: 'dotted',
+      strokeColor: '#5f6368',
+      strokeOpacity: 0.9,
+      strokeWeight: 4,
+      strokePattern: 'solid',
+      casingStrokeColor: '#ffffff',
+      casingStrokeOpacity: 0.78,
+      casingStrokeWeight: 7,
       symbolScale: 2.25,
       symbolStrokeWeight: 3,
       repeat: '14px'
@@ -290,8 +308,8 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
     legend: {
       label: 'Freight corridor',
       description: 'Freight-only rail corridor',
-      color: '#475569',
-      pattern: 'dotted',
+      color: '#5f6368',
+      pattern: 'solid',
       scenario: 'nationalized'
     },
     badge: {
@@ -301,10 +319,13 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
   },
   converted_passenger: {
     line: {
-      strokeColor: '#0f766e',
-      strokeOpacity: 0.82,
+      strokeColor: '#1a73e8',
+      strokeOpacity: 0.94,
       strokeWeight: 5,
-      strokePattern: 'dashed',
+      strokePattern: 'solid',
+      casingStrokeColor: '#ffffff',
+      casingStrokeOpacity: 0.86,
+      casingStrokeWeight: 8,
       symbolScale: 2,
       symbolStrokeWeight: 3,
       repeat: '18px'
@@ -317,8 +338,8 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
     legend: {
       label: 'Passenger conversion',
       description: 'Passenger service concept on freight corridor',
-      color: '#0f766e',
-      pattern: 'dashed',
+      color: '#1a73e8',
+      pattern: 'solid',
       scenario: 'nationalized'
     },
     badge: {
@@ -356,7 +377,7 @@ export const MAP_OVERLAY_DEFINITIONS: MapOverlayDefinition[] = [
   {
     id: FUTURE_PROJECTS_OVERLAY_ID,
     label: 'Future Transit',
-    description: 'Official planned, funded, and under-construction future rail lines and stations',
+    description: 'Official planned, funded, and under-construction future rail and BRT alignments',
     scenario: 'future',
     order: 20,
     defaultVisible: false,
@@ -603,24 +624,33 @@ function createProposalOverlays(
   const listeners: google.maps.MapsEventListener[] = [];
   const rendering = proposal.rendering;
 
-  const line = new google.maps.Polyline(
-    getProposalPolylineOptions(proposal, polyline, zIndex)
-  );
-  overlays.push({
-    overlay: line,
-    minZoom: rendering?.minZoom,
-    maxZoom: rendering?.maxZoom
+  const lineOverlays = createProposalLineOverlays(proposal, polyline, zIndex);
+  lineOverlays.forEach(({ casing, line }) => {
+    overlays.push({
+      overlay: casing,
+      minZoom: rendering?.minZoom,
+      maxZoom: rendering?.maxZoom
+    });
+    overlays.push({
+      overlay: line,
+      minZoom: rendering?.minZoom,
+      maxZoom: rendering?.maxZoom
+    });
+
+    if (rendering?.clickable ?? true) {
+      listeners.push(line.addListener('click', (event: google.maps.MapMouseEvent) => {
+        if (!event.latLng) return;
+
+        publishMapOverlayMetadata(getProposalMetadata(proposal));
+        infoWindow.setContent(getProposalInfoContent(proposal));
+        infoWindow.setPosition(event.latLng);
+        infoWindow.open(map);
+      }));
+    }
   });
 
-  if (rendering?.clickable ?? true) {
-    listeners.push(line.addListener('click', (event: google.maps.MapMouseEvent) => {
-      if (!event.latLng) return;
-
-      publishMapOverlayMetadata(getProposalMetadata(proposal));
-      infoWindow.setContent(getProposalInfoContent(proposal));
-      infoWindow.setPosition(event.latLng);
-      infoWindow.open(map);
-    }));
+  if (!shouldRenderProposalStationMarkers(proposal)) {
+    return { overlays, listeners };
   }
 
   markers.forEach((markerInput) => {
@@ -644,6 +674,38 @@ function createProposalOverlays(
   });
 
   return { overlays, listeners };
+}
+
+function createProposalLineOverlays(
+  proposal: TransitProposal,
+  polyline: ProposalPolylineInput,
+  zIndex: number
+) {
+  return [
+    {
+      casing: new google.maps.Polyline(getProposalPolylineCasingOptions(proposal, polyline, zIndex - 1)),
+      line: new google.maps.Polyline(getProposalPolylineOptions(proposal, polyline, zIndex))
+    }
+  ];
+}
+
+function getProposalPolylineCasingOptions(
+  proposal: TransitProposal,
+  polyline: ProposalPolylineInput,
+  zIndex: number
+): google.maps.PolylineOptions {
+  const { line } = getProposalOverlayStyle(proposal);
+
+  return {
+    ...polyline.options,
+    path: polyline.path,
+    clickable: false,
+    strokeColor: line.casingStrokeColor,
+    strokeOpacity: line.casingStrokeOpacity,
+    strokeWeight: line.casingStrokeWeight,
+    zIndex,
+    icons: undefined
+  };
 }
 
 function getProposalPolylineOptions(
@@ -671,6 +733,10 @@ function getProposalPolylineOptions(
       }]
       : undefined
   };
+}
+
+export function shouldRenderProposalStationMarkers(proposal: TransitProposal): boolean {
+  return proposal.rendering?.stationMarkersVisible === true;
 }
 
 function getLineSymbol(lineStyle: MapOverlayLineStyle): google.maps.Symbol {
@@ -785,15 +851,22 @@ export function getProposalOverlayStyle(proposal: TransitProposal): ResolvedMapO
   const key = getProposalStyleKey(proposal);
   const base = MAP_OVERLAY_STYLE_CONFIG[key];
   const style = proposal.style;
+  const usesGoogleTransitLineTreatment = isProposalOverlayLayer(proposal);
+  const strokePattern = usesGoogleTransitLineTreatment
+    ? 'solid'
+    : style?.strokePattern ?? base.line.strokePattern;
+  const strokeOpacity = usesGoogleTransitLineTreatment
+    ? Math.max(style?.strokeOpacity ?? base.line.strokeOpacity, base.line.strokeOpacity)
+    : style?.strokeOpacity ?? base.line.strokeOpacity;
 
   return {
     key,
     line: {
       ...base.line,
       strokeColor: style?.strokeColor ?? base.line.strokeColor,
-      strokeOpacity: style?.strokeOpacity ?? base.line.strokeOpacity,
+      strokeOpacity,
       strokeWeight: style?.strokeWeight ?? base.line.strokeWeight,
-      strokePattern: style?.strokePattern ?? base.line.strokePattern
+      strokePattern
     },
     marker: {
       ...base.marker,
@@ -805,10 +878,18 @@ export function getProposalOverlayStyle(proposal: TransitProposal): ResolvedMapO
       ...base.legend,
       label: style?.legendLabel ?? base.legend.label,
       color: style?.strokeColor ?? base.legend.color,
-      pattern: style?.strokePattern ?? base.legend.pattern
+      pattern: strokePattern
     },
     badge: base.badge
   };
+}
+
+function isProposalOverlayLayer(proposal: TransitProposal): boolean {
+  const layerGroup = proposal.rendering?.layerGroup;
+  return layerGroup === 'future'
+    || layerGroup === 'visionary'
+    || layerGroup === 'freight'
+    || layerGroup === 'converted_passenger';
 }
 
 export function getProposalMetadata(

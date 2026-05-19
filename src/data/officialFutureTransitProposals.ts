@@ -147,7 +147,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
   migrationNotes: [
     'VR-105 initial official LA-area future transit batch. Sources are Metro official project pages and public agency notices checked on 2026-05-19.',
     'Geometry is simplified corridor geometry for Google Maps rendering and must not be treated as surveyed engineering alignment.',
-    'Station markers are official station areas where Metro publishes them, otherwise representative corridor anchors until a fuller GIS source is added.'
+    'Station records are retained as planning metadata where Metro publishes station areas, but proposal overlays do not display individual station dots by default.'
   ],
   proposals: [
     {
