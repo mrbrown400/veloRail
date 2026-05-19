@@ -70,7 +70,9 @@ Google Maps may show freight rails on the basemap, but VeloRail does not treat b
 - Visionary line: `vision-vermont-rapid-rail`
 - Freight corridor: `freight-alameda-corridor`
 
-These examples exercise the schema and renderer contract. The Alameda Corridor example includes owner/operator metadata, freight usage, unknown electrification, source-id references, suitability placeholders, and a nested `converted_passenger` scenario. They are not the authoritative future or freight datasets. VR-105 and VR-402 should replace approximate geometry with sourced production data.
+These examples exercise the schema and renderer contract. The Alameda Corridor example includes owner/operator metadata, freight usage, unknown electrification, source-id references, suitability placeholders, and a nested `converted_passenger` scenario. They are not the authoritative future or freight datasets.
+
+VR-105 adds the first bounded official LA-area future transit batch in `src/data/officialFutureTransitProposals.ts`. See `docs/architecture/official-future-transit-dataset.md` for source criteria, included and excluded projects, and the approximation policy. VR-402 should replace approximate freight geometry with sourced production data.
 
 ## Validation Strategy
 

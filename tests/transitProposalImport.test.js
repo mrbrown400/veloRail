@@ -42,12 +42,74 @@ test('default transit proposal source manifest imports without map code changes'
     TRANSIT_PROPOSAL_SOURCE_FILES
   } = await loadAppModule('/src/data/transitProposalSources.ts');
 
-  assert.equal(TRANSIT_PROPOSAL_SOURCE_FILES.length, 1);
+  assert.equal(TRANSIT_PROPOSAL_SOURCE_FILES.length, 2);
   assert.equal(IMPORTED_TRANSIT_PROPOSALS.dataset.schemaVersion, '1.0.0');
   assert.equal(
     IMPORTED_TRANSIT_PROPOSALS.overlays.length,
     IMPORTED_TRANSIT_PROPOSALS.dataset.proposals.length
   );
+});
+
+test('official LA future transit batch validates and renders overlay-ready inputs', async () => {
+  const {
+    OFFICIAL_LA_FUTURE_TRANSIT_DATASET
+  } = await loadAppModule('/src/data/officialFutureTransitProposals.ts');
+  const {
+    importTransitProposalDataset
+  } = await loadAppModule('/src/data/transitProposalImport.ts');
+
+  const result = importTransitProposalDataset(OFFICIAL_LA_FUTURE_TRANSIT_DATASET, {
+    sourceName: 'official-la-future-transit.v1.ts'
+  });
+  const proposalIds = result.dataset.proposals.map(proposal => proposal.id);
+
+  assert.deepEqual(proposalIds, [
+    'metro-east-san-fernando-valley-lrt',
+    'metro-southeast-gateway-line',
+    'metro-k-line-extension-torrance',
+    'metro-eastside-transit-corridor-phase-2',
+    'metro-noho-pasadena-brt',
+    'metro-vermont-brt'
+  ]);
+  assert.equal(result.dataset.updatedAt, '2026-05-19');
+  assert.equal(result.overlays.length, proposalIds.length);
+
+  for (const overlay of result.overlays) {
+    assert.equal(overlay.proposal.classification, 'official');
+    assert.equal(overlay.proposal.rendering.layerGroup, 'future');
+    assert.ok(['planned', 'under_construction'].includes(overlay.proposal.status));
+    assert.ok(overlay.proposal.provenance.length >= 1);
+    assert.ok(overlay.proposal.provenance.every(source => source.accessedAt === '2026-05-19'));
+    assert.equal(overlay.proposal.geometry.geometrySource, 'approximate');
+    assert.match(overlay.proposal.geometry.geometryNotes, /Approximate|approximate/);
+    assert.ok(overlay.polyline.path.length >= 2);
+    assert.ok(overlay.markers.length >= 3);
+  }
+});
+
+test('merged default manifest keeps official future records separate from visionary and freight samples', async () => {
+  const {
+    IMPORTED_TRANSIT_PROPOSALS
+  } = await loadAppModule('/src/data/transitProposalSources.ts');
+
+  const futureRecords = IMPORTED_TRANSIT_PROPOSALS.dataset.proposals.filter(
+    proposal => proposal.rendering?.layerGroup === 'future'
+  );
+  const unofficialRecords = IMPORTED_TRANSIT_PROPOSALS.dataset.proposals.filter(
+    proposal => proposal.classification !== 'official'
+  );
+  const freightRecords = IMPORTED_TRANSIT_PROPOSALS.dataset.proposals.filter(
+    proposal => proposal.rendering?.layerGroup === 'freight'
+  );
+
+  assert.equal(futureRecords.length, 7);
+  assert.ok(futureRecords.every(proposal => proposal.classification === 'official'));
+  assert.deepEqual(unofficialRecords.map(proposal => proposal.id), [
+    'vision-vermont-rapid-rail'
+  ]);
+  assert.deepEqual(freightRecords.map(proposal => proposal.id), [
+    'freight-alameda-corridor'
+  ]);
 });
 
 test('transit proposal import fails fast on invalid ids, status, coordinates, and provenance', async () => {

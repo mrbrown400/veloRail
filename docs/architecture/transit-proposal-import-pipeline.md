@@ -67,3 +67,7 @@ Use `publisher`, `url`, `accessedAt`, and `note` whenever available. If geometry
 5. Run `npm run quality`.
 
 Map components should consume imported overlay output instead of importing individual proposal records. Adding another line or corridor should require a source file and manifest update, not changes to core map rendering code.
+
+## Official Future Source
+
+VR-105 registers `src/data/officialFutureTransitProposals.ts` as `official-la-future-transit.v1.ts` in `TRANSIT_PROPOSAL_SOURCE_FILES`. It uses the same import boundary as the seed examples, validates as official `future` layer data, and documents source criteria in `docs/architecture/official-future-transit-dataset.md`.

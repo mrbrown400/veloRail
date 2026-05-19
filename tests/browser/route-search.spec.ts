@@ -56,7 +56,7 @@ test('@smoke bike settings popover is not clipped by the search card', async ({ 
   expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(viewport!.height);
 });
 
-test('@VR-101 @VR-102 @VR-103 future transit overlay control is grouped and default off', async ({ page }) => {
+test('@VR-101 @VR-102 @VR-103 @VR-105 future transit overlay control is grouped and default off', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const futureToggle = page.getByRole('button', {

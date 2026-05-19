@@ -50,7 +50,13 @@ test('proposal overlay groups expose imported sample layers independently', asyn
     IMPORTED_TRANSIT_PROPOSALS.overlays.find(({ proposal }) => proposal.id === 'metro-d-line-extension-westwood')
   );
   assert.deepEqual(future.map(({ proposal }) => proposal.id), [
-    'metro-d-line-extension-westwood'
+    'metro-d-line-extension-westwood',
+    'metro-east-san-fernando-valley-lrt',
+    'metro-southeast-gateway-line',
+    'metro-k-line-extension-torrance',
+    'metro-eastside-transit-corridor-phase-2',
+    'metro-noho-pasadena-brt',
+    'metro-vermont-brt'
   ]);
   assert.deepEqual(visionary.map(({ proposal }) => proposal.id), [
     'vision-vermont-rapid-rail'
@@ -60,6 +66,7 @@ test('proposal overlay groups expose imported sample layers independently', asyn
   ]);
   assert.ok(future[0].polyline.path.length > 1);
   assert.ok(future[0].markers.length > 1);
+  assert.ok(future.every(({ proposal }) => proposal.classification === 'official'));
 });
 
 test('future overlay only accepts official planned, funded, or under-construction proposals', async () => {
