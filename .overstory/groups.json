@@ -77,5 +77,24 @@
 		"status": "active",
 		"createdAt": "2026-05-19T01:20:02.435Z",
 		"completedAt": null
+	},
+	{
+		"id": "group-c5c6d73c",
+		"name": "remaining-ready-seeds-pass",
+		"memberIssueIds": [
+			"VR-404",
+			"VR-405",
+			"VR-104",
+			"VR-202",
+			"VR-203",
+			"VR-305",
+			"veloRail-967a",
+			"VR-306",
+			"VR-307",
+			"VR-308"
+		],
+		"status": "active",
+		"createdAt": "2026-05-19T01:43:34.833Z",
+		"completedAt": null
 	}
 ]
