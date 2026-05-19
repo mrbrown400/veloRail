@@ -68,7 +68,9 @@ test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @veloRail-967a nat
     }));
   });
 
-  const metadataPanel = page.getByRole('region', { name: 'Alameda Corridor' });
+  const metadataPanel = page.getByRole('region', {
+    name: /Alameda Corridor South Alameda passenger conversion concept/i
+  });
   await expect(metadataPanel).toBeVisible();
   await expect(metadataPanel).toContainText('Alameda Corridor South Alameda passenger conversion concept');
   await expect(metadataPanel).toContainText('Passenger conversion');
@@ -132,7 +134,7 @@ test('@VR-202 @VR-203 visionary overlay exposes speculative legend and metadata 
     }));
   });
 
-  const metadataPanel = page.getByLabel('Selected map overlay metadata');
+  const metadataPanel = page.getByRole('region', { name: /LA River Rail Vision/i });
   await expect(metadataPanel).toBeVisible();
   await expect(metadataPanel).toContainText('LA River Rail Vision');
   await expect(metadataPanel).toContainText('Visionary');
