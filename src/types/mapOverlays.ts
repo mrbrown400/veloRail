@@ -1,5 +1,7 @@
 export type MapOverlayId = string;
 
+export type MapOverlayComparisonMode = 'present-only' | 'present-plus-future';
+
 export type MapOverlayScenario =
   | 'current'
   | 'future'
@@ -20,6 +22,13 @@ export interface MapOverlayDefinition {
   order: number;
   defaultVisible: boolean;
   create: (map: google.maps.Map) => MapOverlayHandle;
+}
+
+export interface MapOverlayComparisonModeDefinition {
+  id: MapOverlayComparisonMode;
+  label: string;
+  description: string;
+  futureOverlayVisible: boolean;
 }
 
 export type MapOverlayVisibility = Record<MapOverlayId, boolean>;
