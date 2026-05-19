@@ -3,6 +3,7 @@ import type {
   MapOverlayDefinition,
   MapOverlayHandle,
   MapOverlayId,
+  MapOverlayScenario,
   MapOverlayVisibility
 } from '@/types/mapOverlays';
 import type {
@@ -14,6 +15,27 @@ import type {
 } from '@/types';
 
 type ProposalLayerGroup = NonNullable<ProposalRenderingMetadata['layerGroup']>;
+type LegendLinePattern = 'solid' | 'dashed' | 'dotted';
+
+export type MapOverlayGroupId = 'current' | 'future' | 'visionary' | 'nationalized';
+
+export interface MapOverlayGroupDefinition {
+  id: MapOverlayGroupId;
+  label: string;
+  description: string;
+  order: number;
+  overlayIds: MapOverlayId[];
+}
+
+export interface MapOverlayLegendItem {
+  id: string;
+  overlayId: MapOverlayId;
+  label: string;
+  description: string;
+  color: string;
+  pattern: LegendLinePattern;
+  scenario: MapOverlayScenario;
+}
 
 interface SetMapOverlay {
   setMap: (map: google.maps.Map | null) => void;
@@ -98,12 +120,77 @@ export const MAP_OVERLAY_DEFINITIONS: MapOverlayDefinition[] = [
   }
 ];
 
+const MAP_OVERLAY_GROUP_DEFINITIONS: MapOverlayGroupDefinition[] = [
+  {
+    id: 'current',
+    label: 'Current',
+    description: 'Current Google Maps transit and bicycling context layers',
+    order: 10,
+    overlayIds: ['current-transit', 'bicycling']
+  },
+  {
+    id: 'future',
+    label: 'Future',
+    description: 'Official planned, funded, and under-construction transit projects',
+    order: 20,
+    overlayIds: ['future-projects']
+  },
+  {
+    id: 'visionary',
+    label: 'Visionary',
+    description: 'Unofficial concept and advocacy-derived scenario overlays',
+    order: 30,
+    overlayIds: ['visionary-concepts']
+  },
+  {
+    id: 'nationalized',
+    label: 'Nationalized',
+    description: 'Freight and passenger-conversion corridor overlays',
+    order: 40,
+    overlayIds: ['nationalized-rail']
+  }
+];
+
+const NATIVE_MAP_LEGEND_ITEMS: MapOverlayLegendItem[] = [
+  {
+    id: 'current-transit-google-transit',
+    overlayId: 'current-transit',
+    label: 'Google transit',
+    description: 'Current transit routes',
+    color: '#1a73e8',
+    pattern: 'solid',
+    scenario: 'current'
+  },
+  {
+    id: 'bicycling-google-bicycling',
+    overlayId: 'bicycling',
+    label: 'Google bicycling',
+    description: 'Bike lanes and trails',
+    color: '#188038',
+    pattern: 'solid',
+    scenario: 'context'
+  }
+];
+
 export function getOrderedMapOverlayDefinitions(): MapOverlayDefinition[] {
   return [...MAP_OVERLAY_DEFINITIONS].sort((a, b) => a.order - b.order);
 }
 
+export function getMapOverlayGroupDefinitions(): MapOverlayGroupDefinition[] {
+  return [...MAP_OVERLAY_GROUP_DEFINITIONS].sort((a, b) => a.order - b.order);
+}
+
 export function getMapOverlayDefinition(id: MapOverlayId): MapOverlayDefinition | undefined {
   return MAP_OVERLAY_DEFINITIONS.find((definition) => definition.id === id);
+}
+
+export function getMapOverlayLegendItems(): MapOverlayLegendItem[] {
+  return [
+    ...NATIVE_MAP_LEGEND_ITEMS,
+    ...getProposalLegendItems('future-projects', 'future', FUTURE_GROUPS),
+    ...getProposalLegendItems('visionary-concepts', 'visionary', VISIONARY_GROUPS),
+    ...getProposalLegendItems('nationalized-rail', 'nationalized', NATIONALIZED_GROUPS)
+  ];
 }
 
 export function getDefaultMapOverlayVisibility(): MapOverlayVisibility {
@@ -113,6 +200,37 @@ export function getDefaultMapOverlayVisibility(): MapOverlayVisibility {
       definition.defaultVisible
     ])
   ) as MapOverlayVisibility;
+}
+
+function getProposalLegendItems(
+  overlayId: MapOverlayId,
+  scenario: MapOverlayScenario,
+  groups: ProposalLayerGroup[]
+): MapOverlayLegendItem[] {
+  const seen = new Set<string>();
+
+  return getProposalOverlayInputsByGroup(groups).flatMap(({ proposal }) => {
+    const label = proposal.style?.legendLabel ?? proposal.shortName ?? proposal.name;
+    const color = proposal.style?.strokeColor ?? '#2563eb';
+    const pattern = proposal.style?.strokePattern ?? 'solid';
+    const key = `${overlayId}:${label}:${color}:${pattern}`;
+
+    if (seen.has(key)) {
+      return [];
+    }
+
+    seen.add(key);
+
+    return [{
+      id: `${overlayId}-${slugifyLegendLabel(label)}-${seen.size}`,
+      overlayId,
+      label,
+      description: `${formatToken(proposal.status)} · ${formatToken(proposal.confidence.level)}`,
+      color,
+      pattern,
+      scenario
+    }];
+  });
 }
 
 function createGoogleTransitLayer(map: google.maps.Map): MapOverlayHandle {
@@ -411,6 +529,13 @@ function metadataRow(label: string, value: string | undefined, alreadyEscaped = 
 
 function formatToken(value: string): string {
   return value.replace(/_/g, ' ');
+}
+
+function slugifyLegendLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '') || 'layer';
 }
 
 function escapeHtml(value: string): string {

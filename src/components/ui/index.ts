@@ -9,10 +9,15 @@ export {
   CloseIcon,
   CrosshairIcon,
   DestinationIcon,
+  FreightRailIcon,
+  FutureRailIcon,
+  LayersIcon,
+  LegendIcon,
   MapPinIcon,
   OriginIcon,
   TransitIcon,
   TrainIcon,
   UnavailableIcon,
+  VisionIcon,
   VeloRailMark
 } from './icons';

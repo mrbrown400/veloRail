@@ -72,3 +72,36 @@ test('@VR-101 @VR-102 @VR-103 @VR-105 future transit overlay control is grouped 
   await futureToggle.click();
   await expect(futureToggle).toHaveAttribute('aria-pressed', 'false');
 });
+
+test('@VR-303 layer panel groups overlays and exposes a visible legend', async ({ page }) => {
+  await ensureMapsAvailable(page);
+
+  const panel = page.getByLabel('Map layers and legend');
+  await expect(panel).toBeVisible();
+
+  await expect(panel.locator('.map-layer-group-current')).toContainText('Current');
+  await expect(panel.locator('.map-layer-group-future')).toContainText('Future');
+  await expect(panel.locator('.map-layer-group-visionary')).toContainText('Visionary');
+  await expect(panel.locator('.map-layer-group-nationalized')).toContainText('Nationalized');
+  await expect(panel.locator('.map-layer-group-current .map-layer-group__count')).toHaveText('1/2');
+  await expect(panel.locator('.map-layer-group-future .map-layer-group__count')).toHaveText('0/1');
+
+  const currentTransitToggle = page.getByRole('button', {
+    name: /google maps current transit layer/i
+  });
+  const futureToggle = page.getByRole('button', {
+    name: /official planned, funded, and under-construction future rail lines and stations/i
+  });
+
+  await expect(currentTransitToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(futureToggle).toHaveAttribute('aria-pressed', 'false');
+
+  await page.getByRole('button', { name: /legend/i }).click();
+  await expect(page.getByLabel('Visible layer legend')).toBeVisible();
+  await expect(page.getByText('Google transit')).toBeVisible();
+
+  await futureToggle.click();
+  await expect(futureToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(panel.locator('.map-layer-group-future .map-layer-group__count')).toHaveText('1/1');
+  await expect(page.getByText('Future heavy rail')).toBeVisible();
+});

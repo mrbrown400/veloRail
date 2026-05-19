@@ -7,6 +7,7 @@ after(closeAppModuleLoader);
 test('map overlay registry has deterministic order and default visibility', async () => {
   const {
     getDefaultMapOverlayVisibility,
+    getMapOverlayGroupDefinitions,
     getOrderedMapOverlayDefinitions
   } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
 
@@ -31,6 +32,37 @@ test('map overlay registry has deterministic order and default visibility', asyn
   assert.equal(visibility['visionary-concepts'], false);
   assert.equal(visibility['nationalized-rail'], false);
   assert.equal(visibility.bicycling, false);
+
+  const groups = getMapOverlayGroupDefinitions();
+
+  assert.deepEqual(groups.map((group) => group.id), [
+    'current',
+    'future',
+    'visionary',
+    'nationalized'
+  ]);
+  assert.deepEqual(groups.map((group) => group.overlayIds), [
+    ['current-transit', 'bicycling'],
+    ['future-projects'],
+    ['visionary-concepts'],
+    ['nationalized-rail']
+  ]);
+});
+
+test('map overlay legend items come from current registry and proposal labels', async () => {
+  const {
+    getMapOverlayLegendItems
+  } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
+
+  const legendItems = getMapOverlayLegendItems();
+  const byLabel = new Map(legendItems.map((item) => [item.label, item]));
+
+  assert.equal(byLabel.get('Google transit')?.overlayId, 'current-transit');
+  assert.equal(byLabel.get('Google bicycling')?.overlayId, 'bicycling');
+  assert.equal(byLabel.get('Future heavy rail')?.scenario, 'future');
+  assert.equal(byLabel.get('Visionary concept')?.overlayId, 'visionary-concepts');
+  assert.equal(byLabel.get('Freight corridor')?.scenario, 'nationalized');
+  assert.ok(legendItems.every((item) => item.color));
 });
 
 test('proposal overlay groups expose imported sample layers independently', async () => {

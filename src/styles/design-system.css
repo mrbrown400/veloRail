@@ -22,6 +22,11 @@
   --vr-color-rail: #1a73e8;
   --vr-color-future-surface: #fff9e6;
   --vr-color-future-text: #5d4037;
+  --vr-color-layer-current: #1a73e8;
+  --vr-color-layer-context: #188038;
+  --vr-color-layer-future: #7e22ce;
+  --vr-color-layer-visionary: #be185d;
+  --vr-color-layer-nationalized: #334155;
 
   /* Typography */
   --vr-font-family-sans: "Roboto", "Arial", sans-serif;

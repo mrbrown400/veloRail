@@ -3,11 +3,27 @@ import { GoogleMap } from '@react-google-maps/api';
 import { MapOverlayRenderer } from './MapOverlayRenderer';
 import { RouteOverlay } from './RouteOverlay';
 import { VehicleMarker } from './VehicleMarker';
-import { getOrderedMapOverlayDefinitions } from './mapOverlayRegistry';
-import { ToggleChip } from '@/components/ui';
+import {
+  getMapOverlayGroupDefinitions,
+  getMapOverlayLegendItems,
+  getOrderedMapOverlayDefinitions
+} from './mapOverlayRegistry';
+import {
+  BikeIcon,
+  Button,
+  Chip,
+  FreightRailIcon,
+  FutureRailIcon,
+  LayersIcon,
+  LegendIcon,
+  Panel,
+  ToggleChip,
+  TransitIcon,
+  VisionIcon
+} from '@/components/ui';
 import { useMapOverlayStore, useRouteStore, useRealtimeStore } from '@/stores';
 import { LA_CENTER } from '@/services/config';
-import type { MapOverlayScenario } from '@/types/mapOverlays';
+import type { MapOverlayId, MapOverlayScenario } from '@/types/mapOverlays';
 
 const mapContainerStyle = {
   width: '100%',
@@ -20,6 +36,11 @@ const defaultCenter = {
 };
 
 const overlayControls = getOrderedMapOverlayDefinitions();
+const overlayControlById = new Map(
+  overlayControls.map((overlay) => [overlay.id, overlay])
+);
+const overlayGroups = getMapOverlayGroupDefinitions();
+const overlayLegendItems = getMapOverlayLegendItems();
 
 // Options are created as a function to avoid using google.maps before it's loaded
 const getMapOptions = (): google.maps.MapOptions => ({
@@ -42,10 +63,17 @@ interface MapContainerProps {
 
 export function MapContainer({ onMapLoad }: MapContainerProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [isLegendOpen, setIsLegendOpen] = useState(false);
   const { selectedRoute } = useRouteStore();
   const { vehiclePosition, trackedVehicle } = useRealtimeStore();
   const overlayVisibility = useMapOverlayStore((state) => state.visibility);
   const toggleOverlay = useMapOverlayStore((state) => state.toggleOverlay);
+  const activeOverlayCount = overlayControls.filter(
+    (overlay) => overlayVisibility[overlay.id] ?? false
+  ).length;
+  const visibleLegendItems = overlayLegendItems.filter(
+    (item) => overlayVisibility[item.overlayId] ?? false
+  );
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
@@ -125,71 +153,139 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
         )}
       </GoogleMap>
 
-      {/* Layer Controls */}
-      <div className="map-layer-controls" aria-label="Map layers">
-        {overlayControls.map((overlay) => {
+      <Panel
+        as="aside"
+        className="map-layer-panel"
+        ariaLabel="Map layers and legend"
+      >
+        <div className="map-layer-panel__header">
+          <div className="map-layer-panel__title-row">
+            <LayersIcon className="map-layer-panel__title-icon" />
+            <div>
+              <h2 className="map-layer-panel__title">Layers</h2>
+              <span className="map-layer-panel__status">{activeOverlayCount} active</span>
+            </div>
+          </div>
+          <Button
+            className="map-layer-panel__legend-toggle"
+            variant="ghost"
+            size="sm"
+            aria-controls="map-layer-legend"
+            aria-expanded={isLegendOpen}
+            onClick={() => setIsLegendOpen((open) => !open)}
+            leftIcon={<LegendIcon />}
+          >
+            Legend
+          </Button>
+        </div>
+
+        <div className="map-layer-panel__groups">
+          {overlayGroups.map((group) => (
+            <LayerControlGroup
+              key={group.id}
+              groupId={group.id}
+              label={group.label}
+              description={group.description}
+              overlayIds={group.overlayIds}
+              overlayVisibility={overlayVisibility}
+              onToggleOverlay={toggleOverlay}
+            />
+          ))}
+        </div>
+
+        {isLegendOpen && (
+          <div id="map-layer-legend" className="map-layer-legend" aria-label="Visible layer legend">
+            <div className="map-layer-legend__header">
+              <span className="map-layer-legend__title">Visible legend</span>
+              <Chip tone="accent">{visibleLegendItems.length}</Chip>
+            </div>
+            <div className="map-layer-legend__list">
+              {visibleLegendItems.map((item) => (
+                <div key={item.id} className="map-layer-legend__item">
+                  <span
+                    className={`map-layer-legend__swatch map-layer-legend__swatch--${item.pattern}`}
+                    style={{ color: item.color }}
+                    aria-hidden="true"
+                  />
+                  <span className="map-layer-legend__text">
+                    <span className="map-layer-legend__label">{item.label}</span>
+                    <span className="map-layer-legend__description">{item.description}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Panel>
+    </div>
+  );
+}
+
+interface LayerControlGroupProps {
+  groupId: string;
+  label: string;
+  description: string;
+  overlayIds: MapOverlayId[];
+  overlayVisibility: Record<MapOverlayId, boolean>;
+  onToggleOverlay: (id: MapOverlayId) => void;
+}
+
+function LayerControlGroup({
+  groupId,
+  label,
+  description,
+  overlayIds,
+  overlayVisibility,
+  onToggleOverlay
+}: LayerControlGroupProps) {
+  const overlays = overlayIds
+    .map((id) => overlayControlById.get(id))
+    .filter(Boolean);
+  const activeCount = overlayIds.filter((id) => overlayVisibility[id] ?? false).length;
+  const headingId = `map-layer-group-${groupId}`;
+
+  return (
+    <section
+      className={`map-layer-group map-layer-group-${groupId}`}
+      aria-labelledby={headingId}
+      aria-label={description}
+    >
+      <div className="map-layer-group__header">
+        <span id={headingId} className="map-layer-group__title">{label}</span>
+        <span className="map-layer-group__count">{activeCount}/{overlayIds.length}</span>
+      </div>
+      <div className="map-layer-group__controls">
+        {overlays.map((overlay) => {
+          if (!overlay) return null;
+
           const isActive = overlayVisibility[overlay.id] ?? false;
 
           return (
             <ToggleChip
               key={overlay.id}
-              className={`layer-btn layer-btn-${overlay.scenario} ${isActive ? 'active' : ''}`}
-              onClick={() => toggleOverlay(overlay.id)}
+              className={`layer-btn layer-btn-${overlay.scenario} ${isActive ? 'active layer-btn--active' : ''}`}
+              onClick={() => onToggleOverlay(overlay.id)}
               title={overlay.description}
-              aria-label={overlay.description}
+              aria-label={`${overlay.description}. ${isActive ? 'On' : 'Off'}`}
               pressed={isActive}
-              icon={<LayerIcon scenario={overlay.scenario} />}
+              icon={<LayerIcon id={overlay.id} scenario={overlay.scenario} />}
             >
-              <span className="layer-btn-label">{overlay.label}</span>
+              <span className="layer-btn__content">
+                <span className="layer-btn-label">{overlay.label}</span>
+                <span className="layer-btn-state" aria-hidden="true" />
+              </span>
             </ToggleChip>
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }
 
-function LayerIcon({ scenario }: { scenario: MapOverlayScenario }) {
-  if (scenario === 'context') {
-    return (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z" />
-      </svg>
-    );
-  }
-
-  if (scenario === 'future') {
-    return (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 17c4-7 8-10 16-10" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-        <path d="M16 5h4v4" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="6" cy="15" r="2" fill="currentColor" />
-        <circle cx="12" cy="10" r="2" fill="currentColor" />
-      </svg>
-    );
-  }
-
-  if (scenario === 'visionary') {
-    return (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" fill="currentColor" />
-        <path d="M5 16l.8 2.2L8 19l-2.2.8L5 22l-.8-2.2L2 19l2.2-.8L5 16z" fill="currentColor" />
-      </svg>
-    );
-  }
-
-  if (scenario === 'nationalized') {
-    return (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 18h16M6 14h12M8 10h8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-        <path d="M7 18l5-12 5 12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2c-4 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h2.23l2-2H14l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-6H6V6h5v5zm2 0V6h5v5h-5zm3.5 6c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
-    </svg>
-  );
+function LayerIcon({ id, scenario }: { id: MapOverlayId; scenario: MapOverlayScenario }) {
+  if (id === 'bicycling') return <BikeIcon />;
+  if (scenario === 'future') return <FutureRailIcon />;
+  if (scenario === 'visionary') return <VisionIcon />;
+  if (scenario === 'nationalized') return <FreightRailIcon />;
+  return <TransitIcon />;
 }

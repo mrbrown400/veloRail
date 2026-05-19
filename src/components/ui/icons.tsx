@@ -56,6 +56,60 @@ export function TransitIcon(props: IconProps) {
   );
 }
 
+export function LayersIcon(props: IconProps) {
+  return (
+    <svg {...iconProps(props)}>
+      <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+      <path d="m3 12 9 5 9-5" />
+      <path d="m3 16 9 5 9-5" />
+    </svg>
+  );
+}
+
+export function LegendIcon(props: IconProps) {
+  return (
+    <svg {...iconProps(props)}>
+      <path d="M5 7h14" />
+      <path d="M5 12h14" />
+      <path d="M5 17h14" />
+      <circle cx="3" cy="7" r="1" fill="currentColor" stroke="none" />
+      <circle cx="3" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="3" cy="17" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function FutureRailIcon(props: IconProps) {
+  return (
+    <svg {...iconProps(props)}>
+      <path d="M4 17c4-7 8-10 16-10" />
+      <path d="M16 5h4v4" />
+      <circle cx="6" cy="15" r="2" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="10" r="2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function VisionIcon(props: IconProps) {
+  return (
+    <svg {...iconProps(props)}>
+      <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" />
+      <path d="M5 16l.8 2.2L8 19l-2.2.8L5 22l-.8-2.2L2 19l2.2-.8L5 16Z" />
+    </svg>
+  );
+}
+
+export function FreightRailIcon(props: IconProps) {
+  return (
+    <svg {...iconProps(props)}>
+      <path d="M4 18h16" />
+      <path d="M6 14h12" />
+      <path d="M8 10h8" />
+      <path d="M7 18 12 6l5 12" />
+    </svg>
+  );
+}
+
 export function CloseIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
