@@ -64,6 +64,15 @@ VR-500 adds `src/services/freightRouteCandidates.ts`, which builds a simple corr
 
 The review workflow requires checking freight ownership, dispatching, passenger access, grade crossings, and capital constraints before any generated candidate can become a maintained overlay scenario.
 
+VR-501 and VR-502 extend each candidate with two additional review signals:
+
+- `populationDensityScore` from `src/services/populationDensityScoring.ts`
+- `bikeAccessScore` from `src/services/bikeRailScoring.ts`
+
+Population scoring uses `vr-501-market-anchor-heuristic-v1`, an approximate market-anchor screen over broad LA areas such as Central LA, South LA, San Gabriel Valley, Inland Empire gateways, and San Pedro Bay. The documented follow-up source options are U.S. Census ACS tract density and SCAG employment or activity-center data. These source options are not bundled in this pass, so candidate output records missing Census tract population, employment density, walkshed population, equity priority areas, and observed ridership.
+
+Bike-rail scoring uses `vr-502-bike-rail-access-heuristic-v1`, an offline station-spacing and urban-anchor heuristic. It does not make live Google Bicycling or Directions calls in deterministic tests. Future reviewed refreshes may use Google Maps Bicycling, local low-stress bike-network data, station bike parking, segment-level elevation, and safety inputs.
+
 ## Initial LA Nationalized Scenario
 
 VR-407 adds `src/data/laNationalizedRailScenario.ts` to package the first bounded scenario. It includes the generated Alameda Corridor, BNSF LA to San Bernardino, and Union Pacific LA to Inland Empire converted-passenger records, and excludes Pacific Harbor Line as freight context only.

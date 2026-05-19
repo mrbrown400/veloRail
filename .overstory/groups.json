@@ -111,5 +111,16 @@
 		"status": "active",
 		"createdAt": "2026-05-19T02:10:43.132Z",
 		"completedAt": null
+	},
+	{
+		"id": "group-8dab6917",
+		"name": "final-scoring-pass",
+		"memberIssueIds": [
+			"VR-501",
+			"VR-502"
+		],
+		"status": "active",
+		"createdAt": "2026-05-19T02:21:26.768Z",
+		"completedAt": null
 	}
 ]

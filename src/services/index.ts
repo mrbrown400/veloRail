@@ -8,6 +8,8 @@ export * from './multimodalRouter';
 export * from './routingComparison';
 export * from './freightCorridorSuitability';
 export * from './freightRouteCandidates';
+export * from './populationDensityScoring';
+export * from './bikeRailScoring';
 export * from './elevationService';
 export * from './bikeDurationService';
 export * from './stationDataProvider';

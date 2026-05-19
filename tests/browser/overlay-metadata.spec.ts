@@ -15,7 +15,7 @@ async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
 }
 
-test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @VR-500 @veloRail-967a nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
+test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @VR-500 @VR-501 @VR-502 @veloRail-967a nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const nationalizedToggle = page.getByRole('button', {
@@ -58,6 +58,8 @@ test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @V
           { label: 'Suitability score', value: '70/100' },
           { label: 'Suitability method', value: 'vr-406-transparent-heuristic-v1' },
           { label: 'Missing scoring data', value: 'passenger demand, employment density, freight train volumes' },
+          { label: 'Population score', value: 'vr-501-market-anchor-heuristic-v1' },
+          { label: 'Bike access score', value: 'vr-502-bike-rail-access-heuristic-v1' },
           { label: 'Source corridor', value: 'la-freight-alameda-corridor' },
           { label: 'Station assumptions', value: 'South Alameda/Slauson is a planning placeholder for the South Alameda feedback corridor, not a sourced station plan.' }
         ],
@@ -84,6 +86,8 @@ test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @V
   await expect(metadataPanel).toContainText('Alameda Corridor Transportation Authority');
   await expect(metadataPanel).toContainText('70/100');
   await expect(metadataPanel).toContainText('vr-406-transparent-heuristic-v1');
+  await expect(metadataPanel).toContainText('vr-501-market-anchor-heuristic-v1');
+  await expect(metadataPanel).toContainText('vr-502-bike-rail-access-heuristic-v1');
   await expect(metadataPanel).toContainText('passenger demand');
   await expect(metadataPanel).toContainText('la-freight-alameda-corridor');
   await expect(metadataPanel).toContainText('Not approved Metro');

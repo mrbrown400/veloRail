@@ -7,6 +7,13 @@ import {
   estimateCoordinatePathDistanceKm,
   estimateProposalPathDistanceKm
 } from './freightCorridorSuitability';
+import {
+  scorePopulationDensityForRoute,
+  type CandidatePlanningScore
+} from './populationDensityScoring';
+import {
+  scoreBikeRailAccessForRoute
+} from './bikeRailScoring';
 
 export interface FreightCorridorGraphNode {
   id: string;
@@ -38,6 +45,8 @@ export interface FreightPassengerRouteCandidate {
   distanceKm: number;
   stationCount: number;
   score: number;
+  populationDensityScore: CandidatePlanningScore;
+  bikeAccessScore: CandidatePlanningScore;
   reviewStatus: 'needs_review';
   canRender: boolean;
   geometry: ProposalCoordinate[];
@@ -132,17 +141,32 @@ function buildCandidateForProposal(
   const distanceKm = estimateProposalPathDistanceKm(proposal);
   const stationSignals = conversionScenario.stationAssumptions?.length ?? 0;
   const suitabilityScore = proposal.freight?.suitability?.score ?? 0;
-  const score = Math.min(100, Math.round((suitabilityScore * 0.75) + (stationSignals * 5)));
+  const scoringInput = {
+    id: `${conversionScenario.id}-candidate-route`,
+    name: `${conversionScenario.name} review candidate`,
+    geometry: proposal.geometry.coordinates,
+    distanceKm,
+    stationCount: Math.max(2, stationSignals)
+  };
+  const populationDensityScore = scorePopulationDensityForRoute(scoringInput);
+  const bikeAccessScore = scoreBikeRailAccessForRoute(scoringInput);
+  const score = Math.min(100, Math.round(
+    (suitabilityScore * 0.6)
+    + (populationDensityScore.score * 0.2)
+    + (bikeAccessScore.score * 0.2)
+  ));
 
   return [{
-    id: `${conversionScenario.id}-candidate-route`,
+    id: scoringInput.id,
     sourceFreightCorridorId: proposal.id,
-    name: `${conversionScenario.name} review candidate`,
+    name: scoringInput.name,
     startNodeId: `${proposal.id}-start`,
     endNodeId: `${proposal.id}-end`,
     distanceKm,
-    stationCount: Math.max(2, stationSignals),
+    stationCount: scoringInput.stationCount,
     score,
+    populationDensityScore,
+    bikeAccessScore,
     reviewStatus: 'needs_review',
     canRender: true,
     geometry: proposal.geometry.coordinates.map(([lon, lat]) => [lon, lat]),

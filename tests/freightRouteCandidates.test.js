@@ -27,6 +27,10 @@ test('freight route candidate generation exports reviewable deterministic routes
   ]);
   assert.ok(firstCandidateSet.candidates.every(candidate => candidate.reviewStatus === 'needs_review'));
   assert.ok(firstCandidateSet.candidates.every(candidate => candidate.canRender));
+  assert.ok(firstCandidateSet.candidates.every(candidate => candidate.populationDensityScore.method === 'vr-501-market-anchor-heuristic-v1'));
+  assert.ok(firstCandidateSet.candidates.every(candidate => candidate.bikeAccessScore.method === 'vr-502-bike-rail-access-heuristic-v1'));
+  assert.ok(firstCandidateSet.candidates.every(candidate => candidate.populationDensityScore.missingData.includes('Census tract population density')));
+  assert.ok(firstCandidateSet.candidates.every(candidate => candidate.bikeAccessScore.missingData.includes('protected bike lane network')));
   assert.ok(firstCandidateSet.candidates.every(candidate => candidate.limitations.join(' ').includes('not from live railroad operations')));
   assert.match(firstCandidateSet.reviewWorkflow.join(' '), /never mark generated candidates as official service/);
 });
