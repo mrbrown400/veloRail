@@ -46,7 +46,8 @@ test('default transit proposal source manifest imports without map code changes'
     'seed-transit-proposals.v1.ts',
     'official-la-future-transit.v1.ts',
     'visionary-transit-proposals.v1.ts',
-    'la-freight-rail-corridors.v1.ts'
+    'la-freight-rail-corridors.v1.ts',
+    'generated-freight-passenger-conversions.v1.ts'
   ]);
   assert.equal(IMPORTED_TRANSIT_PROPOSALS.dataset.schemaVersion, '1.0.0');
   assert.equal(
