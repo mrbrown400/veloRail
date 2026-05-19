@@ -6,6 +6,8 @@ import { VehicleMarker } from './VehicleMarker';
 import {
   MAP_OVERLAY_METADATA_EVENT,
   MAP_OVERLAY_FUTURE_SERVICE_NOTICE,
+  MAP_OVERLAY_NATIONALIZED_SERVICE_NOTICE,
+  MAP_OVERLAY_VISIONARY_SERVICE_NOTICE,
   getMapOverlayComparisonModeDefinition,
   getMapOverlayComparisonModes,
   getMapOverlayGroupDefinitions,
@@ -106,6 +108,8 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
   const visibleLegendItems = overlayLegendItems.filter(
     (item) => overlayVisibility[item.overlayId] ?? false
   );
+  const isVisionaryOverlayVisible = overlayVisibility['visionary-concepts'] ?? false;
+  const isNationalizedOverlayVisible = overlayVisibility['nationalized-rail'] ?? false;
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
@@ -301,6 +305,42 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
                       title={MAP_OVERLAY_FUTURE_SERVICE_NOTICE}
                     >
                       {MAP_OVERLAY_FUTURE_SERVICE_NOTICE}
+                    </span>
+                  </span>
+                </div>
+              )}
+              {isVisionaryOverlayVisible && (
+                <div className="map-layer-legend__item map-layer-legend__notice">
+                  <span
+                    className="map-layer-legend__swatch map-layer-legend__swatch--dashed"
+                    style={{ color: '#be185d' }}
+                    aria-hidden="true"
+                  />
+                  <span className="map-layer-legend__text">
+                    <span className="map-layer-legend__label">Visionary notice</span>
+                    <span
+                      className="map-layer-legend__description"
+                      title={MAP_OVERLAY_VISIONARY_SERVICE_NOTICE}
+                    >
+                      {MAP_OVERLAY_VISIONARY_SERVICE_NOTICE}
+                    </span>
+                  </span>
+                </div>
+              )}
+              {isNationalizedOverlayVisible && (
+                <div className="map-layer-legend__item map-layer-legend__notice">
+                  <span
+                    className="map-layer-legend__swatch map-layer-legend__swatch--dashed"
+                    style={{ color: '#0f766e' }}
+                    aria-hidden="true"
+                  />
+                  <span className="map-layer-legend__text">
+                    <span className="map-layer-legend__label">Nationalized planning notice</span>
+                    <span
+                      className="map-layer-legend__description"
+                      title={MAP_OVERLAY_NATIONALIZED_SERVICE_NOTICE}
+                    >
+                      {MAP_OVERLAY_NATIONALIZED_SERVICE_NOTICE}
                     </span>
                   </span>
                 </div>

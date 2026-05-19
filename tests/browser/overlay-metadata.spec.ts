@@ -15,7 +15,7 @@ async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
 }
 
-test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @veloRail-967a nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
+test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @VR-500 @veloRail-967a nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const nationalizedToggle = page.getByRole('button', {
@@ -29,6 +29,8 @@ test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @veloRail-967a nat
   await page.getByRole('button', { name: /legend/i }).click();
   await expect(page.getByLabel('Visible layer legend')).toContainText('Freight corridor');
   await expect(page.getByLabel('Visible layer legend')).toContainText('Passenger conversion');
+  await expect(page.getByLabel('Visible layer legend')).toContainText('Nationalized planning notice');
+  await expect(page.getByLabel('Visible layer legend')).toContainText('candidates require review');
 
   await page.evaluate(() => {
     window.dispatchEvent(new CustomEvent('velorail:map-overlay-metadata-selected', {
@@ -52,6 +54,10 @@ test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @veloRail-967a nat
           { label: 'Owner', value: 'Alameda Corridor Transportation Authority' },
           { label: 'Operator', value: 'BNSF Railway / Union Pacific Railroad' },
           { label: 'Track usage', value: 'passenger' },
+          { label: 'Suitability', value: 'medium' },
+          { label: 'Suitability score', value: '70/100' },
+          { label: 'Suitability method', value: 'vr-406-transparent-heuristic-v1' },
+          { label: 'Missing scoring data', value: 'passenger demand, employment density, freight train volumes' },
           { label: 'Source corridor', value: 'la-freight-alameda-corridor' },
           { label: 'Station assumptions', value: 'South Alameda/Slauson is a planning placeholder for the South Alameda feedback corridor, not a sourced station plan.' }
         ],
@@ -76,6 +82,9 @@ test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @veloRail-967a nat
   await expect(metadataPanel).toContainText('Passenger conversion');
   await expect(metadataPanel).toContainText('speculative');
   await expect(metadataPanel).toContainText('Alameda Corridor Transportation Authority');
+  await expect(metadataPanel).toContainText('70/100');
+  await expect(metadataPanel).toContainText('vr-406-transparent-heuristic-v1');
+  await expect(metadataPanel).toContainText('passenger demand');
   await expect(metadataPanel).toContainText('la-freight-alameda-corridor');
   await expect(metadataPanel).toContainText('Not approved Metro');
   await expect(metadataPanel.getByRole('link', { name: 'Alameda Corridor Transportation Authority' })).toHaveAttribute('href', 'https://www.acta.org/');
@@ -84,7 +93,7 @@ test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @veloRail-967a nat
   await expect(metadataPanel).toBeHidden();
 });
 
-test('@VR-202 @VR-203 visionary overlay exposes speculative legend and metadata panel', async ({ page }) => {
+test('@VR-202 @VR-203 @VR-204 @VR-205 @VR-206 visionary overlay exposes speculative legend and metadata panel', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const visionaryToggle = page.getByRole('button', {
@@ -97,8 +106,12 @@ test('@VR-202 @VR-203 visionary overlay exposes speculative legend and metadata 
 
   await page.getByRole('button', { name: /legend/i }).click();
   const legend = page.getByLabel('Visible layer legend');
+  await expect(legend).toContainText('Visionary notice');
+  await expect(legend).toContainText('not Google Maps transit data');
   await expect(legend).toContainText('Visionary concept');
   await expect(legend).toContainText('Speculative river rail vision');
+  await expect(legend).toContainText('Speculative westside crosstown vision');
+  await expect(legend).toContainText('Speculative valley orbital vision');
 
   await page.evaluate(() => {
     window.dispatchEvent(new CustomEvent('velorail:map-overlay-metadata-selected', {

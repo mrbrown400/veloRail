@@ -1428,6 +1428,13 @@ body {
   align-items: center;
 }
 
+.map-layer-legend__notice {
+  padding: var(--gm-spacing-xs);
+  border: 1px solid rgba(60, 64, 67, 0.16);
+  border-radius: var(--gm-radius-sm);
+  background: rgba(248, 250, 252, 0.84);
+}
+
 .map-layer-legend__swatch {
   position: relative;
   display: block;

@@ -143,6 +143,10 @@ export const FUTURE_STATION_MIN_ZOOM = 11;
 export const MAP_OVERLAY_METADATA_EVENT = 'velorail:map-overlay-metadata-selected';
 export const MAP_OVERLAY_FUTURE_SERVICE_NOTICE =
   'Future service is official planned, funded, or under construction overlay context, not current Google Maps operational service.';
+export const MAP_OVERLAY_VISIONARY_SERVICE_NOTICE =
+  'Visionary overlays are unofficial concepts with explicit provenance and uncertainty; they are not Google Maps transit data or approved service.';
+export const MAP_OVERLAY_NATIONALIZED_SERVICE_NOTICE =
+  'Nationalized rail overlays are hypothetical passenger-conversion planning over sourced freight corridors; candidates require review and are not approved service.';
 
 const MAP_OVERLAY_COMPARISON_MODE_DEFINITIONS: MapOverlayComparisonModeDefinition[] = [
   {
@@ -832,6 +836,9 @@ export function getProposalMetadata(
     metadataDetail('Track usage', proposal.freight?.trackUsage ? formatToken(proposal.freight.trackUsage) : undefined),
     metadataDetail('Electrification', proposal.freight?.electrification ? formatToken(proposal.freight.electrification) : undefined),
     metadataDetail('Suitability', proposal.freight?.suitability?.rating ? formatToken(proposal.freight.suitability.rating) : undefined),
+    metadataDetail('Suitability score', proposal.freight?.suitability?.score !== undefined ? `${proposal.freight.suitability.score}/100` : undefined),
+    metadataDetail('Suitability method', proposal.freight?.suitability?.method),
+    metadataDetail('Missing scoring data', proposal.freight?.suitability?.missingData?.join(', ')),
     metadataDetail('Source corridor', conversionScenario?.sourceFreightCorridorId),
     metadataDetail('Conversion scenario', conversionScenario?.name),
     metadataDetail('Station assumptions', conversionScenario?.stationAssumptions?.join(' '))

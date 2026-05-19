@@ -9,7 +9,7 @@ VR-202/VR-203 moves maintained visionary concepts into `src/data/visionaryTransi
 - Direct validator: `validateVisionaryTransitProposalDataset`
 - Overlay layer group: `visionary`
 
-The registry currently includes `vision-la-river-rail`, a speculative VeloRail-authored example with conceptual geometry, station anchors, provenance, uncertainty metadata, editorial notes, and a source-linking policy.
+The registry currently includes a bounded initial LA bundle: `vision-la-river-rail`, `vision-westside-crosstown-rail`, and `vision-valley-orbital-rail`. These are speculative VeloRail-authored examples with conceptual geometry, station anchors, provenance, uncertainty metadata, editorial notes, and a source-linking policy.
 
 ## Contribution Rules
 
@@ -57,3 +57,20 @@ For rough geometry, provenance notes should say what was copied from the source 
 The registry is imported through `TRANSIT_PROPOSAL_SOURCE_FILES`, converted by `importTransitProposalSources`, and filtered by `getProposalOverlayInputsByGroup('visionary')`. The Vision overlay toggle is independent from Future Transit, so turning on visionary concepts does not reveal official future projects and turning on Future Transit does not reveal unofficial scenarios.
 
 Visionary styling should remain visually distinct from official future projects. Use dashed lines, speculative legend labels, and metadata that shows classification, provenance, uncertainty, and disclaimer text.
+
+## Editorial Workflow
+
+Use this checklist before adding or updating a visionary proposal:
+
+- Create or update a Canopy plan when the change touches geometry, source policy, schema, overlays, or UI copy.
+- Choose exactly one classification: `commentary_summary`, `advocacy_derived`, or `speculative`.
+- Include a provenance source that justifies the concept and a source note that separates sourced facts from VeloRail assumptions.
+- Add `geometry.geometryNotes` that says whether the line is conceptual or approximate and what was simplified.
+- Add `uncertainty.sourceNotes`, `uncertainty.assumptions`, and `uncertainty.disclaimer`.
+- Include station confidence and station notes when station anchors are illustrative.
+- Verify the record with `validateVisionaryTransitProposalDataset`.
+- Record reusable source, wording, or geometry decisions in Mulch.
+
+For video-derived or commentary-derived ideas, summarize the concept at a high level and cite the source. Do not copy transcript text, creator phrasing, or map artwork into the dataset. If a video mentions an official project, move that official project to the official future dataset only after checking an official agency source.
+
+The VR-205 starter bundle intentionally excludes attempts to catalog every LA transit video, every advocacy map, and detailed engineering alignments. Add new records one concept at a time after the review checklist passes.

@@ -11,7 +11,9 @@ test('map overlay registry has deterministic order and default visibility', asyn
     getMapOverlayComparisonModes,
     getMapOverlayGroupDefinitions,
     getOrderedMapOverlayDefinitions,
-    MAP_OVERLAY_FUTURE_SERVICE_NOTICE
+    MAP_OVERLAY_FUTURE_SERVICE_NOTICE,
+    MAP_OVERLAY_NATIONALIZED_SERVICE_NOTICE,
+    MAP_OVERLAY_VISIONARY_SERVICE_NOTICE
   } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
 
   const definitions = getOrderedMapOverlayDefinitions();
@@ -61,6 +63,8 @@ test('map overlay registry has deterministic order and default visibility', asyn
   assert.equal(comparisonModes[0].futureOverlayVisible, false);
   assert.equal(comparisonModes[1].futureOverlayVisible, true);
   assert.match(MAP_OVERLAY_FUTURE_SERVICE_NOTICE, /not current Google Maps operational service/);
+  assert.match(MAP_OVERLAY_VISIONARY_SERVICE_NOTICE, /not Google Maps transit data/);
+  assert.match(MAP_OVERLAY_NATIONALIZED_SERVICE_NOTICE, /candidates require review/);
 });
 
 test('map overlay legend items come from current registry and proposal labels', async () => {
@@ -148,7 +152,9 @@ test('proposal overlay groups expose imported sample layers independently', asyn
   ]);
   assert.deepEqual(visionary.map(({ proposal }) => proposal.id), [
     'vision-vermont-rapid-rail',
-    'vision-la-river-rail'
+    'vision-la-river-rail',
+    'vision-westside-crosstown-rail',
+    'vision-valley-orbital-rail'
   ]);
   assert.deepEqual(nationalized.map(({ proposal }) => proposal.id), [
     'freight-alameda-corridor',
@@ -284,6 +290,10 @@ test('freight corridor metadata includes ownership, uncertainty, and source link
   assert.equal(metadata.statusLabel, 'freight only');
   assert.equal(details.get('Owner'), 'Alameda Corridor Transportation Authority');
   assert.equal(details.get('Track usage'), 'freight');
+  assert.equal(details.get('Suitability'), 'medium');
+  assert.match(details.get('Suitability score'), /^\d+\/100$/);
+  assert.equal(details.get('Suitability method'), 'vr-406-transparent-heuristic-v1');
+  assert.match(details.get('Missing scoring data'), /passenger demand/);
   assert.match(metadata.disclaimer, /approximate VeloRail geometry/i);
   assert.ok(metadata.sources.some(source => source.url && source.accessedAt === '2026-05-19'));
 });

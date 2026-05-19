@@ -6,6 +6,8 @@ export * from './routing';
 export * from './googleRoutesService';
 export * from './multimodalRouter';
 export * from './routingComparison';
+export * from './freightCorridorSuitability';
+export * from './freightRouteCandidates';
 export * from './elevationService';
 export * from './bikeDurationService';
 export * from './stationDataProvider';

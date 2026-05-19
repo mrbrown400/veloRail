@@ -33,7 +33,7 @@ The conversion model is deterministic and intentionally simple:
 - Freight records stay `status: freight_only` and `rendering.layerGroup: freight`.
 - Selected freight records carry nested `freight.conversionScenarios` with `stationAssumptions`, `assumptions`, and `sourceFreightCorridorId`.
 - `createFreightPassengerConversionDataset()` emits separate `status: converted_passenger`, `classification: speculative`, `rendering.layerGroup: converted_passenger` line records.
-- Converted records inherit source freight geometry, owner, operator, electrification, provenance links, and suitability notes.
+- Converted records inherit source freight geometry, owner, operator, electrification, provenance links, and VR-406 suitability scores.
 - Converted records add an `internal_example` provenance source that explains the generation step and repeats that source documents support freight corridors only.
 
 Generated records in the current batch:
@@ -51,6 +51,22 @@ Pacific Harbor Line remains freight context only because the current source batc
 User feedback called out existing track or right-of-way around South Alameda Street and Randolph Street. The current checked-in data supports a South Alameda planning placeholder through the sourced Alameda Corridor record, so VR-404/VR-405 generates the `alameda-corridor-south-alameda-passenger-conversion` record from that source corridor.
 
 Randolph Street remains documented as a candidate to investigate, but it is not rendered as its own line in this batch. The current source records are regional freight corridors and do not yet provide enough segment-level, source-linked data to distinguish a Randolph Street corridor from surrounding BNSF/UP regional trackage without risking an unsupported passenger-service implication.
+
+## Suitability Scoring
+
+VR-406 adds `src/services/freightCorridorSuitability.ts`, a deterministic heuristic scoring pass applied before the default manifest imports freight records. The score is stored in `freight.suitability.score` with `rating`, factors, method, missing-data notes, and `suitabilityNotes`.
+
+The current method is `vr-406-transparent-heuristic-v1`. It weights right-of-way continuity, regional reach, station potential, passenger conversion evidence, freight conflict risk, and electrification readiness. Missing demand, employment, freight-volume, dispatching, grade-crossing, and capital-cost data is recorded explicitly and prevents the score from being treated as feasibility analysis.
+
+## Candidate Route Generation
+
+VR-500 adds `src/services/freightRouteCandidates.ts`, which builds a simple corridor graph from endpoints and midpoints, then emits deterministic review candidates from corridors with conversion scenarios. Candidates are export/review data with `reviewStatus: needs_review`; they are not official service records and are not automatically added to the map as approved routes.
+
+The review workflow requires checking freight ownership, dispatching, passenger access, grade crossings, and capital constraints before any generated candidate can become a maintained overlay scenario.
+
+## Initial LA Nationalized Scenario
+
+VR-407 adds `src/data/laNationalizedRailScenario.ts` to package the first bounded scenario. It includes the generated Alameda Corridor, BNSF LA to San Bernardino, and Union Pacific LA to Inland Empire converted-passenger records, and excludes Pacific Harbor Line as freight context only.
 
 ## Source Watch List
 
@@ -85,14 +101,14 @@ All VR-402 records use `geometrySource: 'approximate'`. Approximate geometry mus
 - Keep `geometryNotes` specific about which corridor is approximated.
 - Keep `confidence.geometry` lower than `confidence.status` when sources support the corridor but not exact checked-in geometry.
 - Use `freight.trackUsage: mixed` when public context supports freight corridors that also carry passenger service.
-- Keep `freight.suitability.rating: unknown` until a later issue defines conversion scoring.
+- Keep suitability scores tied to the documented heuristic and update `missingData` when better source inputs are added.
 
 ## Known Gaps
 
 - Exact subdivision segmentation, mileposts, track counts, turnouts, yard leads, and dispatching boundaries are not encoded.
 - Port terminal rail geometry is schematic and intentionally avoids detailed terminal and customer tracks.
 - Electrification is `unknown` because this import did not find a checked official source that can be used as a systemwide electrification inventory for the included records.
-- Suitability for passenger conversion is not scored. Converted records inherit source suitability as context only.
+- Suitability for passenger conversion is a transparent triage score only. It does not model demand, operations, cost, or public approval.
 - Generated station records are assumptions for overlay rendering and metadata. They are not official station plans.
 - Randolph Street needs a future source pass before it can become a separate rendered corridor.
 - Future refresh work should decide whether to derive more precise simplified geometry from FRA NARN or Caltrans GeoJSON through a repeatable script.

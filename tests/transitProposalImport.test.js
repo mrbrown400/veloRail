@@ -115,7 +115,9 @@ test('visionary registry validates policy, source links, and overlay-ready input
   assert.equal(validation.valid, true);
   assert.equal(result.sourceName, 'visionary-transit-proposals.v1.ts');
   assert.deepEqual(result.dataset.proposals.map(record => record.id), [
-    'vision-la-river-rail'
+    'vision-la-river-rail',
+    'vision-westside-crosstown-rail',
+    'vision-valley-orbital-rail'
   ]);
   assert.equal(overlay.proposal, proposal);
   assert.equal(proposal.classification, 'speculative');
@@ -131,8 +133,13 @@ test('visionary registry validates policy, source links, and overlay-ready input
     VISIONARY_TRANSIT_PROPOSAL_REGISTRY_POLICY.sourceLinkingPolicy.join(' '),
     /Do not cite Google Maps|Google Maps.*not used as source evidence/
   );
+  assert.match(
+    VISIONARY_TRANSIT_PROPOSAL_REGISTRY_POLICY.editorialReview.join(' '),
+    /video-derived|Mulch|Canopy/
+  );
   assert.ok(overlay.polyline.path.length >= 2);
   assert.ok(overlay.markers.length >= 3);
+  assert.ok(result.dataset.proposals.every(record => record.uncertainty.disclaimer.includes('Speculative VeloRail scenario')));
 });
 
 test('visionary registry validation rejects official status and Google Maps source leakage', async () => {
@@ -188,6 +195,8 @@ test('merged default manifest keeps official future records separate from vision
   assert.deepEqual(unofficialRecords.map(proposal => proposal.id), [
     'vision-vermont-rapid-rail',
     'vision-la-river-rail',
+    'vision-westside-crosstown-rail',
+    'vision-valley-orbital-rail',
     'alameda-corridor-south-alameda-passenger-conversion',
     'bnsf-la-san-bernardino-passenger-conversion',
     'up-la-inland-empire-passenger-conversion'
@@ -211,6 +220,9 @@ test('LA freight rail corridor batch validates source, license, and overlay meta
   const {
     LA_FREIGHT_RAIL_CORRIDOR_DATASET
   } = await loadAppModule('/src/data/laFreightRailCorridors.ts');
+  const {
+    SCORED_LA_FREIGHT_RAIL_CORRIDOR_DATASET
+  } = await loadAppModule('/src/data/transitProposalSources.ts');
   const {
     importTransitProposalDataset
   } = await loadAppModule('/src/data/transitProposalImport.ts');
@@ -258,6 +270,13 @@ test('LA freight rail corridor batch validates source, license, and overlay meta
     alameda.freight.conversionScenarios[0].stationAssumptions.join(' '),
     /South Alameda\/Slauson/
   );
+
+  const scoredAlameda = SCORED_LA_FREIGHT_RAIL_CORRIDOR_DATASET.proposals.find(
+    proposal => proposal.id === 'la-freight-alameda-corridor'
+  );
+  assert.ok(scoredAlameda.freight.suitability.score > 0);
+  assert.equal(scoredAlameda.freight.suitability.method, 'vr-406-transparent-heuristic-v1');
+  assert.ok(scoredAlameda.freight.suitability.missingData.includes('passenger demand'));
 });
 
 test('freight passenger conversion generator creates speculative overlay records from corridor scenarios', async () => {

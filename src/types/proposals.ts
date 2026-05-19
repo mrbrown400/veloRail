@@ -141,7 +141,10 @@ export interface FreightSuitabilityFactor {
 export interface FreightCorridorSuitability {
   rating: FreightSuitabilityRating;
   score?: number;
+  method?: string;
+  scoredAt?: string;
   factors?: FreightSuitabilityFactor[];
+  missingData?: string[];
   notes?: string;
 }
 

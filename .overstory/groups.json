@@ -96,5 +96,20 @@
 		"status": "active",
 		"createdAt": "2026-05-19T01:43:34.833Z",
 		"completedAt": null
+	},
+	{
+		"id": "group-c8bd0a1e",
+		"name": "advanced-planning-visionary-nationalized-pass",
+		"memberIssueIds": [
+			"VR-407",
+			"VR-204",
+			"VR-205",
+			"VR-406",
+			"VR-500",
+			"VR-206"
+		],
+		"status": "active",
+		"createdAt": "2026-05-19T02:10:43.132Z",
+		"completedAt": null
 	}
 ]

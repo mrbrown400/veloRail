@@ -16,6 +16,9 @@ import {
   FREIGHT_PASSENGER_CONVERSION_SOURCE_NAME,
   createFreightPassengerConversionDataset
 } from '@/services/freightPassengerConversion';
+import {
+  applyFreightCorridorSuitabilityScores
+} from '@/services/freightCorridorSuitability';
 import type {
   TransitProposalImportResult,
   TransitProposalSourceFile
@@ -34,8 +37,11 @@ export const VISIONARY_TRANSIT_SOURCE_MANIFEST = {
   registryPolicy: VISIONARY_TRANSIT_PROPOSAL_REGISTRY_POLICY
 } as const;
 
+export const SCORED_LA_FREIGHT_RAIL_CORRIDOR_DATASET =
+  applyFreightCorridorSuitabilityScores(LA_FREIGHT_RAIL_CORRIDOR_DATASET);
+
 export const NATIONALIZED_RAIL_PASSENGER_CONVERSION_DATASET =
-  createFreightPassengerConversionDataset(LA_FREIGHT_RAIL_CORRIDOR_DATASET);
+  createFreightPassengerConversionDataset(SCORED_LA_FREIGHT_RAIL_CORRIDOR_DATASET);
 
 export const TRANSIT_PROPOSAL_SOURCE_FILES = [
   {
@@ -52,7 +58,7 @@ export const TRANSIT_PROPOSAL_SOURCE_FILES = [
   },
   {
     name: 'la-freight-rail-corridors.v1.ts',
-    dataset: LA_FREIGHT_RAIL_CORRIDOR_DATASET
+    dataset: SCORED_LA_FREIGHT_RAIL_CORRIDOR_DATASET
   },
   {
     name: FREIGHT_PASSENGER_CONVERSION_SOURCE_NAME,
