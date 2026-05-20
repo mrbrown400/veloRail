@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-# Codex-native workflow does not run generated context refreshes after commits.
-# Keep this no-op while local git config still points core.hooksPath at .beads/hooks.
-exit 0

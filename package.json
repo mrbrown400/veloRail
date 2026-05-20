@@ -21,7 +21,6 @@
     "validate:official-future-transit": "node scripts/with-supported-node.mjs node scripts/validate-official-future-transit.mjs",
     "monitor:official-future-transit": "node scripts/with-supported-node.mjs node scripts/monitor-official-future-sources.mjs",
     "agent:repo-map": "node scripts/build-repo-map.mjs",
-    "linear:import": "node scripts/import-seeds-to-linear.mjs",
     "task:gate": "node scripts/task-gate.mjs",
     "task:close": "node scripts/task-close.mjs"
   },

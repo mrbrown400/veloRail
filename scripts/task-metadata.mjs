@@ -2,11 +2,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const DEFAULT_METADATA_PATH = '.linear/migration.json';
-const DEFAULT_SEEDS_ARCHIVE_PATH = '.seeds/issues.jsonl';
 
 export function loadTaskMetadata({
-  metadataPath = process.env.LINEAR_MIGRATION_METADATA || DEFAULT_METADATA_PATH,
-  seedsArchivePath = DEFAULT_SEEDS_ARCHIVE_PATH
+  metadataPath = process.env.LINEAR_MIGRATION_METADATA || DEFAULT_METADATA_PATH
 } = {}) {
   if (metadataPath && existsSync(metadataPath)) {
     return {
@@ -15,22 +13,7 @@ export function loadTaskMetadata({
     };
   }
 
-  if (seedsArchivePath && existsSync(seedsArchivePath)) {
-    return {
-      source: seedsArchivePath,
-      tasks: readJsonl(seedsArchivePath).map((issue) => normalizeTask({
-        ...issue,
-        legacyId: issue.id,
-        browserGateTag: issue.id,
-        source: 'seeds-archive'
-      }))
-    };
-  }
-
-  throw new Error(
-    `No task metadata found. Expected ${metadataPath} or ${seedsArchivePath}. ` +
-    'Run npm run linear:import -- --dry-run to inspect the migration source.'
-  );
+  throw new Error(`No task metadata found. Expected ${metadataPath}.`);
 }
 
 export function findTaskById(taskId, options = {}) {
@@ -62,7 +45,7 @@ export function findTaskById(taskId, options = {}) {
 }
 
 export function normalizeTask(record) {
-  const legacyId = record.legacyId || record.seedsId || record.sourceId || '';
+  const legacyId = record.legacyId || record.sourceId || '';
   const linearIdentifier = record.linearIdentifier || record.identifier || '';
   const id = record.id || linearIdentifier || legacyId;
 
@@ -93,12 +76,4 @@ function readMetadataFile(filePath) {
     return parsed.issues;
   }
   throw new Error(`${path.relative(process.cwd(), filePath)} must contain a tasks or issues array.`);
-}
-
-function readJsonl(filePath) {
-  return readFileSync(filePath, 'utf8')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => JSON.parse(line));
 }

@@ -2,7 +2,7 @@
 
 VeloRail uses Codex as the active agent workflow. Linear is the source of truth for work tracking, GitHub is the source of truth for code review, and this repo stores durable project guidance in Markdown plus repo-local Codex skills.
 
-Legacy Overstory, Seeds, Mulch, Canopy, Claude, and GitNexus files may remain in hidden directories as migration history only. Do not start new work from `ov`, `sd`, `ml`, `cn`, `CLAUDE.md`, or GitNexus generated context.
+The old local workflow directories were removed. Do not start new work from `ov`, `sd`, `ml`, `cn`, `CLAUDE.md`, or GitNexus generated context.
 
 ## Project Mission
 
@@ -16,12 +16,7 @@ Core product goals:
 
 ## Active Workflow
 
-Use a new Linear project for the Codex-native migration and future VeloRail work. The migration script creates a new project and imports the legacy Seeds backlog when a Linear API token is available:
-
-```bash
-npm run linear:import -- --dry-run
-LINEAR_API_KEY=... npm run linear:import -- --apply --team-id <linear-team-id>
-```
+Use the `VeloRail Codex Migration` Linear project and future Linear issues for active work.
 
 For implementation work:
 - Start from the relevant Linear issue or migration task ID.
@@ -29,7 +24,7 @@ For implementation work:
 - Include the Linear issue key in branch names, commit messages, and PR descriptions when available.
 - Use Codex app worktrees/threads for concurrent work.
 - Use Codex subagents only when explicitly requested and scoped.
-- Keep old `.seeds/issues.jsonl` data as archive input, not as the active tracker.
+- Use `.linear/migration.json` to resolve imported legacy IDs.
 
 ## Repo-Local Skills
 
@@ -56,14 +51,13 @@ VeloRail may own custom logic/data for future proposal geometries, visionary pro
 
 ```bash
 npm run agent:repo-map                 # Regenerate docs/agentic/repo-map.md
-npm run linear:import -- --dry-run      # Preview new Linear project import
 npm run task:gate -- <task-id> --explain
 npm run task:close -- <task-id> --reason "..."
 npm run quality
 npm run test:browser:required
 ```
 
-`task:gate` and `task:close` accept legacy IDs such as `VR-304` during migration. They resolve those IDs from the archived `.seeds/issues.jsonl` file so gate behavior stays stable while Linear import is in progress.
+`task:gate` and `task:close` accept legacy IDs such as `VR-304` during migration. They resolve those IDs from `.linear/migration.json` so gate behavior stays stable while Linear identifiers replace old task IDs.
 
 ## Quality Gates
 

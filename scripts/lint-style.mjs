@@ -25,9 +25,6 @@ const checkedExtensions = new Set([
 
 const ignoredDirectories = new Set([
   '.git',
-  '.mulch',
-  '.overstory',
-  '.seeds',
   'dist',
   'node_modules'
 ]);

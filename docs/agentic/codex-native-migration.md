@@ -11,9 +11,9 @@
 | GitNexus | Generated repo context and code graph | `docs/agentic/repo-map.md`, `rg`, TypeScript checks, GitHub, and Codex exploration |
 | Claude guidance | Claude Code entrypoint | `AGENTS.md` and repo-local Codex skills |
 
-## Current Migration Source
+## Migration Result
 
-The authoritative archive source is `.seeds/issues.jsonl`. It contains 51 closed issues, no duplicate IDs, and no open backlog. The old `velorail-seeds.jsonl` setup pack contains open historical source records and should not be imported as active work.
+The old hidden workflow directories have been removed from the repo. The authoritative migration result is the Linear project plus `.linear/migration.json`.
 
 The new Linear project is `VeloRail Codex Migration`: https://linear.app/velorail/project/velorail-codex-migration-ca2f0949f90c
 

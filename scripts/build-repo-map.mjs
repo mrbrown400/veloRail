@@ -35,9 +35,9 @@ const sections = [
   '- Use `npm run task:gate -- <task-id> --explain` before closing work.',
   '- Browser-facing changes require `npm run test:browser:required` with a task tag or smoke tag.',
   '',
-  '## Legacy Archives',
+  '## Removed Legacy Directories',
   '',
-  'Hidden legacy directories such as `.seeds`, `.mulch`, `.canopy`, `.overstory`, and `.claude` are retained only as migration history. Do not use them as active workflow entrypoints.'
+  'Legacy hidden workflow directories were removed from the repo. Active task metadata lives in `.linear/migration.json`.'
 ];
 
 writeFileSync(outputPath, `${sections.join('\n')}\n`);
