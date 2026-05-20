@@ -73,6 +73,9 @@ test('official LA future transit batch validates and renders overlay-ready input
     'metro-east-san-fernando-valley-lrt',
     'metro-southeast-gateway-line',
     'metro-k-line-extension-torrance',
+    'metro-k-line-northern-extension',
+    'metro-sepulveda-transit-corridor-valley-westside',
+    'metro-sepulveda-transit-corridor-westside-lax',
     'metro-eastside-transit-corridor-phase-2',
     'metro-noho-pasadena-brt',
     'metro-vermont-brt'
@@ -91,6 +94,25 @@ test('official LA future transit batch validates and renders overlay-ready input
     assert.ok(overlay.polyline.path.length >= 2);
     assert.ok(overlay.markers.length >= 3);
   }
+
+  const kLineNorth = result.dataset.proposals.find(
+    proposal => proposal.id === 'metro-k-line-northern-extension'
+  );
+  const sepulvedaValleyWestside = result.dataset.proposals.find(
+    proposal => proposal.id === 'metro-sepulveda-transit-corridor-valley-westside'
+  );
+  const sepulvedaWestsideLax = result.dataset.proposals.find(
+    proposal => proposal.id === 'metro-sepulveda-transit-corridor-westside-lax'
+  );
+
+  assert.equal(kLineNorth.timeline.openingYear, 2049);
+  assert.equal(kLineNorth.mode, 'light_rail');
+  assert.match(kLineNorth.provenance[0].note, /San Vicente-Fairfax LPA/);
+  assert.equal(sepulvedaValleyWestside.mode, 'heavy_rail');
+  assert.match(sepulvedaValleyWestside.timeline.phase, /G Line to D Line/);
+  assert.equal(sepulvedaWestsideLax.mode, 'unknown');
+  assert.equal(sepulvedaWestsideLax.uncertainty.level, 'high');
+  assert.match(sepulvedaWestsideLax.timeline.scheduleNotes, /2057-2059/);
 });
 
 test('visionary registry validates policy, source links, and overlay-ready inputs', async () => {
@@ -190,7 +212,7 @@ test('merged default manifest keeps official future records separate from vision
     proposal => proposal.rendering?.layerGroup === 'converted_passenger'
   );
 
-  assert.equal(futureRecords.length, 7);
+  assert.equal(futureRecords.length, 10);
   assert.ok(futureRecords.every(proposal => proposal.classification === 'official'));
   assert.deepEqual(unofficialRecords.map(proposal => proposal.id), [
     'vision-vermont-rapid-rail',

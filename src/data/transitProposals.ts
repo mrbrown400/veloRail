@@ -31,7 +31,7 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
     'Existing TRANSIT_LINES records remain the operational routing source for VR-001.',
     'Proposal statuses use operational instead of the existing routing status operating; migration should map operating to operational when proposal records are derived from live service.',
     'Proposal geometry uses GeoJSON LineString coordinates in [lon, lat] order and converts to Google Maps {lat, lng} paths through adapter helpers.',
-    'D Line Section 1 opened on 2026-05-08, so the seed future overlay now starts west of Wilshire/La Cienega and only represents Sections 2 and 3.'
+    'D Line Section 1 opened on 2026-05-08, so the seed future overlay uses Wilshire/La Cienega as a current-service connection anchor and only represents Sections 2 and 3.'
   ],
   proposals: [
     {
@@ -45,21 +45,22 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
       geometry: {
         type: 'LineString',
         geometrySource: 'approximate',
-        geometryNotes: 'Seed example follows station-to-station alignment points for the still-future westward extension only. Section 1 to Wilshire/La Cienega is current service as of 2026-05-08.',
+        geometryNotes: 'Seed example follows Google Maps and Metro station-location references for the still-future westward extension only. The first coordinate is the current Wilshire/La Cienega terminal connection anchor, not a future station marker.',
         coordinates: [
-          [-118.3769, 34.0625],
-          [-118.4003, 34.0627],
-          [-118.4172, 34.0553],
-          [-118.4450, 34.0630],
-          [-118.4527, 34.0505]
+          [-118.3762, 34.0652],
+          [-118.3867, 34.0662],
+          [-118.3983, 34.0668],
+          [-118.4158, 34.0587],
+          [-118.4444, 34.0586],
+          [-118.4547, 34.0541]
         ]
       },
       stations: [
         {
           id: 'd-line-wilshire-rodeo',
           name: 'Wilshire/Rodeo',
-          lat: 34.0627,
-          lon: -118.4003,
+          lat: 34.0668,
+          lon: -118.3983,
           status: 'under_construction',
           role: 'intermediate',
           openingYear: 2027,
@@ -68,8 +69,8 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
         {
           id: 'd-line-century-city',
           name: 'Century City/Constellation',
-          lat: 34.0553,
-          lon: -118.4172,
+          lat: 34.0587,
+          lon: -118.4158,
           status: 'under_construction',
           role: 'intermediate',
           openingYear: 2027,
@@ -78,8 +79,8 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
         {
           id: 'd-line-westwood-ucla',
           name: 'Westwood/UCLA',
-          lat: 34.0630,
-          lon: -118.4450,
+          lat: 34.0586,
+          lon: -118.4444,
           status: 'under_construction',
           role: 'transfer',
           openingYear: 2027,
@@ -89,8 +90,8 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
         {
           id: 'd-line-westwood-va',
           name: 'Westwood/VA Hospital',
-          lat: 34.0505,
-          lon: -118.4527,
+          lat: 34.0541,
+          lon: -118.4547,
           status: 'under_construction',
           role: 'terminal',
           openingYear: 2027,
@@ -105,7 +106,7 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
           publisher: 'Los Angeles County Metropolitan Transportation Authority',
           url: 'https://www.metro.net/projects/westside/',
           accessedAt: '2026-05-19',
-          note: 'Metro lists Section 1 as open on May 8, 2026, with Sections 2 and 3 still under construction; this seed record now tracks only the still-future westward extension.'
+          note: 'Metro lists Section 1 as open on May 8, 2026, with Sections 2 and 3 still under construction; this seed record now tracks only the still-future westward extension and keeps Wilshire/La Cienega as a non-station connection anchor.'
         }
       ],
       confidence: {
@@ -155,8 +156,8 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
         coordinates: [
           [-118.2923, 34.0984],
           [-118.2917, 34.0617],
-          [-118.2916, 34.0182],
-          [-118.2917, 33.9290]
+          [-118.2923, 34.0183],
+          [-118.2916, 33.9283]
         ]
       },
       stations: [
@@ -183,8 +184,8 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
         {
           id: 'vermont-vision-expo',
           name: 'Expo/Vermont',
-          lat: 34.0182,
-          lon: -118.2916,
+          lat: 34.0183,
+          lon: -118.2923,
           status: 'vision',
           role: 'transfer',
           existingLines: ['Expo'],
@@ -193,8 +194,8 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
         {
           id: 'vermont-vision-athens',
           name: 'Vermont/Athens',
-          lat: 33.9290,
-          lon: -118.2917,
+          lat: 33.9283,
+          lon: -118.2916,
           status: 'vision',
           role: 'terminal',
           existingLines: ['Green'],

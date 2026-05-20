@@ -164,7 +164,7 @@ test('@VR-202 @VR-203 @VR-204 @VR-205 @VR-206 visionary overlay exposes speculat
   await expect(metadataPanel).toBeHidden();
 });
 
-test('@VR-104 completed network comparison mode controls official future overlay state', async ({ page }) => {
+test('@VR-104 @veloRail-a3d0 completed network comparison mode controls official future overlay state', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const layerPanel = page.getByLabel('Map layers and legend');

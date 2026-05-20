@@ -22,16 +22,15 @@ export const STATIONS = [
 
     // ========== D LINE (PURPLE) ==========
     { name: "Wilshire/Normandie", lat: 34.0618, lon: -118.3014, lines: ["Purple"] },
-    { name: "Wilshire/Western", lat: 34.0618, lon: -118.3088, lines: ["Purple", "D Line Extension"] },
-    // D Line Extension - Section 2 (Under Construction, 2025)
-    { name: "Wilshire/La Brea", lat: 34.0621, lon: -118.3440, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2025" },
-    { name: "Wilshire/Fairfax", lat: 34.0623, lon: -118.3614, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2025" },
-    { name: "Wilshire/La Cienega", lat: 34.0625, lon: -118.3769, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2025" },
-    // D Line Extension - Section 3 (Under Construction, 2027)
-    { name: "Wilshire/Rodeo", lat: 34.0627, lon: -118.4003, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2027" },
-    { name: "Century City/Constellation", lat: 34.0553, lon: -118.4172, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2027" },
-    { name: "Westwood/UCLA", lat: 34.0630, lon: -118.4450, lines: ["D Line Extension", "Sepulveda Transit Corridor"], status: "under_construction", expectedOpening: "2027" },
-    { name: "Westwood/VA Hospital", lat: 34.0505, lon: -118.4527, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2027" },
+    { name: "Wilshire/Western", lat: 34.0618, lon: -118.3088, lines: ["Purple"] },
+    { name: "Wilshire/La Brea", lat: 34.0619, lon: -118.3440, lines: ["Purple"] },
+    { name: "Wilshire/Fairfax", lat: 34.0631, lon: -118.3623, lines: ["Purple"] },
+    { name: "Wilshire/La Cienega", lat: 34.0652, lon: -118.3762, lines: ["Purple", "D Line Extension"] },
+    // D Line Extension - Sections 2 and 3 (Under Construction, 2027)
+    { name: "Wilshire/Rodeo", lat: 34.0668, lon: -118.3983, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2027" },
+    { name: "Century City/Constellation", lat: 34.0587, lon: -118.4158, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2027" },
+    { name: "Westwood/UCLA", lat: 34.0586, lon: -118.4444, lines: ["D Line Extension", "Sepulveda Transit Corridor"], status: "under_construction", expectedOpening: "2027" },
+    { name: "Westwood/VA Hospital", lat: 34.0541, lon: -118.4547, lines: ["D Line Extension"], status: "under_construction", expectedOpening: "2027" },
 
     // ========== A LINE (BLUE) ==========
     // Foothill Extension
@@ -61,7 +60,7 @@ export const STATIONS = [
     { name: "San Pedro St", lat: 34.0267, lon: -118.2555, lines: ["Blue"] },
     { name: "Washington", lat: 34.0196, lon: -118.2430, lines: ["Blue"] },
     { name: "Vernon", lat: 34.0040, lon: -118.2429, lines: ["Blue"] },
-    { name: "Slauson", lat: 33.9892, lon: -118.2428, lines: ["Blue"] },
+    { name: "Slauson", lat: 33.9888, lon: -118.2434, lines: ["Blue"] },
     { name: "Florence", lat: 33.9745, lon: -118.2427, lines: ["Blue"] },
     { name: "Firestone", lat: 33.9596, lon: -118.2426, lines: ["Blue"] },
     { name: "103rd St/Watts Towers", lat: 33.9427, lon: -118.2425, lines: ["Blue"] },
@@ -90,7 +89,7 @@ export const STATIONS = [
     { name: "LATTC/Ortho Inst", lat: 34.0298, lon: -118.2737, lines: ["Expo"] },
     { name: "Jefferson/USC", lat: 34.0219, lon: -118.2783, lines: ["Expo", "Silver"] },
     { name: "Expo Park/USC", lat: 34.0182, lon: -118.2861, lines: ["Expo"] },
-    { name: "Expo/Vermont", lat: 34.0182, lon: -118.2915, lines: ["Expo"] },
+    { name: "Expo/Vermont", lat: 34.0183, lon: -118.2923, lines: ["Expo"] },
     { name: "Expo/Western", lat: 34.0183, lon: -118.3090, lines: ["Expo"] },
     { name: "Expo/Crenshaw", lat: 34.0223, lon: -118.3353, lines: ["Expo", "K Line"] },
     { name: "Farmdale", lat: 34.0239, lon: -118.3562, lines: ["Expo"] },
@@ -111,7 +110,7 @@ export const STATIONS = [
     { name: "Long Beach Blvd", lat: 33.9238, lon: -118.1884, lines: ["Green"] },
     { name: "Avalon", lat: 33.9272, lon: -118.2294, lines: ["Green"] },
     { name: "Harbor Freeway", lat: 33.9287, lon: -118.2891, lines: ["Green", "Silver"] },
-    { name: "Vermont/Athens", lat: 33.9290, lon: -118.2917, lines: ["Green"] },
+    { name: "Vermont/Athens", lat: 33.9283, lon: -118.2916, lines: ["Green"] },
     { name: "Crenshaw", lat: 33.9294, lon: -118.3308, lines: ["Green"] },
     { name: "Hawthorne/Lennox", lat: 33.9268, lon: -118.3582, lines: ["Green"] },
     { name: "Aviation/LAX", lat: 33.9312, lon: -118.3887, lines: ["Green"] },

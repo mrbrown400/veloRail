@@ -57,10 +57,14 @@ test('local station provider treats opened D Line Section 1 stations as current 
 
   const purpleStations = await provider.getStationsOnLine('Purple');
   const purpleStationNames = purpleStations.map(station => station.name);
+  const laCienega = purpleStations.find(station => station.name === 'Wilshire/La Cienega');
   const laCienegaLines = await provider.getLinesServingStation('Wilshire/La Cienega');
 
   assert.ok(purpleStationNames.includes('Wilshire/La Brea'));
   assert.ok(purpleStationNames.includes('Wilshire/Fairfax'));
   assert.ok(purpleStationNames.includes('Wilshire/La Cienega'));
+  assert.ok(laCienega);
+  assert.equal(laCienega.lat, 34.0652);
+  assert.equal(laCienega.lon, -118.3762);
   assert.deepEqual(laCienegaLines, ['Purple']);
 });

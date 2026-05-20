@@ -105,9 +105,49 @@ export const OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS = [
     'K Line Extension to Torrance project page',
     'Los Angeles County Metropolitan Transportation Authority',
     'official_project',
-    'https://www.metro.net/projects/green-line-extension/',
+    'https://www.metro.net/projects/k-line-extension-to-torrance/',
     OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS,
     'Primary source for approved alignment option, funding status, station count, and completion target.'
+  ),
+  officialFutureWatchTarget(
+    'metro-k-line-northern-extension',
+    'metro-k-line-northern-extension-project-page',
+    'K Line Northern Extension project page',
+    'Los Angeles County Metropolitan Transportation Authority',
+    'official_project',
+    'https://www.metro.net/projects/kline-northern-extension/',
+    OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS,
+    'Primary source for planning status, selected LPA, route length, station count, opening range, and transfer lines.'
+  ),
+  officialFutureWatchTarget(
+    'metro-sepulveda-transit-corridor-valley-westside',
+    'metro-sepulveda-transit-corridor-project-page',
+    'Sepulveda Transit Corridor project page',
+    'Los Angeles County Metropolitan Transportation Authority',
+    'official_project',
+    'https://www.metro.net/projects/sepulvedacorridor/',
+    OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS,
+    'Primary source for LPA status, selected Valley-Westside route, phase refinement, and environmental review status.'
+  ),
+  officialFutureWatchTarget(
+    'metro-sepulveda-transit-corridor-valley-westside',
+    'metro-sepulveda-lpa-media-release',
+    'Metro Board initial approval for Sepulveda Pass corridor',
+    'Los Angeles County Metropolitan Transportation Authority',
+    'public_agency',
+    'https://www.metro.net/about/metro-boards-initial-approval-sets-stage-for-generational-transformation-of-sepulveda-pass-corridor/',
+    ['project_status', 'station_list', 'source_url', 'geometry_notes'],
+    'Secondary source for Board-selected underground heavy rail LPA, major transfer connections, and travel-time claims.'
+  ),
+  officialFutureWatchTarget(
+    'metro-sepulveda-transit-corridor-westside-lax',
+    'metro-sepulveda-westside-lax-measure-m-board-report',
+    'Metro Measure M Sepulveda Westside-LAX board report',
+    'Los Angeles County Metropolitan Transportation Authority',
+    'public_plan',
+    'https://metro.legistar.com/LegislationDetail.aspx?FullText=1&GUID=43869F50-9A8C-478A-AC2C-3D653F8231BC&ID=4539342&Options=&Search=',
+    OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS,
+    'Primary source for the official long-range Westside-LAX segment, Measure M phasing, and planned 2057-2059 opening window.'
   ),
   officialFutureWatchTarget(
     'metro-eastside-transit-corridor-phase-2',
@@ -141,11 +181,28 @@ export const OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS = [
   )
 ] as const;
 
+export const OFFICIAL_FUTURE_TRANSIT_DISCOVERY_TARGETS = [
+  {
+    id: 'metro-projects-listing',
+    label: 'Metro project listing',
+    publisher: 'Los Angeles County Metropolitan Transportation Authority',
+    url: 'https://www.metro.net/projects-listing/',
+    note: 'Broad project discovery page for newly listed Metro rail, BRT, and transit corridor projects.'
+  },
+  {
+    id: 'metro-source-projects',
+    label: 'LA Metro The Source projects feed',
+    publisher: 'LA Metro The Source',
+    url: 'https://thesource.metro.net/projects/',
+    note: 'Agency news feed that often announces Board actions, project milestones, and new public review periods.'
+  }
+] as const;
+
 export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
   schemaVersion: TRANSIT_PROPOSAL_SCHEMA_VERSION,
   updatedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
   migrationNotes: [
-    'VR-105 initial official LA-area future transit batch. Sources are Metro official project pages and public agency notices checked on 2026-05-19.',
+    'Official LA-area future transit batch. Sources are Metro official project pages, public agency notices, and Metro board materials checked on 2026-05-19.',
     'Geometry is simplified corridor geometry for Google Maps rendering and must not be treated as surveyed engineering alignment.',
     'Station records are retained as planning metadata where Metro publishes station areas, but proposal overlays do not display individual station dots by default.'
   ],
@@ -308,7 +365,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
         geometrySource: 'approximate',
         geometryNotes: 'Approximate corridor from the A Line at Slauson to Artesia using published station areas. Not surveyed alignment geometry.',
         coordinates: [
-          [-118.2438, 33.9897],
+          [-118.2434, 33.9888],
           [-118.2140, 33.9735],
           [-118.1970, 33.9545],
           [-118.1760, 33.9142],
@@ -322,8 +379,8 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
         {
           id: 'southeast-gateway-slauson-a-line',
           name: 'Slauson/A Line',
-          lat: 33.9897,
-          lon: -118.2438,
+          lat: 33.9888,
+          lon: -118.2434,
           status: 'planned',
           role: 'transfer',
           openingYear: 2035,
@@ -433,7 +490,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
         geometrySource: 'approximate',
         geometryNotes: 'Approximate Hawthorne Option geometry from Redondo Beach (Marine) to Torrance Transit Center via Hawthorne Boulevard and the Metro-owned right-of-way.',
         coordinates: [
-          [-118.3771, 33.8947],
+          [-118.3698, 33.8936],
           [-118.3630, 33.8840],
           [-118.3528, 33.8722],
           [-118.3524, 33.8560],
@@ -444,8 +501,8 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
         {
           id: 'k-line-redondo-beach-marine',
           name: 'Redondo Beach (Marine)',
-          lat: 33.8947,
-          lon: -118.3771,
+          lat: 33.8936,
+          lon: -118.3698,
           status: 'operational',
           role: 'transfer',
           confidence: 'medium',
@@ -480,7 +537,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
           title: 'K Line Extension to Torrance',
           sourceType: 'official_project',
           publisher: 'Los Angeles County Metropolitan Transportation Authority',
-          url: 'https://www.metro.net/projects/green-line-extension/',
+          url: 'https://www.metro.net/projects/k-line-extension-to-torrance/',
           accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
           note: 'Metro lists the 4.5-mile extension, two new stations, January 2026 Final EIR certification and Hawthorne Option approval, planning phase, and late 2036 completion pending funding.'
         }
@@ -519,6 +576,415 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
         clickable: true
       },
       tags: ['future', 'metro', 'light-rail', 'south-bay', 'vr-105']
+    },
+    {
+      id: 'metro-k-line-northern-extension',
+      name: 'K Line Northern Extension',
+      shortName: 'K Line North',
+      kind: 'line',
+      status: 'planned',
+      mode: 'light_rail',
+      classification: 'official',
+      geometry: {
+        type: 'LineString',
+        geometrySource: 'approximate',
+        geometryNotes: 'Approximate San Vicente-Fairfax LPA corridor from Expo/Crenshaw to Hollywood using Metro-published route description and major destination anchors. Not surveyed alignment geometry.',
+        coordinates: [
+          [-118.3352, 34.0220],
+          [-118.3565, 34.0510],
+          [-118.3612, 34.0623],
+          [-118.3714, 34.0749],
+          [-118.3800, 34.0835],
+          [-118.3389, 34.1016],
+          [-118.3390, 34.1122]
+        ]
+      },
+      stations: [
+        {
+          id: 'k-line-north-expo-crenshaw',
+          name: 'Expo/Crenshaw',
+          lat: 34.0220,
+          lon: -118.3352,
+          status: 'operational',
+          role: 'transfer',
+          confidence: 'medium',
+          existingLines: ['E Line', 'K Line'],
+          notes: 'Existing K and E Line transfer station and southern connection point for the extension.'
+        },
+        {
+          id: 'k-line-north-museum-row',
+          name: 'Museum Row / Miracle Mile',
+          lat: 34.0623,
+          lon: -118.3612,
+          status: 'planned',
+          role: 'transfer',
+          openingYear: 2049,
+          confidence: 'low',
+          existingLines: ['D Line'],
+          notes: 'Representative anchor for Museum Row, Miracle Mile, and the D Line transfer area on the selected San Vicente-Fairfax alignment.'
+        },
+        {
+          id: 'k-line-north-west-hollywood',
+          name: 'West Hollywood / Santa Monica Boulevard',
+          lat: 34.0835,
+          lon: -118.3800,
+          status: 'planned',
+          role: 'intermediate',
+          openingYear: 2049,
+          confidence: 'low',
+          notes: 'Representative anchor for the Rainbow District and Santa Monica Boulevard corridor cited by Metro.'
+        },
+        {
+          id: 'k-line-north-hollywood-highland',
+          name: 'Hollywood/Highland',
+          lat: 34.1016,
+          lon: -118.3389,
+          status: 'planned',
+          role: 'transfer',
+          openingYear: 2049,
+          confidence: 'medium',
+          existingLines: ['B Line'],
+          notes: 'Representative B Line transfer area for the northern end of the selected alignment.'
+        },
+        {
+          id: 'k-line-north-hollywood-bowl',
+          name: 'Hollywood Bowl',
+          lat: 34.1122,
+          lon: -118.3390,
+          status: 'planned',
+          role: 'terminal',
+          openingYear: 2049,
+          confidence: 'low',
+          notes: 'Metro states the selected route ultimately terminates at the Hollywood Bowl; coordinates are approximate.'
+        }
+      ],
+      provenance: [
+        {
+          sourceId: 'metro-k-line-northern-extension-project-page',
+          title: 'K Line Northern Extension',
+          sourceType: 'official_project',
+          publisher: 'Los Angeles County Metropolitan Transportation Authority',
+          url: 'https://www.metro.net/projects/kline-northern-extension/',
+          accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
+          note: 'Metro lists the K Line Northern Extension in planning, with the Board-selected San Vicente-Fairfax LPA, about 10 miles of underground rail, ten new stations, and anticipated opening between 2047 and 2049.'
+        }
+      ],
+      confidence: {
+        level: 'official',
+        geometry: 'low',
+        stations: 'low',
+        status: 'high',
+        notes: 'Project, LPA selection, station count, and opening range are official. VeloRail station anchors are representative until Metro publishes final station coordinates.'
+      },
+      uncertainty: {
+        level: 'medium',
+        sourceNotes: 'Metro source establishes the project, selected LPA, underground rail mode, station count, and major destinations. VeloRail approximates route geometry and uses representative station anchors rather than a complete ten-station list.',
+        assumptions: [
+          'Opening year uses the later end of Metro listed 2047-2049 range for conservative display.',
+          'Station records intentionally summarize major connection anchors and are not a complete station list.'
+        ],
+        disclaimer: 'Official project record with representative VeloRail geometry.'
+      },
+      timeline: {
+        openingYear: 2049,
+        phase: 'Planning and environmental review',
+        scheduleNotes: 'Metro lists construction funding becoming available in 2041 and anticipated service between 2047 and 2049.'
+      },
+      style: {
+        strokeColor: '#f59e0b',
+        strokeOpacity: 0.88,
+        strokeWeight: 3,
+        stationFillColor: '#f59e0b',
+        legendLabel: 'Future light rail'
+      },
+      rendering: {
+        layerGroup: 'future',
+        minZoom: 9,
+        clickable: true
+      },
+      notes: 'Included because it is an official Metro planned K Line extension with a Board-selected LPA.',
+      tags: ['future', 'metro', 'light-rail', 'k-line', 'central-la', 'hollywood']
+    },
+    {
+      id: 'metro-sepulveda-transit-corridor-valley-westside',
+      name: 'Sepulveda Transit Corridor Valley-Westside',
+      shortName: 'Sepulveda Valley-Westside',
+      kind: 'line',
+      status: 'planned',
+      mode: 'heavy_rail',
+      classification: 'official',
+      geometry: {
+        type: 'LineString',
+        geometrySource: 'approximate',
+        geometryNotes: 'Approximate selected LPA corridor from Van Nuys Metrolink to Expo/Sepulveda, including the higher-priority G Line to D Line initial operating segment. Not surveyed engineering geometry.',
+        coordinates: [
+          [-118.4495, 34.1897],
+          [-118.4486, 34.1689],
+          [-118.4487, 34.1435],
+          [-118.4440, 34.0705],
+          [-118.4444, 34.0586],
+          [-118.4410, 34.0450],
+          [-118.4395, 34.0368]
+        ]
+      },
+      stations: [
+        {
+          id: 'sepulveda-valley-westside-van-nuys-metrolink',
+          name: 'Van Nuys Metrolink',
+          lat: 34.1897,
+          lon: -118.4495,
+          status: 'planned',
+          role: 'terminal',
+          openingYear: 2035,
+          phase: 'Full Valley-Westside LPA',
+          confidence: 'medium',
+          existingLines: ['Metrolink', 'Amtrak', 'East San Fernando Valley LRT'],
+          notes: 'Northern endpoint of the Board-selected LPA; may follow the initial operating segment depending on phasing and funding.'
+        },
+        {
+          id: 'sepulveda-valley-westside-van-nuys-g-line',
+          name: 'Van Nuys G Line',
+          lat: 34.1689,
+          lon: -118.4486,
+          status: 'planned',
+          role: 'transfer',
+          openingYear: 2035,
+          phase: 'Initial Operating Segment',
+          confidence: 'medium',
+          existingLines: ['G Line', 'East San Fernando Valley LRT'],
+          notes: 'Metro has prioritized connecting the San Fernando Valley at the G Line and ESFV Light Rail with the Westside at the D Line in the initial operating segment.'
+        },
+        {
+          id: 'sepulveda-valley-westside-ventura',
+          name: 'Ventura Boulevard',
+          lat: 34.1435,
+          lon: -118.4487,
+          status: 'planned',
+          role: 'intermediate',
+          openingYear: 2035,
+          phase: 'Initial Operating Segment',
+          confidence: 'low'
+        },
+        {
+          id: 'sepulveda-valley-westside-ucla',
+          name: 'UCLA',
+          lat: 34.0705,
+          lon: -118.4440,
+          status: 'planned',
+          role: 'intermediate',
+          openingYear: 2035,
+          phase: 'Initial Operating Segment',
+          confidence: 'low',
+          notes: 'Representative UCLA campus station anchor.'
+        },
+        {
+          id: 'sepulveda-valley-westside-westwood-ucla',
+          name: 'Westwood/UCLA',
+          lat: 34.0586,
+          lon: -118.4444,
+          status: 'planned',
+          role: 'transfer',
+          openingYear: 2035,
+          phase: 'Initial Operating Segment',
+          confidence: 'medium',
+          existingLines: ['D Line']
+        },
+        {
+          id: 'sepulveda-valley-westside-santa-monica',
+          name: 'Santa Monica Boulevard',
+          lat: 34.0450,
+          lon: -118.4410,
+          status: 'planned',
+          role: 'intermediate',
+          openingYear: 2035,
+          phase: 'Full Valley-Westside LPA',
+          confidence: 'low'
+        },
+        {
+          id: 'sepulveda-valley-westside-expo-sepulveda',
+          name: 'Expo/Sepulveda',
+          lat: 34.0368,
+          lon: -118.4395,
+          status: 'planned',
+          role: 'terminal',
+          openingYear: 2035,
+          phase: 'Full Valley-Westside LPA',
+          confidence: 'medium',
+          existingLines: ['E Line']
+        }
+      ],
+      provenance: [
+        {
+          sourceId: 'metro-sepulveda-transit-corridor-project-page',
+          title: 'Sepulveda Transit Corridor',
+          sourceType: 'official_project',
+          publisher: 'Los Angeles County Metropolitan Transportation Authority',
+          url: 'https://www.metro.net/projects/sepulvedacorridor/',
+          accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
+          note: 'Metro lists the project in planning and environmental review and says the Board selected an underground heavy rail LPA between Van Nuys Metrolink and Expo/Sepulveda in January 2026.'
+        },
+        {
+          sourceId: 'metro-sepulveda-lpa-media-release',
+          title: 'Metro Board initial approval sets stage for generational transformation of Sepulveda Pass corridor',
+          sourceType: 'public_agency',
+          publisher: 'Los Angeles County Metropolitan Transportation Authority',
+          url: 'https://www.metro.net/about/metro-boards-initial-approval-sets-stage-for-generational-transformation-of-sepulveda-pass-corridor/',
+          accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
+          note: 'Metro media release confirms the underground heavy rail LPA, Van Nuys to E Line connection, D/E/G/ESFV/Metrolink/UCLA connections, and continued design refinement.'
+        }
+      ],
+      confidence: {
+        level: 'official',
+        geometry: 'low',
+        stations: 'medium',
+        status: 'high',
+        notes: 'Board-selected LPA and major station areas are official. VeloRail geometry is approximate and phasing remains subject to refinement.'
+      },
+      uncertainty: {
+        level: 'medium',
+        sourceNotes: 'Metro sources establish the selected LPA, underground heavy rail mode, endpoint stations, transfer lines, and ongoing environmental review. Metro is still refining phasing, maintenance/storage approach, and design details.',
+        assumptions: [
+          'Opening year uses the Measure M Valley-Westside 2033-2035 planning window because Metro says an updated construction timeline will be shared later.',
+          'The first operating segment is represented through station phase metadata instead of a separate overlapping line record.'
+        ],
+        disclaimer: 'Official project record with approximate VeloRail geometry and phasing notes.'
+      },
+      timeline: {
+        openingYear: 2035,
+        phase: 'Valley-Westside LPA with G Line to D Line initial operating segment',
+        phaseOrder: 1,
+        scheduleNotes: 'Metro current project page says the project is in planning and environmental review and that an updated construction timeline will be shared when available; Measure M identified Valley-Westside for 2033-2035.'
+      },
+      style: {
+        strokeColor: '#fb923c',
+        strokeOpacity: 0.9,
+        strokeWeight: 4,
+        stationFillColor: '#fb923c',
+        legendLabel: 'Future heavy rail'
+      },
+      rendering: {
+        layerGroup: 'future',
+        minZoom: 9,
+        clickable: true
+      },
+      notes: 'Included because it is the official Metro Sepulveda Transit Corridor LPA selected by the Metro Board in January 2026.',
+      tags: ['future', 'metro', 'heavy-rail', 'sepulveda', 'valley', 'westside']
+    },
+    {
+      id: 'metro-sepulveda-transit-corridor-westside-lax',
+      name: 'Sepulveda Transit Corridor Westside-LAX',
+      shortName: 'Sepulveda Westside-LAX',
+      kind: 'line',
+      status: 'planned',
+      mode: 'unknown',
+      classification: 'official',
+      geometry: {
+        type: 'LineString',
+        geometrySource: 'approximate',
+        geometryNotes: 'Approximate long-range Westside-LAX connection from Expo/Sepulveda to LAX/Metro Transit Center. Metro has official Measure M phasing for this segment, but no final alignment is encoded here.',
+        coordinates: [
+          [-118.4395, 34.0368],
+          [-118.4330, 34.0190],
+          [-118.4090, 34.0010],
+          [-118.3970, 33.9595],
+          [-118.3771, 33.9546]
+        ]
+      },
+      stations: [
+        {
+          id: 'sepulveda-westside-lax-expo-sepulveda',
+          name: 'Expo/Sepulveda',
+          lat: 34.0368,
+          lon: -118.4395,
+          status: 'planned',
+          role: 'transfer',
+          openingYear: 2059,
+          confidence: 'medium',
+          existingLines: ['E Line', 'Sepulveda Transit Corridor Valley-Westside'],
+          notes: 'Northern connection point from the selected Valley-Westside LPA into the long-range Westside-LAX segment.'
+        },
+        {
+          id: 'sepulveda-westside-lax-culver-westside',
+          name: 'Westside/Culver City area',
+          lat: 34.0010,
+          lon: -118.4090,
+          status: 'planned',
+          role: 'intermediate',
+          openingYear: 2059,
+          confidence: 'low',
+          notes: 'Representative intermediate anchor only; Metro has not finalized the Westside-LAX station list in the checked source.'
+        },
+        {
+          id: 'sepulveda-westside-lax-lax-metro-transit-center',
+          name: 'LAX/Metro Transit Center',
+          lat: 33.9546,
+          lon: -118.3771,
+          status: 'planned',
+          role: 'terminal',
+          openingYear: 2059,
+          confidence: 'medium',
+          existingLines: ['C Line', 'K Line', 'LAX APM'],
+          notes: 'Existing regional airport transit hub and official long-range target for the Sepulveda Westside-LAX segment.'
+        }
+      ],
+      provenance: [
+        {
+          sourceId: 'metro-sepulveda-westside-lax-measure-m-board-report',
+          title: 'Sepulveda Transit Corridor board report',
+          sourceType: 'public_plan',
+          publisher: 'Los Angeles County Metropolitan Transportation Authority',
+          url: 'https://metro.legistar.com/LegislationDetail.aspx?FullText=1&GUID=43869F50-9A8C-478A-AC2C-3D653F8231BC&ID=4539342&Options=&Search=',
+          accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
+          note: 'Metro board report describes the Measure M Sepulveda Transit Corridor implementation in two phases, with Valley-Westside by 2033-2035 and Westside-LAX by 2057-2059.'
+        },
+        {
+          sourceId: 'metro-sepulveda-transit-corridor-project-page',
+          title: 'Sepulveda Transit Corridor',
+          sourceType: 'official_project',
+          publisher: 'Los Angeles County Metropolitan Transportation Authority',
+          url: 'https://www.metro.net/projects/sepulvedacorridor/',
+          accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
+          note: 'Metro current project page describes the corridor as connecting the Valley, Westside, and eventually LAX.'
+        }
+      ],
+      confidence: {
+        level: 'official',
+        geometry: 'low',
+        stations: 'low',
+        status: 'medium',
+        notes: 'The long-range segment and LAX target are official in Metro planning sources. Alignment, station list, technology, and schedule are lower confidence than the selected Valley-Westside LPA.'
+      },
+      uncertainty: {
+        level: 'high',
+        sourceNotes: 'Metro sources establish the official Westside-LAX segment and long-range Measure M timing, but no final alignment or station list is encoded in the current source set.',
+        assumptions: [
+          'Geometry is a broad corridor placeholder from Expo/Sepulveda toward LAX/Metro Transit Center.',
+          'Opening year uses the later end of the 2057-2059 Measure M range for conservative display.',
+          'Mode remains unknown until Metro selects technology and alignment for the Westside-LAX segment.'
+        ],
+        disclaimer: 'Official long-range project segment with conceptual VeloRail geometry.'
+      },
+      timeline: {
+        openingYear: 2059,
+        phase: 'Westside-LAX long-range segment',
+        phaseOrder: 2,
+        scheduleNotes: 'Metro Measure M documentation identifies the Westside-LAX extension for 2057-2059; current project work is focused on Valley-Westside planning and environmental review.'
+      },
+      style: {
+        strokeColor: '#fdba74',
+        strokeOpacity: 0.7,
+        strokeWeight: 3,
+        strokePattern: 'dashed',
+        stationFillColor: '#fdba74',
+        legendLabel: 'Long-range future rail'
+      },
+      rendering: {
+        layerGroup: 'future',
+        minZoom: 9,
+        clickable: true
+      },
+      notes: 'Included as official long-range Metro planning, with lower confidence than the Board-selected Valley-Westside LPA.',
+      tags: ['future', 'metro', 'sepulveda', 'westside', 'lax', 'long-range']
     },
     {
       id: 'metro-eastside-transit-corridor-phase-2',
@@ -801,8 +1267,8 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
         coordinates: [
           [-118.2923, 34.0984],
           [-118.2917, 34.0617],
-          [-118.2916, 34.0182],
-          [-118.2917, 33.9290]
+          [-118.2923, 34.0183],
+          [-118.2916, 33.9283]
         ]
       },
       stations: [
@@ -831,8 +1297,8 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
         {
           id: 'vermont-brt-expo',
           name: 'Expo/Vermont',
-          lat: 34.0182,
-          lon: -118.2916,
+          lat: 34.0183,
+          lon: -118.2923,
           status: 'planned',
           role: 'transfer',
           openingYear: 2028,
@@ -842,8 +1308,8 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
         {
           id: 'vermont-brt-120th',
           name: 'Vermont/120th',
-          lat: 33.9290,
-          lon: -118.2917,
+          lat: 33.9283,
+          lon: -118.2916,
           status: 'planned',
           role: 'terminal',
           openingYear: 2028,

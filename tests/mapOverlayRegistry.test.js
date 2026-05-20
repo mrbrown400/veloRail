@@ -157,6 +157,9 @@ test('proposal overlay groups expose imported sample layers independently', asyn
     'metro-east-san-fernando-valley-lrt',
     'metro-southeast-gateway-line',
     'metro-k-line-extension-torrance',
+    'metro-k-line-northern-extension',
+    'metro-sepulveda-transit-corridor-valley-westside',
+    'metro-sepulveda-transit-corridor-westside-lax',
     'metro-eastside-transit-corridor-phase-2',
     'metro-noho-pasadena-brt',
     'metro-vermont-brt'
@@ -209,7 +212,7 @@ test('future overlay only accepts official planned, funded, or under-constructio
   assert.equal(isOfficialFutureProposal({ ...futureProposal, classification: 'speculative' }), false);
 });
 
-test('D Line future overlay excludes opened Section 1 stations and geometry', async () => {
+test('D Line future overlay starts at the current La Cienega connection anchor', async () => {
   const {
     getProposalOverlayInputsByGroup
   } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
@@ -219,16 +222,87 @@ test('D Line future overlay excludes opened Section 1 stations and geometry', as
   );
 
   assert.ok(dLine);
-  assert.equal(dLine.polyline.path[0].lng, -118.3769);
+  assert.deepEqual(dLine.polyline.path[0], {
+    lat: 34.0652,
+    lng: -118.3762
+  });
   assert.deepEqual(dLine.markers.map(marker => marker.title), [
     'Wilshire/Rodeo',
     'Century City/Constellation',
     'Westwood/UCLA',
     'Westwood/VA Hospital'
   ]);
+  assert.deepEqual(
+    dLine.markers.map(marker => [marker.position.lat, marker.position.lng]),
+    [
+      [34.0668, -118.3983],
+      [34.0587, -118.4158],
+      [34.0586, -118.4444],
+      [34.0541, -118.4547]
+    ]
+  );
   assert.ok(dLine.markers.every(marker => marker.openingYear === 2027));
   assert.ok(!dLine.markers.some(marker => /La Brea|Fairfax|La Cienega/.test(marker.title)));
-  assert.ok(!dLine.polyline.path.some(point => point.lng === -118.3440 || point.lng === -118.3614));
+  assert.ok(!dLine.polyline.path.some(point => point.lng === -118.3440 || point.lng === -118.3623));
+});
+
+test('future overlay transfer anchors match current and connected line coordinates', async () => {
+  const {
+    getProposalOverlayInputsByGroup
+  } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
+  const {
+    TRANSIT_LINES
+  } = await loadAppModule('/src/data/transitLines.ts');
+
+  const futureById = new Map(
+    getProposalOverlayInputsByGroup('future').map(overlay => [overlay.proposal.id, overlay])
+  );
+  const station = (lineName, stationName) => {
+    const match = TRANSIT_LINES[lineName].stations.find(currentStation => currentStation.name === stationName);
+    assert.ok(match, `${lineName} station ${stationName} should exist`);
+    return match;
+  };
+  const marker = (overlay, title) => {
+    const match = overlay.markers.find(candidate => candidate.title === title);
+    assert.ok(match, `${overlay.proposal.id} marker ${title} should exist`);
+    return match;
+  };
+  const point = currentStation => ({
+    lat: currentStation.lat,
+    lng: currentStation.lon
+  });
+
+  const dLine = futureById.get('metro-d-line-extension-westwood');
+  const southeastGateway = futureById.get('metro-southeast-gateway-line');
+  const kLineTorrance = futureById.get('metro-k-line-extension-torrance');
+  const vermontBrt = futureById.get('metro-vermont-brt');
+  const sepulvedaValleyWestside = futureById.get('metro-sepulveda-transit-corridor-valley-westside');
+  const sepulvedaWestsideLax = futureById.get('metro-sepulveda-transit-corridor-westside-lax');
+
+  assert.ok(dLine);
+  assert.ok(southeastGateway);
+  assert.ok(kLineTorrance);
+  assert.ok(vermontBrt);
+  assert.ok(sepulvedaValleyWestside);
+  assert.ok(sepulvedaWestsideLax);
+
+  assert.deepEqual(dLine.polyline.path[0], point(station('Purple', 'Wilshire/La Cienega')));
+  assert.deepEqual(southeastGateway.polyline.path[0], point(station('Blue', 'Slauson')));
+  assert.deepEqual(marker(kLineTorrance, 'Redondo Beach (Marine)').position, point(station('Green', 'Redondo Beach')));
+  assert.deepEqual(marker(vermontBrt, 'Expo/Vermont').position, point(station('Expo', 'Expo/Vermont')));
+  assert.deepEqual(marker(vermontBrt, 'Vermont/120th').position, point(station('Green', 'Vermont/Athens')));
+  assert.deepEqual(
+    marker(sepulvedaValleyWestside, 'Westwood/UCLA').position,
+    marker(dLine, 'Westwood/UCLA').position
+  );
+  assert.deepEqual(
+    marker(sepulvedaValleyWestside, 'Expo/Sepulveda').position,
+    point(station('Expo', 'Expo/Sepulveda'))
+  );
+  assert.deepEqual(
+    marker(sepulvedaWestsideLax, 'Expo/Sepulveda').position,
+    point(station('Expo', 'Expo/Sepulveda'))
+  );
 });
 
 test('future station metadata stays available without rendering station dots by default', async () => {

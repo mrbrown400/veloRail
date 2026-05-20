@@ -43,3 +43,4 @@ tsconfig.tsbuildinfo
 # Local tracker/database files
 .dolt/
 *.db
+.velorail-monitor/
