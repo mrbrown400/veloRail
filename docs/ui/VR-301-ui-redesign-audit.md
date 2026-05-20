@@ -197,7 +197,7 @@ Future-route UI exists in `RouteOption`, but route calculation currently passes 
 - Do not introduce alternate map providers or custom tile systems.
 - Avoid a major UI rewrite in the audit phase.
 - Preserve the existing React architecture for search, map, results, stores, and services.
-- Keep route data models, map-layer contracts, and routing assumptions unchanged unless a future issue explicitly creates a Canopy plan.
+- Keep route data models, map-layer contracts, and routing assumptions unchanged unless a future Linear issue explicitly captures the plan.
 - Maintain support for transit, bike, walking, route safety, wait time, and live vehicle data.
 
 ## Recommended Design Direction

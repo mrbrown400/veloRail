@@ -157,7 +157,7 @@ test('visionary registry validates policy, source links, and overlay-ready input
   );
   assert.match(
     VISIONARY_TRANSIT_PROPOSAL_REGISTRY_POLICY.editorialReview.join(' '),
-    /video-derived|Mulch|Canopy/
+    /video-derived|repo docs|Linear plan/
   );
   assert.ok(overlay.polyline.path.length >= 2);
   assert.ok(overlay.markers.length >= 3);

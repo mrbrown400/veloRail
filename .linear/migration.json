@@ -1,0 +1,773 @@
+{
+  "project": {
+    "id": "5a4d452d-5016-4e8d-bd3f-e6f0736e9bbd",
+    "name": "VeloRail Codex Migration",
+    "url": "https://linear.app/velorail/project/velorail-codex-migration-ca2f0949f90c",
+    "teamId": "ff1e6e46-6ad8-4201-906a-7dc687f6354a",
+    "teamName": "VeloRail",
+    "importedAt": "2026-05-20T09:45:00Z",
+    "source": ".seeds/issues.jsonl"
+  },
+  "tasks": [
+    {
+      "id": "MBR-5",
+      "legacyId": "velorail-5xd",
+      "linearIdentifier": "MBR-5",
+      "browserGateTag": "velorail-5xd",
+      "title": "Upgrade Node runtime for Vite 7",
+      "type": "task",
+      "labels": [],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-5"
+    },
+    {
+      "id": "MBR-6",
+      "legacyId": "velorail-fyh",
+      "linearIdentifier": "MBR-6",
+      "browserGateTag": "velorail-fyh",
+      "title": "Add real tests and style linting",
+      "type": "task",
+      "labels": [],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-6"
+    },
+    {
+      "id": "MBR-7",
+      "legacyId": "velorail-ydi",
+      "linearIdentifier": "MBR-7",
+      "browserGateTag": "velorail-ydi",
+      "title": "Refresh GitNexus index after harness cleanup",
+      "type": "task",
+      "labels": [],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-7"
+    },
+    {
+      "id": "MBR-8",
+      "legacyId": "VR-000",
+      "linearIdentifier": "MBR-8",
+      "browserGateTag": "VR-000",
+      "title": "Establish Google Maps-first architecture policy",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/coordinator",
+        "epic/architecture"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-8"
+    },
+    {
+      "id": "MBR-9",
+      "legacyId": "VR-001",
+      "linearIdentifier": "MBR-9",
+      "browserGateTag": "VR-001",
+      "title": "Define transit proposal data model",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/transit-data",
+        "epic/architecture"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-9"
+    },
+    {
+      "id": "MBR-10",
+      "legacyId": "VR-002",
+      "linearIdentifier": "MBR-10",
+      "browserGateTag": "VR-002",
+      "title": "Build Google Maps overlay architecture",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/cartographer",
+        "epic/architecture"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-10"
+    },
+    {
+      "id": "MBR-11",
+      "legacyId": "VR-003",
+      "linearIdentifier": "MBR-11",
+      "browserGateTag": "VR-003",
+      "title": "Add config-driven overlay styling system",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/cartographer",
+        "epic/architecture"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-11"
+    },
+    {
+      "id": "MBR-12",
+      "legacyId": "VR-004",
+      "linearIdentifier": "MBR-12",
+      "browserGateTag": "VR-004",
+      "title": "Add map metadata interaction model",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/coordinator",
+        "epic/architecture"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-12"
+    },
+    {
+      "id": "MBR-13",
+      "legacyId": "VR-005",
+      "linearIdentifier": "MBR-13",
+      "browserGateTag": "VR-005",
+      "title": "Build transit proposal import pipeline",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/transit-data",
+        "epic/architecture"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-13"
+    },
+    {
+      "id": "MBR-22",
+      "legacyId": "VR-101",
+      "linearIdentifier": "MBR-22",
+      "browserGateTag": "VR-101",
+      "title": "Add Future Transit overlay toggle controls",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/coordinator",
+        "epic/future-transit"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-22"
+    },
+    {
+      "id": "MBR-23",
+      "legacyId": "VR-102",
+      "linearIdentifier": "MBR-23",
+      "browserGateTag": "VR-102",
+      "title": "Render official future transit lines",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/cartographer",
+        "epic/future-transit"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-23"
+    },
+    {
+      "id": "MBR-24",
+      "legacyId": "VR-103",
+      "linearIdentifier": "MBR-24",
+      "browserGateTag": "VR-103",
+      "title": "Render future transit stations",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/cartographer",
+        "epic/future-transit"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-24"
+    },
+    {
+      "id": "MBR-25",
+      "legacyId": "VR-104",
+      "linearIdentifier": "MBR-25",
+      "browserGateTag": "VR-104",
+      "title": "Add completed-network comparison mode",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/coordinator",
+        "epic/future-transit"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-25"
+    },
+    {
+      "id": "MBR-34",
+      "legacyId": "VR-105",
+      "linearIdentifier": "MBR-34",
+      "browserGateTag": "VR-105",
+      "title": "Add initial official LA future transit dataset",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/transit-data",
+        "epic/future-transit"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-34"
+    },
+    {
+      "id": "MBR-35",
+      "legacyId": "VR-201",
+      "linearIdentifier": "MBR-35",
+      "browserGateTag": "VR-201",
+      "title": "Define visionary transit classification rules",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/scenario",
+        "epic/visionary"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-35"
+    },
+    {
+      "id": "MBR-36",
+      "legacyId": "VR-202",
+      "linearIdentifier": "MBR-36",
+      "browserGateTag": "VR-202",
+      "title": "Render visionary transit overlays",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/scenario",
+        "epic/visionary"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-36"
+    },
+    {
+      "id": "MBR-37",
+      "legacyId": "VR-203",
+      "linearIdentifier": "MBR-37",
+      "browserGateTag": "VR-203",
+      "title": "Create visionary proposal registry",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/transit-data",
+        "epic/visionary"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-37"
+    },
+    {
+      "id": "MBR-38",
+      "legacyId": "VR-204",
+      "linearIdentifier": "MBR-38",
+      "browserGateTag": "VR-204",
+      "title": "Add visionary provenance and disclaimer UI",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/scenario",
+        "epic/visionary"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-38"
+    },
+    {
+      "id": "MBR-39",
+      "legacyId": "VR-205",
+      "linearIdentifier": "MBR-39",
+      "browserGateTag": "VR-205",
+      "title": "Add initial visionary LA transit bundle",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/scenario",
+        "epic/visionary"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-39"
+    },
+    {
+      "id": "MBR-40",
+      "legacyId": "VR-206",
+      "linearIdentifier": "MBR-40",
+      "browserGateTag": "VR-206",
+      "title": "Create editorial workflow for visionary proposals",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/scenario",
+        "epic/visionary"
+      ],
+      "priority": 3,
+      "url": "https://linear.app/velorail/issue/MBR-40"
+    },
+    {
+      "id": "MBR-49",
+      "legacyId": "VR-301",
+      "linearIdentifier": "MBR-49",
+      "browserGateTag": "VR-301",
+      "title": "Audit current UI and produce redesign spec",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/ui-designer",
+        "epic/ui"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-49"
+    },
+    {
+      "id": "MBR-50",
+      "legacyId": "VR-302",
+      "linearIdentifier": "MBR-50",
+      "browserGateTag": "VR-302",
+      "title": "Create VeloRail design system v1",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/ui-designer",
+        "epic/ui"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-50"
+    },
+    {
+      "id": "MBR-51",
+      "legacyId": "VR-303",
+      "linearIdentifier": "MBR-51",
+      "browserGateTag": "VR-303",
+      "title": "Redesign map controls and layer panel",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/ui-designer",
+        "epic/ui"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-51"
+    },
+    {
+      "id": "MBR-52",
+      "legacyId": "VR-304",
+      "linearIdentifier": "MBR-52",
+      "browserGateTag": "VR-304",
+      "title": "Redesign route results panel",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/ui-designer",
+        "epic/ui"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-52"
+    },
+    {
+      "id": "MBR-53",
+      "legacyId": "VR-305",
+      "linearIdentifier": "MBR-53",
+      "browserGateTag": "VR-305",
+      "title": "Improve map interaction UX",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/ui-designer",
+        "epic/ui"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-53"
+    },
+    {
+      "id": "MBR-54",
+      "legacyId": "VR-306",
+      "linearIdentifier": "MBR-54",
+      "browserGateTag": "VR-306",
+      "title": "Mobile and tablet responsive pass",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/ui-designer",
+        "epic/ui"
+      ],
+      "priority": 3,
+      "url": "https://linear.app/velorail/issue/MBR-54"
+    },
+    {
+      "id": "MBR-55",
+      "legacyId": "VR-307",
+      "linearIdentifier": "MBR-55",
+      "browserGateTag": "VR-307",
+      "title": "Accessibility pass",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/ui-designer",
+        "epic/ui"
+      ],
+      "priority": 3,
+      "url": "https://linear.app/velorail/issue/MBR-55"
+    },
+    {
+      "id": "MBR-14",
+      "legacyId": "VR-308",
+      "linearIdentifier": "MBR-14",
+      "browserGateTag": "VR-308",
+      "title": "Visual polish pass",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/ui-designer",
+        "epic/ui"
+      ],
+      "priority": 3,
+      "url": "https://linear.app/velorail/issue/MBR-14"
+    },
+    {
+      "id": "MBR-15",
+      "legacyId": "VR-401",
+      "linearIdentifier": "MBR-15",
+      "browserGateTag": "VR-401",
+      "title": "Define freight rail corridor data model",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/coordinator",
+        "epic/nationalized-rail"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-15"
+    },
+    {
+      "id": "MBR-16",
+      "legacyId": "VR-402",
+      "linearIdentifier": "MBR-16",
+      "browserGateTag": "VR-402",
+      "title": "Import LA freight rail corridor dataset",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/transit-data",
+        "epic/nationalized-rail",
+        "gate/no-browser"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-16"
+    },
+    {
+      "id": "MBR-17",
+      "legacyId": "VR-403",
+      "linearIdentifier": "MBR-17",
+      "browserGateTag": "VR-403",
+      "title": "Render freight rail corridor overlay",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/cartographer",
+        "epic/nationalized-rail"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-17"
+    },
+    {
+      "id": "MBR-18",
+      "legacyId": "VR-404",
+      "linearIdentifier": "MBR-18",
+      "browserGateTag": "VR-404",
+      "title": "Add Nationalized Rail overlay toggle",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/scenario",
+        "epic/nationalized-rail"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-18"
+    },
+    {
+      "id": "MBR-19",
+      "legacyId": "VR-405",
+      "linearIdentifier": "MBR-19",
+      "browserGateTag": "VR-405",
+      "title": "Generate passenger lines from freight corridors",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/infrastructure",
+        "epic/nationalized-rail"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-19"
+    },
+    {
+      "id": "MBR-20",
+      "legacyId": "VR-406",
+      "linearIdentifier": "MBR-20",
+      "browserGateTag": "VR-406",
+      "title": "Add freight corridor suitability scoring",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/infrastructure",
+        "epic/nationalized-rail"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-20"
+    },
+    {
+      "id": "MBR-21",
+      "legacyId": "VR-407",
+      "linearIdentifier": "MBR-21",
+      "browserGateTag": "VR-407",
+      "title": "Create initial LA nationalized rail scenario",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/scenario",
+        "epic/nationalized-rail"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-21"
+    },
+    {
+      "id": "MBR-26",
+      "legacyId": "VR-500",
+      "linearIdentifier": "MBR-26",
+      "browserGateTag": "VR-500",
+      "title": "Automatic passenger route generation from freight corridors",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/infrastructure",
+        "epic/advanced-planning"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-26"
+    },
+    {
+      "id": "MBR-27",
+      "legacyId": "VR-501",
+      "linearIdentifier": "MBR-27",
+      "browserGateTag": "VR-501",
+      "title": "Population-density transit scoring",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/infrastructure",
+        "epic/advanced-planning"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-27"
+    },
+    {
+      "id": "MBR-28",
+      "legacyId": "VR-502",
+      "linearIdentifier": "MBR-28",
+      "browserGateTag": "VR-502",
+      "title": "Bike-rail multimodal scoring",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/infrastructure",
+        "epic/advanced-planning"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-28"
+    },
+    {
+      "id": "MBR-29",
+      "legacyId": "VR-503",
+      "linearIdentifier": "MBR-29",
+      "browserGateTag": "VR-503",
+      "title": "GTFS ingestion for LA transit",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/transit-data",
+        "epic/advanced-planning",
+        "gate/no-browser"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-29"
+    },
+    {
+      "id": "MBR-30",
+      "legacyId": "VR-504",
+      "linearIdentifier": "MBR-30",
+      "browserGateTag": "VR-504",
+      "title": "Routing comparison versus Google Maps",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/infrastructure",
+        "epic/advanced-planning",
+        "gate/no-browser"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-30"
+    },
+    {
+      "id": "MBR-31",
+      "legacyId": "veloRail-967a",
+      "linearIdentifier": "MBR-31",
+      "browserGateTag": "veloRail-967a",
+      "title": "Refine nationalized rail layer for existing unused LA rail corridors",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/transit-data",
+        "epic/nationalized-rail",
+        "user-feedback"
+      ],
+      "priority": 3,
+      "url": "https://linear.app/velorail/issue/MBR-31"
+    },
+    {
+      "id": "MBR-32",
+      "legacyId": "veloRail-3d1e",
+      "linearIdentifier": "MBR-32",
+      "browserGateTag": "veloRail-3d1e",
+      "title": "Bake automated close gates into Seeds harness",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/infrastructure",
+        "epic/architecture",
+        "gate/no-browser"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-32"
+    },
+    {
+      "id": "MBR-33",
+      "legacyId": "veloRail-d29c",
+      "linearIdentifier": "MBR-33",
+      "browserGateTag": "veloRail-d29c",
+      "title": "Keep official future transit dataset up to date",
+      "type": "task",
+      "labels": [
+        "velorail",
+        "role/transit-data",
+        "epic/future-transit",
+        "gate/no-browser"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-33"
+    },
+    {
+      "id": "MBR-41",
+      "legacyId": "veloRail-f774",
+      "linearIdentifier": "MBR-41",
+      "browserGateTag": "veloRail-f774",
+      "title": "Fix Overstory mail check readonly database failure",
+      "type": "bug",
+      "labels": [
+        "velorail",
+        "role/infrastructure",
+        "epic/architecture",
+        "overstory",
+        "harness",
+        "gate/no-browser"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-41"
+    },
+    {
+      "id": "MBR-42",
+      "legacyId": "veloRail-8982",
+      "linearIdentifier": "MBR-42",
+      "browserGateTag": "veloRail-8982",
+      "title": "Fix bike and walk route time estimates using same speeds",
+      "type": "bug",
+      "labels": [
+        "Bug",
+        "ui",
+        "gate/browser"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-42"
+    },
+    {
+      "id": "MBR-43",
+      "legacyId": "veloRail-c28d",
+      "linearIdentifier": "MBR-43",
+      "browserGateTag": "veloRail-c28d",
+      "title": "Retire opened D Line Extension Phase 1 from Future Transit overlay",
+      "type": "bug",
+      "labels": [
+        "Bug",
+        "role/transit-data",
+        "gate/browser-smoke-only"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-43"
+    },
+    {
+      "id": "MBR-44",
+      "legacyId": "veloRail-078d",
+      "linearIdentifier": "MBR-44",
+      "browserGateTag": "veloRail-078d",
+      "title": "Automate opened-service drift detection for Future Transit overlays",
+      "type": "feature",
+      "labels": [
+        "role/transit-data",
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-44"
+    },
+    {
+      "id": "MBR-45",
+      "legacyId": "veloRail-1581",
+      "linearIdentifier": "MBR-45",
+      "browserGateTag": "veloRail-1581",
+      "title": "Make proposal overlays match Google Maps transit line styling",
+      "type": "bug",
+      "labels": [
+        "ui",
+        "map",
+        "gate/browser"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-45"
+    },
+    {
+      "id": "MBR-46",
+      "legacyId": "veloRail-16bd",
+      "linearIdentifier": "MBR-46",
+      "browserGateTag": "veloRail-16bd",
+      "title": "Remove casing from proposal overlay transit lines",
+      "type": "bug",
+      "labels": [
+        "role/ui-designer",
+        "gate/browser"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-46"
+    },
+    {
+      "id": "MBR-47",
+      "legacyId": "veloRail-a3d0",
+      "linearIdentifier": "MBR-47",
+      "browserGateTag": "veloRail-a3d0",
+      "title": "Audit proposal overlay line alignment against Google Maps",
+      "type": "bug",
+      "labels": [
+        "role/ui-designer",
+        "role/cartographer",
+        "gate/browser"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-47"
+    },
+    {
+      "id": "MBR-48",
+      "legacyId": "veloRail-a0c4",
+      "linearIdentifier": "MBR-48",
+      "browserGateTag": "veloRail-a0c4",
+      "title": "Migrate Google routing to Routes API",
+      "type": "task",
+      "labels": [
+        "role/infrastructure",
+        "role/transit-data",
+        "gate/browser"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-48"
+    }
+  ]
+}

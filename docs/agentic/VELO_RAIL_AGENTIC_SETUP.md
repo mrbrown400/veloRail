@@ -1,89 +1,84 @@
-# VeloRail Agentic Setup
+# VeloRail Codex-Native Setup
 
-This repo is expected to use some combination of Overstory, Seeds, Mulch, Canopy, and Codex.
+VeloRail now uses Codex, Linear, GitHub, repo docs, and repo-local Codex skills as the active agent workflow.
 
-## Idempotent setup
+## Active Systems
 
-Use `scripts/install_velorail_agentic_setup.py` to merge the VeloRail backlog into `.seeds/issues.jsonl` without duplicating issue IDs.
+- Linear: authoritative task and project tracker.
+- GitHub: branches, commits, pull requests, and review.
+- Codex app: local implementation threads and worktrees.
+- `.agents/skills/`: repeatable Codex workflows.
+- `docs/agentic/` and `docs/architecture/`: durable project decisions.
 
-```bash
-python scripts/install_velorail_agentic_setup.py
+Hidden legacy stores are migration inputs only:
+- `.seeds/` preserves the closed legacy backlog.
+- `.mulch/` preserves historical expertise records.
+- `.canopy/` preserves historical planning prompts.
+- `.overstory/` preserves old orchestration state.
+- `.claude/` and removed Claude guidance are not active Codex entrypoints.
+
+## Linear Migration
+
+The new Linear project is:
+
+```text
+Project: VeloRail Codex Migration
+URL: https://linear.app/velorail/project/velorail-codex-migration-ca2f0949f90c
+ID: 5a4d452d-5016-4e8d-bd3f-e6f0736e9bbd
 ```
 
-The script:
-- creates `.seeds/issues.jsonl` if missing
-- backs up existing `.seeds/issues.jsonl`
-- merges issues by `id`
-- preserves existing issue fields when possible
-- adapts setup-pack `depends_on` into Seeds `blockedBy` and `blocks`
-- keeps role ownership in labels such as `role/cartographer`
-- validates `velorail-agent-roles.json`
+The archived backlog has been imported into that project as 51 Done issues. The local mapping lives in `.linear/migration.json`.
 
-## Seeds
-
-Seeds is the task tracker. VeloRail issues are in `velorail-seeds.jsonl` and merge into `.seeds/issues.jsonl`.
-
-Suggested commands, if available:
+To inspect or rerun the token-based fallback importer:
 
 ```bash
-sd ready
-sd show VR-001
-sd update VR-001 --status in_progress
-npm run issue:gate -- VR-001 --explain
-npm run issue:close -- VR-001 --reason "Completed implementation"
+npm run linear:import -- --dry-run
+LINEAR_API_KEY=... npm run linear:import -- --apply --team-id <linear-team-id>
 ```
 
-Overstory agents must use the issue close wrapper. Direct `sd close` and
-`sd update --status closed` are blocked by `.overstory/hooks.json`.
+The dry run reports issue counts, priorities, labels, dependency edges, duplicate IDs, and missing dependency targets. The apply mode creates a new Linear project named `VeloRail Codex Migration` unless `--project-name` is supplied.
 
-## Overstory
+The current Linear team discovered for this account is:
 
-Do not overwrite existing Overstory config. VeloRail domain roles are guidance only in this repo:
-- Overstory still spawns standard capabilities such as `lead`, `builder`, `scout`, `reviewer`, and `merger`.
-- Seeds labels and `velorail-agent-roles.json` route work to VeloRail role guidance.
-- Standard agents should read the matching `agents/<role>.md` file before dispatching or implementing role-scoped work.
+```text
+Team: VeloRail
+Key: VEL
+ID: ff1e6e46-6ad8-4201-906a-7dc687f6354a
+```
 
-Do not add roles such as `cartographer` or `transit-data` to `.overstory/agent-manifest.json` unless the Overstory harness is first updated and tested for custom task-scoped capabilities.
+All imported legacy tasks are historical because `.seeds/issues.jsonl` currently contains only closed work. Reopen or create new Linear issues for future active work rather than treating the archived backlog as open.
 
-The active Overstory Bash post-tool hook runs `scripts/gitnexus-analyze-after-commit.sh` after agent `git commit` commands.
+## Gate And Close Commands
 
-### Mail startup path
-
-Use the read-only inbox command during startup and hook-time checks:
+Use task-oriented commands:
 
 ```bash
-ov mail list --to "$OVERSTORY_AGENT_NAME" --unread
+npm run task:gate -- <task-id> --explain
+npm run task:close -- <task-id> --reason "..."
 ```
 
-Do not use `ov mail check` as the default startup check in this repo. It marks
-unread messages as read, which writes to `.overstory/mail.db` and can fail with
-`Error: attempt to write a readonly database` in sandboxed Overstory worktrees.
-The `UserPromptSubmit` hook uses `ov mail list --to orchestrator --unread` for
-the same reason.
+During migration, `<task-id>` can be either a Linear identifier or a legacy ID such as `VR-304`. The scripts read `.linear/migration.json` when it exists and fall back to `.seeds/issues.jsonl` as an archive source.
 
-Mail send paths such as `worker_done`, `merge_ready`, and status/error messages
-also require mail DB writes. When those writes fail with `MAIL_ERROR`, treat that
-as a remaining closeout limitation: preserve the verification output, document
-the failed send, and let the coordinator/operator reconcile the terminal signal.
+Browser-facing tasks still require strict browser verification. Existing browser tests keep legacy `@VR-*` tags until they are deliberately retagged, so migration metadata preserves `browserGateTag`.
 
-## Git hooks
+## Knowledge Replacement
 
-This repo's local Git config uses:
+Mulch replacement:
+- Stable VeloRail facts live in `docs/agentic/` and `docs/architecture/`.
+- Repeatable workflows live in `.agents/skills/`.
+- Cross-repo personal memory can use Mem, but VeloRail-specific rules stay in this repo.
 
-```bash
-git config core.hooksPath .beads/hooks
-```
+Canopy replacement:
+- Active task plans live in Linear issue descriptions or comments.
+- Durable architecture decisions live in repo docs.
+- Reusable planning behavior lives in `.agents/skills/velorail-planning/SKILL.md`.
 
-The tracked `.beads/hooks/post-commit` hook runs `scripts/gitnexus-analyze-after-commit.sh`, which refreshes the ignored GitNexus index after commits and restores generated context files afterward. This keeps routine stats-only updates out of the working tree. Run `npx gitnexus analyze` manually when you intentionally want to refresh tracked GitNexus context text.
+GitNexus replacement:
+- Use `docs/agentic/repo-map.md` plus `npm run agent:repo-map`.
+- Use Codex exploration, `rg`, TypeScript references, and GitHub context for live code navigation.
+- Do not refresh GitNexus after commits.
 
-## Mulch
-
-Agents should query Mulch before implementation and record durable lessons afterward. If Mulch is unavailable, write notes to this directory.
-
-## Canopy
-
-Use Canopy for multi-system plans. If Canopy is unavailable, update `docs/agentic/canopy-plan.md`.
-
-## Roles
-
-Role definitions are in `agents/` and assignments are in `velorail-agent-roles.json`. These are VeloRail domain roles, not active Overstory capabilities.
+Overstory replacement:
+- Use Codex app worktrees and threads for concurrent local work.
+- Use Codex subagents only when explicitly requested and scoped.
+- Do not use Overstory mail, groups, agent manifests, or worker closeout rituals.

@@ -1,12 +1,12 @@
-# coordinator agent
+# Coordinator Role
 
-This is VeloRail domain-role guidance. It is not an active custom Overstory capability; standard Overstory coordinators/leads should read it when handling Seeds issues labeled `role/coordinator`.
+This is VeloRail domain-role guidance for Codex threads and Linear issues labeled `role/coordinator`.
 
 ## Mission
 
-Own architecture consistency, Google Maps-first constraints, Seeds/Overstory/Mulch/Canopy integration, and cross-cutting product decisions.
+Own architecture consistency, Google Maps-first constraints, Codex/Linear/GitHub workflow, and cross-cutting product decisions.
 
-## Primary Seeds Issues
+## Historical Issue Area
 
 VR-000, VR-004, VR-101, VR-104, VR-401
 
@@ -15,10 +15,9 @@ VR-000, VR-004, VR-101, VR-104, VR-401
 - Use Google Maps APIs wherever feasible.
 - Do not introduce alternate map providers.
 - Inspect existing implementation before changing files.
-- Read Seeds before work; update/close Seeds when done.
-- Query Mulch before implementation when available.
-- Record durable decisions to Mulch after implementation when available.
-- Use Canopy for cross-system planning decisions when available.
+- Read the relevant Linear issue, `AGENTS.md`, and the closest `.agents/skills/` file before work.
+- Put durable decisions in `docs/architecture/` or `docs/agentic/`.
+- Use `npm run task:gate -- <task-id> --explain` before closeout.
 - Preserve provenance for all custom transit data.
 
 ## Completion Notes
@@ -27,5 +26,5 @@ When completing work, document:
 - files changed
 - tests/checks run
 - Google Maps APIs used or intentionally not used
-- Mulch records added
-- Canopy plan updates if any
+- Linear issue or legacy ID used
+- docs updated for durable decisions

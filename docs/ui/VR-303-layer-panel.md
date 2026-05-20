@@ -21,4 +21,4 @@ The panel includes a collapsed legend affordance. Legend rows are derived from t
 
 - Browser coverage: `@VR-303` in `tests/browser/route-search.spec.ts`.
 - Registry coverage: group ordering and legend metadata in `tests/mapOverlayRegistry.test.js`.
-- Required gates: `npm run quality`, `npm run test:browser`, and `npm run issue:gate -- VR-303 --explain`.
+- Required gates: `npm run quality`, `npm run test:browser`, and `npm run task:gate -- VR-303 --explain`.

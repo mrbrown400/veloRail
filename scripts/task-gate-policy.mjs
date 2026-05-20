@@ -24,8 +24,8 @@ const BROWSER_KEYWORDS = [
   'render'
 ];
 
-export function issueLabels(issue) {
-  return Array.isArray(issue?.labels) ? issue.labels.filter((label) => typeof label === 'string') : [];
+export function taskLabels(task) {
+  return Array.isArray(task?.labels) ? task.labels.filter((label) => typeof label === 'string') : [];
 }
 
 export function hasBrowserKeyword(value) {
@@ -33,13 +33,14 @@ export function hasBrowserKeyword(value) {
   return BROWSER_KEYWORDS.find((keyword) => normalized.includes(keyword)) || null;
 }
 
-export function classifyIssueForGates(issue, changedFiles = []) {
-  if (!issue || typeof issue !== 'object') {
-    throw new TypeError('classifyIssueForGates requires an issue object');
+export function classifyTaskForGates(task, changedFiles = []) {
+  if (!task || typeof task !== 'object') {
+    throw new TypeError('classifyTaskForGates requires a task object');
   }
 
-  const id = String(issue.id || '<unknown>');
-  const labels = new Set(issueLabels(issue));
+  const id = String(task.id || task.identifier || task.legacyId || '<unknown>');
+  const browserGateTag = String(task.browserGateTag || task.legacyId || id);
+  const labels = new Set(taskLabels(task));
   const reasons = [];
   const browserReasons = [];
   const smokeOnly = labels.has(BROWSER_SMOKE_ONLY_LABEL);
@@ -49,10 +50,11 @@ export function classifyIssueForGates(issue, changedFiles = []) {
     reasons.push(`${NO_CODE_LABEL} skips code and browser gates`);
     return {
       id,
+      browserGateTag,
       runQuality: false,
       runBrowser: false,
       smokeOnly,
-      issueTagRequired: false,
+      taskTagRequired: false,
       reasons,
       browserReasons
     };
@@ -64,8 +66,8 @@ export function classifyIssueForGates(issue, changedFiles = []) {
     browserReasons.push(`${FORCE_BROWSER_LABEL} label`);
   } else if (labels.has(SUPPRESS_BROWSER_LABEL)) {
     reasons.push(`${SUPPRESS_BROWSER_LABEL} suppresses automatic browser gate`);
-  } else if (issue.type === 'feature') {
-    browserReasons.push('issue type is feature');
+  } else if (task.type === 'feature') {
+    browserReasons.push('task type is feature');
   } else {
     const matchedLabel = [...labels].find((label) => AUTO_BROWSER_LABELS.has(label));
     if (matchedLabel) {
@@ -74,9 +76,9 @@ export function classifyIssueForGates(issue, changedFiles = []) {
   }
 
   if (!browserReasons.length && !labels.has(SUPPRESS_BROWSER_LABEL)) {
-    const textKeyword = hasBrowserKeyword(`${issue.title || ''}\n${issue.description || ''}`);
+    const textKeyword = hasBrowserKeyword(`${task.title || ''}\n${task.description || ''}`);
     if (textKeyword) {
-      browserReasons.push(`issue text mentions "${textKeyword}"`);
+      browserReasons.push(`task text mentions "${textKeyword}"`);
     }
   }
 
@@ -93,27 +95,28 @@ export function classifyIssueForGates(issue, changedFiles = []) {
     if (smokeOnly) {
       reasons.push(`${BROWSER_SMOKE_ONLY_LABEL} allows @smoke browser coverage`);
     } else {
-      reasons.push(`browser gate requires a Playwright title containing @${id}`);
+      reasons.push(`browser gate requires a Playwright title containing @${browserGateTag}`);
     }
   }
 
   return {
     id,
+    browserGateTag,
     runQuality: true,
     runBrowser,
     smokeOnly,
-    issueTagRequired: runBrowser && !smokeOnly,
+    taskTagRequired: runBrowser && !smokeOnly,
     reasons,
     browserReasons
   };
 }
 
-export function combineIssueGatePlans(issuePlans) {
-  const runQuality = issuePlans.some((issuePlan) => issuePlan.runQuality);
-  const runBrowserSmoke = issuePlans.some((issuePlan) => issuePlan.runBrowser && issuePlan.smokeOnly);
-  const browserIssueIds = issuePlans
-    .filter((issuePlan) => issuePlan.runBrowser && !issuePlan.smokeOnly)
-    .map((issuePlan) => issuePlan.id);
+export function combineTaskGatePlans(taskPlans) {
+  const runQuality = taskPlans.some((taskPlan) => taskPlan.runQuality);
+  const runBrowserSmoke = taskPlans.some((taskPlan) => taskPlan.runBrowser && taskPlan.smokeOnly);
+  const browserGateTags = taskPlans
+    .filter((taskPlan) => taskPlan.runBrowser && !taskPlan.smokeOnly)
+    .map((taskPlan) => taskPlan.browserGateTag);
 
   const commands = [];
   if (runQuality) {
@@ -125,24 +128,24 @@ export function combineIssueGatePlans(issuePlans) {
       command: 'npm run test:browser:required -- --grep @smoke'
     });
   }
-  for (const issueId of browserIssueIds) {
+  for (const gateTag of browserGateTags) {
     commands.push({
-      name: `browser-${issueId}`,
-      command: `npm run test:browser:required -- --grep @${issueId}`
+      name: `browser-${gateTag}`,
+      command: `npm run test:browser:required -- --grep @${gateTag}`
     });
   }
 
   return {
-    issuePlans,
+    taskPlans,
     runQuality,
     runBrowserSmoke,
-    browserIssueIds,
+    browserGateTags,
     commands
   };
 }
 
 export function formatGatePlan(plan, changedFiles = []) {
-  const lines = ['Issue gate plan'];
+  const lines = ['Task gate plan'];
   lines.push('');
   lines.push('Commands:');
   if (plan.commands.length === 0) {
@@ -154,9 +157,9 @@ export function formatGatePlan(plan, changedFiles = []) {
   }
 
   lines.push('');
-  lines.push('Issue reasons:');
-  for (const issuePlan of plan.issuePlans) {
-    lines.push(`- ${issuePlan.id}: ${issuePlan.reasons.join('; ') || 'no gates required'}`);
+  lines.push('Task reasons:');
+  for (const taskPlan of plan.taskPlans) {
+    lines.push(`- ${taskPlan.id}: ${taskPlan.reasons.join('; ') || 'no gates required'}`);
   }
 
   if (changedFiles.length > 0) {
@@ -169,4 +172,3 @@ export function formatGatePlan(plan, changedFiles = []) {
 
   return lines.join('\n');
 }
-

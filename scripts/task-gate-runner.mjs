@@ -1,19 +1,25 @@
 import { spawnSync } from 'node:child_process';
+import { findTaskById } from './task-metadata.mjs';
 import {
-  classifyIssueForGates,
-  combineIssueGatePlans,
+  classifyTaskForGates,
+  combineTaskGatePlans,
   formatGatePlan
-} from './issue-gate-policy.mjs';
+} from './task-gate-policy.mjs';
 
 function parseArgs(argv, { requireReason = false } = {}) {
   const ids = [];
   let reason = '';
   let explain = false;
+  let applyLinear = false;
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--explain' || arg === '--dry-run') {
       explain = true;
+      continue;
+    }
+    if (arg === '--apply-linear') {
+      applyLinear = true;
       continue;
     }
     if (arg === '--reason') {
@@ -32,14 +38,14 @@ function parseArgs(argv, { requireReason = false } = {}) {
   }
 
   if (ids.length === 0) {
-    throw new Error('At least one Seeds issue id is required.');
+    throw new Error('At least one Linear or legacy task id is required.');
   }
 
   if (requireReason && !reason.trim()) {
-    throw new Error('Closing issues requires --reason "<summary>".');
+    throw new Error('Closing tasks requires --reason "<summary>".');
   }
 
-  return { ids, reason, explain };
+  return { ids, reason, explain, applyLinear };
 }
 
 function runText(command, args) {
@@ -80,19 +86,6 @@ function getChangedFiles() {
   return changedFiles;
 }
 
-function readIssue(issueId) {
-  const result = spawnSync('sd', ['show', issueId, '--json'], { encoding: 'utf8' });
-  if (result.status !== 0) {
-    throw new Error(`Failed to read Seeds issue ${issueId}.\n${result.stderr || result.stdout}`);
-  }
-
-  const parsed = JSON.parse(result.stdout);
-  if (!parsed.issue) {
-    throw new Error(`Seeds did not return an issue for ${issueId}.`);
-  }
-  return parsed.issue;
-}
-
 function runCommand(command, args) {
   const result = spawnSync(command, args, {
     stdio: 'inherit',
@@ -110,25 +103,69 @@ function runGatePlan(plan) {
   if (plan.runBrowserSmoke) {
     runCommand('npm', ['run', 'test:browser:required', '--', '--grep', '@smoke']);
   }
-  for (const issueId of plan.browserIssueIds) {
-    runCommand('npm', ['run', 'test:browser:required', '--', '--grep', `@${issueId}`]);
+  for (const gateTag of plan.browserGateTags) {
+    runCommand('npm', ['run', 'test:browser:required', '--', '--grep', `@${gateTag}`]);
   }
 }
 
-function closeIssues(ids, reason) {
-  runCommand('sd', ['close', '--reason', reason, ...ids]);
-}
-
 export function buildGatePlan(ids, changedFiles = getChangedFiles()) {
-  const issues = ids.map(readIssue);
-  const issuePlans = issues.map((issue) => classifyIssueForGates(issue, changedFiles));
+  const taskLookups = ids.map((id) => findTaskById(id));
+  const tasks = taskLookups.map((lookup) => lookup.task);
+  const taskPlans = tasks.map((task) => classifyTaskForGates(task, changedFiles));
   return {
     changedFiles,
-    plan: combineIssueGatePlans(issuePlans)
+    tasks,
+    plan: combineTaskGatePlans(taskPlans)
   };
 }
 
-export async function runIssueGateCli(argv = process.argv.slice(2)) {
+async function closeLinearTasks(tasks, reason) {
+  if (!process.env.LINEAR_API_KEY || !process.env.LINEAR_DONE_STATE_ID) {
+    console.log('');
+    console.log('Gates passed. Linear close was not applied because LINEAR_API_KEY and LINEAR_DONE_STATE_ID are not both set.');
+    console.log(`Close these tasks in Linear with reason: ${reason}`);
+    for (const task of tasks) {
+      console.log(`- ${task.linearIdentifier || task.legacyId || task.id}: ${task.title}`);
+    }
+    return;
+  }
+
+  for (const task of tasks) {
+    const issueId = task.linearId || task.id;
+    if (!issueId) {
+      throw new Error(`Task ${task.title} does not have a Linear id to close.`);
+    }
+    await linearGraphql(`
+      mutation CloseTask($id: String!, $stateId: String!) {
+        issueUpdate(id: $id, input: { stateId: $stateId }) {
+          success
+          issue { id identifier title }
+        }
+      }
+    `, {
+      id: issueId,
+      stateId: process.env.LINEAR_DONE_STATE_ID
+    });
+  }
+}
+
+async function linearGraphql(query, variables) {
+  const response = await fetch('https://api.linear.app/graphql', {
+    method: 'POST',
+    headers: {
+      'Authorization': process.env.LINEAR_API_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ query, variables })
+  });
+  const payload = await response.json();
+  if (!response.ok || payload.errors) {
+    throw new Error(JSON.stringify(payload.errors || payload, null, 2));
+  }
+  return payload.data;
+}
+
+export async function runTaskGateCli(argv = process.argv.slice(2)) {
   const { ids, explain } = parseArgs(argv);
   const { changedFiles, plan } = buildGatePlan(ids);
   console.log(formatGatePlan(plan, changedFiles));
@@ -137,14 +174,20 @@ export async function runIssueGateCli(argv = process.argv.slice(2)) {
   }
 }
 
-export async function runIssueCloseCli(argv = process.argv.slice(2)) {
-  const { ids, reason, explain } = parseArgs(argv, { requireReason: true });
-  const { changedFiles, plan } = buildGatePlan(ids);
+export async function runTaskCloseCli(argv = process.argv.slice(2)) {
+  const { ids, reason, explain, applyLinear } = parseArgs(argv, { requireReason: true });
+  const { changedFiles, tasks, plan } = buildGatePlan(ids);
   console.log(formatGatePlan(plan, changedFiles));
   if (explain) {
     return;
   }
 
   runGatePlan(plan);
-  closeIssues(ids, reason);
+  if (applyLinear) {
+    await closeLinearTasks(tasks, reason);
+    return;
+  }
+
+  console.log('');
+  console.log('Gates passed. Re-run with --apply-linear and LINEAR_API_KEY plus LINEAR_DONE_STATE_ID to update Linear automatically.');
 }

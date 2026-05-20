@@ -62,14 +62,14 @@ Visionary styling should remain visually distinct from official future projects 
 
 Use this checklist before adding or updating a visionary proposal:
 
-- Create or update a Canopy plan when the change touches geometry, source policy, schema, overlays, or UI copy.
+- Create or update a Linear plan/comment when the change touches geometry, source policy, schema, overlays, or UI copy.
 - Choose exactly one classification: `commentary_summary`, `advocacy_derived`, or `speculative`.
 - Include a provenance source that justifies the concept and a source note that separates sourced facts from VeloRail assumptions.
 - Add `geometry.geometryNotes` that says whether the line is conceptual or approximate and what was simplified.
 - Add `uncertainty.sourceNotes`, `uncertainty.assumptions`, and `uncertainty.disclaimer`.
 - Include station confidence and station notes when station anchors are illustrative.
 - Verify the record with `validateVisionaryTransitProposalDataset`.
-- Record reusable source, wording, or geometry decisions in Mulch.
+- Record reusable source, wording, or geometry decisions in repo docs.
 
 For video-derived or commentary-derived ideas, summarize the concept at a high level and cite the source. Do not copy transcript text, creator phrasing, or map artwork into the dataset. If a video mentions an official project, move that official project to the official future dataset only after checking an official agency source.
 

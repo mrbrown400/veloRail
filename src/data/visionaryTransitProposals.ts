@@ -41,7 +41,7 @@ export const VISIONARY_TRANSIT_PROPOSAL_REGISTRY_POLICY = {
     'Keep official future projects in the official future dataset, not this registry.',
     'Refresh accessedAt only after reviewing the cited source or internal scenario note.',
     'For video-derived or commentary-derived ideas, summarize only the concept and cite the source instead of copying transcript text.',
-    'Record reusable review decisions in Mulch and create or update a Canopy plan when geometry, schema, or map-layer contracts change.'
+    'Record reusable review decisions in repo docs and update the relevant Linear plan when geometry, schema, or map-layer contracts change.'
   ]
 } as const;
 
