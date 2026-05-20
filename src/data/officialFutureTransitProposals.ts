@@ -283,7 +283,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#f97316',
         strokeOpacity: 0.9,
-        strokeWeight: 5,
+        strokeWeight: 3,
         stationFillColor: '#f97316',
         legendLabel: 'Future light rail'
       },
@@ -408,7 +408,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#14b8a6',
         strokeOpacity: 0.86,
-        strokeWeight: 5,
+        strokeWeight: 3,
         stationFillColor: '#14b8a6',
         legendLabel: 'Future light rail'
       },
@@ -509,7 +509,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#22c55e',
         strokeOpacity: 0.88,
-        strokeWeight: 5,
+        strokeWeight: 3,
         stationFillColor: '#22c55e',
         legendLabel: 'Future light rail'
       },
@@ -654,7 +654,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#06b6d4',
         strokeOpacity: 0.86,
-        strokeWeight: 5,
+        strokeWeight: 3,
         stationFillColor: '#06b6d4',
         legendLabel: 'Future light rail'
       },
@@ -775,7 +775,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#ef4444',
         strokeOpacity: 0.86,
-        strokeWeight: 5,
+        strokeWeight: 3,
         stationFillColor: '#ef4444',
         legendLabel: 'Future BRT'
       },
@@ -886,7 +886,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#0f766e',
         strokeOpacity: 0.86,
-        strokeWeight: 5,
+        strokeWeight: 3,
         stationFillColor: '#0f766e',
         legendLabel: 'Future BRT'
       },

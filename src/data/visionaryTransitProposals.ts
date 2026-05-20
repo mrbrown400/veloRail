@@ -167,7 +167,7 @@ export const VISIONARY_TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = assert
       style: {
         strokeColor: '#be123c',
         strokeOpacity: 0.9,
-        strokeWeight: 5,
+        strokeWeight: 3,
         strokePattern: 'solid',
         stationFillColor: '#be123c',
         stationStrokeColor: '#881337',
@@ -281,7 +281,7 @@ export const VISIONARY_TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = assert
       style: {
         strokeColor: '#be185d',
         strokeOpacity: 0.9,
-        strokeWeight: 5,
+        strokeWeight: 3,
         strokePattern: 'solid',
         stationFillColor: '#be185d',
         stationStrokeColor: '#831843',
@@ -396,7 +396,7 @@ export const VISIONARY_TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = assert
       style: {
         strokeColor: '#9f1239',
         strokeOpacity: 0.9,
-        strokeWeight: 5,
+        strokeWeight: 3,
         strokePattern: 'solid',
         stationFillColor: '#9f1239',
         stationStrokeColor: '#881337',

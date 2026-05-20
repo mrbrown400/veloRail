@@ -94,9 +94,15 @@ test('overlay style config drives proposal rendering and native legend metadata'
   } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
 
   assert.equal(MAP_OVERLAY_STYLE_CONFIG.future.legend.scenario, 'future');
+  assert.equal(MAP_OVERLAY_STYLE_CONFIG.future.line.strokeWeight, 3);
   assert.equal(MAP_OVERLAY_STYLE_CONFIG.visionary.line.strokePattern, 'solid');
+  assert.equal(MAP_OVERLAY_STYLE_CONFIG.visionary.line.strokeWeight, 3);
   assert.equal(MAP_OVERLAY_STYLE_CONFIG.freight_only.line.strokePattern, 'solid');
+  assert.equal(MAP_OVERLAY_STYLE_CONFIG.freight_only.line.strokeWeight, 3);
   assert.equal(MAP_OVERLAY_STYLE_CONFIG.converted_passenger.legend.scenario, 'nationalized');
+  assert.equal(MAP_OVERLAY_STYLE_CONFIG.converted_passenger.line.strokeWeight, 3);
+  assert.equal('casingStrokeColor' in MAP_OVERLAY_STYLE_CONFIG.future.line, false);
+  assert.equal('casingStrokeWeight' in MAP_OVERLAY_STYLE_CONFIG.converted_passenger.line, false);
 
   const [future] = getProposalOverlayInputsByGroup('future');
   const [visionary] = getProposalOverlayInputsByGroup('visionary');
@@ -112,11 +118,15 @@ test('overlay style config drives proposal rendering and native legend metadata'
 
   assert.equal(getProposalOverlayStyle(future.proposal).key, 'future');
   assert.equal(getProposalOverlayStyle(future.proposal).legend.label, 'Future heavy rail');
+  assert.equal(getProposalOverlayStyle(future.proposal).line.strokeWeight, 3);
   assert.equal(getProposalOverlayStyle(visionary.proposal).key, 'visionary');
   assert.equal(getProposalOverlayStyle(visionary.proposal).line.strokePattern, 'solid');
+  assert.equal(getProposalOverlayStyle(visionary.proposal).line.strokeWeight, 3);
   assert.equal(getProposalOverlayStyle(freight.proposal).key, 'freight_only');
   assert.equal(getProposalOverlayStyle(freight.proposal).line.strokePattern, 'solid');
+  assert.equal(getProposalOverlayStyle(freight.proposal).line.strokeWeight, 3);
   assert.equal(getProposalOverlayStyle(convertedPassenger.proposal).key, 'converted_passenger');
+  assert.equal(getProposalOverlayStyle(convertedPassenger.proposal).line.strokeWeight, 3);
 
   const legendItems = getMapOverlayLegendItems();
   const byLabel = new Map(legendItems.map((item) => [item.label, item]));

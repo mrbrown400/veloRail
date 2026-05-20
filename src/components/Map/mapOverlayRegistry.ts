@@ -53,9 +53,6 @@ interface MapOverlayLineStyle {
   strokeOpacity: number;
   strokeWeight: number;
   strokePattern: LegendLinePattern;
-  casingStrokeColor: string;
-  casingStrokeOpacity: number;
-  casingStrokeWeight: number;
   symbolScale: number;
   symbolStrokeWeight: number;
   repeat: string;
@@ -171,13 +168,10 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
     line: {
       strokeColor: '#1a73e8',
       strokeOpacity: 0.9,
-      strokeWeight: 5,
+      strokeWeight: 3,
       strokePattern: 'solid',
-      casingStrokeColor: '#ffffff',
-      casingStrokeOpacity: 0.88,
-      casingStrokeWeight: 8,
       symbolScale: 2,
-      symbolStrokeWeight: 3,
+      symbolStrokeWeight: 2,
       repeat: '18px'
     },
     marker: {
@@ -201,13 +195,10 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
     line: {
       strokeColor: '#188038',
       strokeOpacity: 0.86,
-      strokeWeight: 4,
+      strokeWeight: 3,
       strokePattern: 'solid',
-      casingStrokeColor: '#ffffff',
-      casingStrokeOpacity: 0.82,
-      casingStrokeWeight: 7,
       symbolScale: 2,
-      symbolStrokeWeight: 3,
+      symbolStrokeWeight: 2,
       repeat: '18px'
     },
     marker: {
@@ -231,13 +222,10 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
     line: {
       strokeColor: '#7e22ce',
       strokeOpacity: 0.94,
-      strokeWeight: 5,
+      strokeWeight: 3,
       strokePattern: 'solid',
-      casingStrokeColor: '#ffffff',
-      casingStrokeOpacity: 0.88,
-      casingStrokeWeight: 8,
       symbolScale: 2,
-      symbolStrokeWeight: 3,
+      symbolStrokeWeight: 2,
       repeat: '18px'
     },
     marker: {
@@ -261,13 +249,10 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
     line: {
       strokeColor: '#d93025',
       strokeOpacity: 0.94,
-      strokeWeight: 5,
+      strokeWeight: 3,
       strokePattern: 'solid',
-      casingStrokeColor: '#ffffff',
-      casingStrokeOpacity: 0.86,
-      casingStrokeWeight: 8,
       symbolScale: 2,
-      symbolStrokeWeight: 3,
+      symbolStrokeWeight: 2,
       repeat: '18px'
     },
     marker: {
@@ -291,13 +276,10 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
     line: {
       strokeColor: '#5f6368',
       strokeOpacity: 0.9,
-      strokeWeight: 4,
+      strokeWeight: 3,
       strokePattern: 'solid',
-      casingStrokeColor: '#ffffff',
-      casingStrokeOpacity: 0.78,
-      casingStrokeWeight: 7,
       symbolScale: 2.25,
-      symbolStrokeWeight: 3,
+      symbolStrokeWeight: 2,
       repeat: '14px'
     },
     marker: {
@@ -321,13 +303,10 @@ export const MAP_OVERLAY_STYLE_CONFIG: Record<MapOverlayStyleKey, MapOverlayStyl
     line: {
       strokeColor: '#1a73e8',
       strokeOpacity: 0.94,
-      strokeWeight: 5,
+      strokeWeight: 3,
       strokePattern: 'solid',
-      casingStrokeColor: '#ffffff',
-      casingStrokeOpacity: 0.86,
-      casingStrokeWeight: 8,
       symbolScale: 2,
-      symbolStrokeWeight: 3,
+      symbolStrokeWeight: 2,
       repeat: '18px'
     },
     marker: {
@@ -625,12 +604,7 @@ function createProposalOverlays(
   const rendering = proposal.rendering;
 
   const lineOverlays = createProposalLineOverlays(proposal, polyline, zIndex);
-  lineOverlays.forEach(({ casing, line }) => {
-    overlays.push({
-      overlay: casing,
-      minZoom: rendering?.minZoom,
-      maxZoom: rendering?.maxZoom
-    });
+  lineOverlays.forEach((line) => {
     overlays.push({
       overlay: line,
       minZoom: rendering?.minZoom,
@@ -682,30 +656,8 @@ function createProposalLineOverlays(
   zIndex: number
 ) {
   return [
-    {
-      casing: new google.maps.Polyline(getProposalPolylineCasingOptions(proposal, polyline, zIndex - 1)),
-      line: new google.maps.Polyline(getProposalPolylineOptions(proposal, polyline, zIndex))
-    }
+    new google.maps.Polyline(getProposalPolylineOptions(proposal, polyline, zIndex))
   ];
-}
-
-function getProposalPolylineCasingOptions(
-  proposal: TransitProposal,
-  polyline: ProposalPolylineInput,
-  zIndex: number
-): google.maps.PolylineOptions {
-  const { line } = getProposalOverlayStyle(proposal);
-
-  return {
-    ...polyline.options,
-    path: polyline.path,
-    clickable: false,
-    strokeColor: line.casingStrokeColor,
-    strokeOpacity: line.casingStrokeOpacity,
-    strokeWeight: line.casingStrokeWeight,
-    zIndex,
-    icons: undefined
-  };
 }
 
 function getProposalPolylineOptions(
@@ -858,6 +810,9 @@ export function getProposalOverlayStyle(proposal: TransitProposal): ResolvedMapO
   const strokeOpacity = usesGoogleTransitLineTreatment
     ? Math.max(style?.strokeOpacity ?? base.line.strokeOpacity, base.line.strokeOpacity)
     : style?.strokeOpacity ?? base.line.strokeOpacity;
+  const strokeWeight = usesGoogleTransitLineTreatment
+    ? base.line.strokeWeight
+    : style?.strokeWeight ?? base.line.strokeWeight;
 
   return {
     key,
@@ -865,7 +820,7 @@ export function getProposalOverlayStyle(proposal: TransitProposal): ResolvedMapO
       ...base.line,
       strokeColor: style?.strokeColor ?? base.line.strokeColor,
       strokeOpacity,
-      strokeWeight: style?.strokeWeight ?? base.line.strokeWeight,
+      strokeWeight,
       strokePattern
     },
     marker: {

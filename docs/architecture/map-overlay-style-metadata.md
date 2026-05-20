@@ -1,6 +1,6 @@
 # Map Overlay Style And Metadata
 
-VR-003, VR-004, VR-403, and veloRail-1581 keep VeloRail overlays on Google Maps while centralizing line style, optional station marker style, legend metadata, and click metadata in the overlay registry.
+VR-003, VR-004, VR-403, veloRail-1581, and veloRail-16bd keep VeloRail overlays on Google Maps while centralizing line style, optional station marker style, legend metadata, and click metadata in the overlay registry.
 
 ## Style Config
 
@@ -13,7 +13,7 @@ VR-003, VR-004, VR-403, and veloRail-1581 keep VeloRail overlays on Google Maps 
 - `freight_only`: freight corridors that do not imply passenger service.
 - `converted_passenger`: passenger conversion concepts on freight corridors.
 
-Proposal records can still override stroke colors through their existing `style` hints, but future, visionary, freight, and converted-passenger overlays are resolved to Google-like solid lines with a white casing. Station records remain in proposal metadata, but proposal overlays do not render station dots unless a record explicitly opts in with `rendering.stationMarkersVisible`.
+Proposal records can still override stroke colors through their existing `style` hints, but future, visionary, freight, and converted-passenger overlays are resolved to Google-like single solid strokes. The overlay registry ignores older per-record heavy stroke weights for those proposal layers so they match the thin Google Maps transit treatment observed in Chrome. Station records remain in proposal metadata, but proposal overlays do not render station dots unless a record explicitly opts in with `rendering.stationMarkersVisible`.
 
 ## Metadata Interaction
 
@@ -32,7 +32,7 @@ The side panel is intentionally supplemental to the Google Maps `InfoWindow`: th
 
 ## Freight Rendering
 
-The nationalized rail overlay renders `freight` and `converted_passenger` proposal layer groups. Freight-only corridors use muted solid rail strokes and converted-passenger concepts use solid cased passenger-service strokes instead of dotted or dashed symbols.
+The nationalized rail overlay renders `freight` and `converted_passenger` proposal layer groups. Freight-only corridors use muted solid rail strokes and converted-passenger concepts use single solid passenger-service strokes instead of dotted, dashed, or cased symbols.
 
 Freight geometry remains VeloRail-owned proposal geometry. Google Maps renders the polylines and handles click events, but the Google basemap is not treated as a source for freight alignment, ownership, or conversion claims. For the initial LA nationalized corridors, display geometry is simplified from the public Caltrans California Rail Network feature layer already cited in proposal provenance.
 

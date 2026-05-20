@@ -133,7 +133,7 @@ export const LA_FREIGHT_RAIL_CORRIDOR_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#5f6368',
         strokeOpacity: 0.9,
-        strokeWeight: 4,
+        strokeWeight: 3,
         strokePattern: 'solid',
         legendLabel: 'Freight corridor'
       },
@@ -353,7 +353,7 @@ export const LA_FREIGHT_RAIL_CORRIDOR_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#5f6368',
         strokeOpacity: 0.9,
-        strokeWeight: 4,
+        strokeWeight: 3,
         strokePattern: 'solid',
         legendLabel: 'BNSF freight corridor'
       },
@@ -543,7 +543,7 @@ export const LA_FREIGHT_RAIL_CORRIDOR_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#5f6368',
         strokeOpacity: 0.9,
-        strokeWeight: 4,
+        strokeWeight: 3,
         strokePattern: 'solid',
         legendLabel: 'Union Pacific freight corridor'
       },
@@ -722,7 +722,7 @@ export const LA_FREIGHT_RAIL_CORRIDOR_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#5f6368',
         strokeOpacity: 0.9,
-        strokeWeight: 4,
+        strokeWeight: 3,
         strokePattern: 'solid',
         legendLabel: 'Port terminal rail'
       },

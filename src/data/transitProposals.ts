@@ -17,7 +17,7 @@ const DEFAULT_STYLE: Required<Pick<
 >> = {
   strokeColor: '#2563eb',
   strokeOpacity: 0.85,
-  strokeWeight: 5,
+  strokeWeight: 3,
   stationFillColor: '#2563eb',
   stationStrokeColor: '#ffffff',
   stationScale: 5,
@@ -129,7 +129,7 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#A05DA5',
         strokeOpacity: 0.9,
-        strokeWeight: 6,
+        strokeWeight: 3,
         stationFillColor: '#A05DA5',
         legendLabel: 'Future heavy rail'
       },
@@ -230,7 +230,7 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#db2777',
         strokeOpacity: 0.9,
-        strokeWeight: 5,
+        strokeWeight: 3,
         strokePattern: 'solid',
         stationFillColor: '#db2777',
         legendLabel: 'Visionary concept'
@@ -289,7 +289,7 @@ export const TRANSIT_PROPOSAL_DATASET: TransitProposalDataset = {
       style: {
         strokeColor: '#64748b',
         strokeOpacity: 0.9,
-        strokeWeight: 4,
+        strokeWeight: 3,
         strokePattern: 'solid',
         legendLabel: 'Freight corridor'
       },

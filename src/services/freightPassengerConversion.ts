@@ -169,7 +169,7 @@ function createConversionRecord(
     stations: buildConversionStations(proposalId, normalizedScenario, source),
     style: {
       strokeOpacity: 0.82,
-      strokeWeight: 5,
+      strokeWeight: 3,
       strokePattern: 'solid',
       legendLabel: 'Passenger conversion'
     },
