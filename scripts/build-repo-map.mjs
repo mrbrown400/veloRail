@@ -31,13 +31,30 @@ const sections = [
   '## Agent Workflow',
   '',
   '- Start from `AGENTS.md` and the relevant `.agents/skills/*/SKILL.md` file.',
+  '- Use `.agents/skills/velorail-harness-curation/SKILL.md` before adding new agentic tools.',
+  '- Use `docs/agentic/templates/` for static Linear issue specs and implementation-plan structure.',
+  '- Use `docs/agentic/skills-portability.md` when creating or editing repo-local Codex skills.',
+  '- Use `docs/agentic/codex-skill-discovery.md` when evaluating external skill catalogs.',
+  '- Use `docs/agentic/repo-map-lattice.md` for the static repo-map lattice pilot.',
   '- Use Linear for active task state and GitHub for code review.',
   '- Use `npm run task:gate -- <task-id> --explain` before closing work.',
   '- Browser-facing changes require `npm run test:browser:required` with a task tag or smoke tag.',
+  '- Use Mem for cross-repo personal memory; keep VeloRail-specific operating rules in repo docs.',
+  '',
+  '## Static Harness References',
+  '',
+  '- `docs/agentic/phase-1-codex-harness.md`: canonical Phase 1 harness policy.',
+  '- `docs/agentic/templates/linear-issue-spec.md`: issue spec and acceptance criteria template.',
+  '- `docs/agentic/templates/implementation-plan.md`: implementation plan template.',
+  '- `docs/agentic/skills-portability.md`: Agent Skills portability checklist.',
+  '- `docs/agentic/codex-skill-discovery.md`: external skill catalog intake flow.',
+  '- `docs/agentic/repo-map-lattice.md`: static `lat.md`-style relationship map.',
   '',
   '## Removed Legacy Directories',
   '',
-  'Legacy hidden workflow directories were removed from the repo. Active task metadata lives in `.linear/migration.json`.'
+  'Legacy hidden workflow directories were removed from the repo. Active task metadata lives in `.linear/migration.json`.',
+  '',
+  'Files under `docs/agentic/legacy/` are historical exports only. Do not treat old Seeds, Mulch, Canopy, Overstory, or GitNexus instructions in those files as active workflow.'
 ];
 
 writeFileSync(outputPath, `${sections.join('\n')}\n`);
@@ -52,7 +69,9 @@ function summarizeFiles(files) {
     ['`src/types/`', files.filter((file) => file.startsWith('src/types/')).length],
     ['`tests/`', files.filter((file) => file.startsWith('tests/')).length],
     ['`tests/browser/`', files.filter((file) => file.startsWith('tests/browser/')).length],
-    ['`docs/architecture/`', files.filter((file) => file.startsWith('docs/architecture/')).length]
+    ['`docs/architecture/`', files.filter((file) => file.startsWith('docs/architecture/')).length],
+    ['`docs/agentic/`', files.filter((file) => file.startsWith('docs/agentic/')).length],
+    ['`.agents/skills/`', files.filter((file) => file.startsWith('.agents/skills/')).length]
   ];
 
   return groups.map(([label, count]) => `- ${label}: ${count} known files`);

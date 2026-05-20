@@ -36,6 +36,27 @@ Repo-local Codex skills live in `.agents/skills/`. Read the matching skill befor
 - `.agents/skills/velorail-transit-data/SKILL.md` for future, visionary, freight, GTFS, and scenario data work.
 - `.agents/skills/velorail-browser-verification/SKILL.md` for strict browser verification.
 - `.agents/skills/velorail-release-closeout/SKILL.md` for final verification, PR handoff, and Linear closeout.
+- `.agents/skills/velorail-harness-curation/SKILL.md` before adding or evaluating new skills, MCP servers, code-indexers, memory stores, or orchestration tools.
+
+## Harness Curation
+
+Phase 1 keeps the VeloRail harness intentionally small. Use external agentic-engineering repos as references or template sources unless a Linear issue explicitly asks for a bounded pilot.
+
+Approved Phase 1 uses:
+- Use `github/spec-kit` as a reference for issue specs, acceptance criteria, and implementation-plan shape.
+- Use the Agent Skills specification as the shape for repo-local `SKILL.md` files.
+- Use `ComposioHQ/awesome-codex-skills` only as a discovery catalog. Review individual skills before adopting them.
+- Use Superpowers selectively when its workflow skill fits the task, especially planning, parallel investigation, debugging, review, and verification.
+- Consider `1st1/lat.md` only as a static Markdown pilot if it improves `docs/agentic/repo-map.md` without adding a daemon, database, MCP server, or broad hook layer.
+
+Static Phase 1 assets:
+- `docs/agentic/templates/linear-issue-spec.md` for Linear issue specs and acceptance criteria.
+- `docs/agentic/templates/implementation-plan.md` for task plans that need more structure than a short Linear comment.
+- `docs/agentic/skills-portability.md` for Agent Skills-style `SKILL.md` review.
+- `docs/agentic/codex-skill-discovery.md` for reviewing external skill catalogs before adoption.
+- `docs/agentic/repo-map-lattice.md` for the static `lat.md`-style repo relationship pilot.
+
+Do not add a new agentic harness daemon, MCP server, database, or orchestration UI to VeloRail by default. That policy does not ban product data storage or normal app infrastructure when a feature requires it. New harness runtimes increase security surface, setup drift, cloud/local mismatch, and workflow overlap with Codex worktrees, Linear, GitHub, repo docs, and Playwright gates. Put global experiments in a separate Codex harness first, then adopt into VeloRail only after a benchmark proves value.
 
 ## Google Maps-First Architecture
 
@@ -85,8 +106,12 @@ Use labels in Linear to drive gate behavior:
 
 Use repo docs instead of agent-private stores:
 - `docs/agentic/repo-map.md` for the codebase map.
+- `docs/agentic/repo-map-lattice.md` for static relationships between workstreams, owner files, docs, and gates.
 - `docs/agentic/codex-native-migration.md` for migration status and legacy stack mapping.
+- `docs/agentic/phase-1-codex-harness.md` for the current strict harness adoption policy.
 - `docs/architecture/` for durable architecture decisions.
+
+Files under `docs/agentic/legacy/` are historical migration exports only. Do not treat old Seeds, Mulch, Canopy, Overstory, or GitNexus instructions inside those files as active workflow.
 
 Use Mem only for cross-repo personal memory. VeloRail-specific operational rules belong in this repo.
 
