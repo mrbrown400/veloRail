@@ -36,15 +36,15 @@ The existing `metro-d-line-extension-westwood` seed remains in the base proposal
 
 ## Source Watch List
 
-Each source record includes `accessedAt: 2026-05-19`. `veloRail-d29c` adds `OFFICIAL_FUTURE_TRANSIT_REVIEW_POLICY`, `OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS`, and `OFFICIAL_FUTURE_TRANSIT_SOURCE_MANIFEST` so freshness metadata is visible in code review. The current policy is quarterly review, next due `2026-08-17`, stale after 120 days.
+Each source record includes `accessedAt: 2026-05-20`. `veloRail-d29c` adds `OFFICIAL_FUTURE_TRANSIT_REVIEW_POLICY`, `OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS`, and `OFFICIAL_FUTURE_TRANSIT_SOURCE_MANIFEST` so freshness metadata is visible in code review. The current policy is quarterly review, next due `2026-08-18`, stale after 120 days.
 
 - East San Fernando Valley Light Rail Transit: https://www.metro.net/projects/east-sfv/
 - ESFV construction notice coverage: https://thesource.metro.net/upcoming-directional-closures-on-van-nuys-boulevard-for-work-on-east-san-fernando-valley-light-rail-project/
 - Southeast Gateway Line: https://www.metro.net/projects/southeastgateway/
-- K Line Extension to Torrance: https://www.metro.net/projects/k-line-extension-to-torrance/
+- K Line Extension to Torrance: https://www.metro.net/projects/green-line-extension/
 - K Line Northern Extension: https://www.metro.net/projects/kline-northern-extension/
 - Sepulveda Transit Corridor: https://www.metro.net/projects/sepulvedacorridor/
-- Sepulveda LPA approval: https://www.metro.net/about/metro-boards-initial-approval-sets-stage-for-generational-transformation-of-sepulveda-pass-corridor/
+- Sepulveda LPA approval: https://www.metro.net/about/media-relations/metro-boards-initial-approval-sets-stage-for-generational-transformation-of-sepulveda-pass-corridor/
 - Sepulveda Westside-LAX Measure M phasing: https://metro.legistar.com/LegislationDetail.aspx?FullText=1&GUID=43869F50-9A8C-478A-AC2C-3D653F8231BC&ID=4539342&Options=&Search=
 - Eastside Transit Corridor Phase 2: https://www.metro.net/projects/eastside_phase2/
 - North Hollywood to Pasadena Bus Rapid Transit: https://www.metro.net/projects/noho-pasadena-corridor/
@@ -53,6 +53,8 @@ Each source record includes `accessedAt: 2026-05-19`. `veloRail-d29c` adds `OFFI
 - Broad Metro project news feed: https://thesource.metro.net/projects/
 
 The watch target manifest records which source supports project status, opening year, station-list, source-URL, and geometry-note drift checks. It is intentionally offline: maintainers inspect the public sources and update checked-in facts after review.
+
+The 2026-05-20 review also checked discovery candidates surfaced on Metro's current project listings. The North San Fernando Valley Transit Corridor remains a bus priority and shelter enhancement program rather than a distinct future transit line overlay, and the Countywide BRT Technical Study remains a study-level corridor screen without final official line records. Neither was promoted into the official Future Transit dataset.
 
 ## Approximation Policy
 

@@ -80,7 +80,7 @@ test('official LA future transit batch validates and renders overlay-ready input
     'metro-noho-pasadena-brt',
     'metro-vermont-brt'
   ]);
-  assert.equal(result.dataset.updatedAt, '2026-05-19');
+  assert.equal(result.dataset.updatedAt, '2026-05-20');
   assert.equal(result.overlays.length, proposalIds.length);
 
   for (const overlay of result.overlays) {
@@ -88,7 +88,7 @@ test('official LA future transit batch validates and renders overlay-ready input
     assert.equal(overlay.proposal.rendering.layerGroup, 'future');
     assert.ok(['planned', 'under_construction'].includes(overlay.proposal.status));
     assert.ok(overlay.proposal.provenance.length >= 1);
-    assert.ok(overlay.proposal.provenance.every(source => source.accessedAt === '2026-05-19'));
+    assert.ok(overlay.proposal.provenance.every(source => source.accessedAt === '2026-05-20'));
     assert.equal(overlay.proposal.geometry.geometrySource, 'approximate');
     assert.match(overlay.proposal.geometry.geometryNotes, /Approximate|approximate/);
     assert.ok(overlay.polyline.path.length >= 2);

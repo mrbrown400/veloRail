@@ -26,7 +26,7 @@ npm run validate:official-future-transit
 For deterministic review or tests, pin the validation date:
 
 ```bash
-npm run validate:official-future-transit -- --as-of 2026-05-19
+npm run validate:official-future-transit -- --as-of 2026-05-20
 ```
 
 This command validates the checked-in dataset, source watch manifest, source review dates, official-only Future Transit boundary, required status/timeline/station review fields, and Google Maps overlay conversion. It does not fetch source pages and does not rewrite data.
@@ -99,7 +99,7 @@ Remove or move a record out of the official future source when a project becomes
 Use focused checks while editing:
 
 ```bash
-npm run validate:official-future-transit -- --as-of 2026-05-19
+npm run validate:official-future-transit -- --as-of 2026-05-20
 npm run monitor:official-future-transit -- --snapshot /tmp/velorail-official-future-sources.json --update-snapshot
 npm run test -- tests/transitProposalValidation.test.js tests/transitProposalImport.test.js
 ```

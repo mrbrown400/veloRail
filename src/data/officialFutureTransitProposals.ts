@@ -10,8 +10,8 @@ import type {
   OfficialFutureTransitSourceWatchTarget
 } from './transitProposalValidation';
 
-const OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT = '2026-05-19';
-const OFFICIAL_FUTURE_TRANSIT_NEXT_REVIEW_DUE = '2026-08-17';
+const OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT = '2026-05-20';
+const OFFICIAL_FUTURE_TRANSIT_NEXT_REVIEW_DUE = '2026-08-18';
 const OFFICIAL_FUTURE_TRANSIT_REVIEW_CADENCE_DAYS = 90;
 const OFFICIAL_FUTURE_TRANSIT_STALE_AFTER_DAYS = 120;
 const OFFICIAL_FUTURE_TRANSIT_REQUIRED_STATUSES = [
@@ -105,7 +105,7 @@ export const OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS = [
     'K Line Extension to Torrance project page',
     'Los Angeles County Metropolitan Transportation Authority',
     'official_project',
-    'https://www.metro.net/projects/k-line-extension-to-torrance/',
+    'https://www.metro.net/projects/green-line-extension/',
     OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS,
     'Primary source for approved alignment option, funding status, station count, and completion target.'
   ),
@@ -135,7 +135,7 @@ export const OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS = [
     'Metro Board initial approval for Sepulveda Pass corridor',
     'Los Angeles County Metropolitan Transportation Authority',
     'public_agency',
-    'https://www.metro.net/about/metro-boards-initial-approval-sets-stage-for-generational-transformation-of-sepulveda-pass-corridor/',
+    'https://www.metro.net/about/media-relations/metro-boards-initial-approval-sets-stage-for-generational-transformation-of-sepulveda-pass-corridor/',
     ['project_status', 'station_list', 'source_url', 'geometry_notes'],
     'Secondary source for Board-selected underground heavy rail LPA, major transfer connections, and travel-time claims.'
   ),
@@ -202,7 +202,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
   schemaVersion: TRANSIT_PROPOSAL_SCHEMA_VERSION,
   updatedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
   migrationNotes: [
-    'Official LA-area future transit batch. Sources are Metro official project pages, public agency notices, and Metro board materials checked on 2026-05-19.',
+    'Official LA-area future transit batch. Sources are Metro official project pages, public agency notices, and Metro board materials checked on 2026-05-20.',
     'Geometry is simplified corridor geometry for Google Maps rendering and must not be treated as surveyed engineering alignment.',
     'Station records are retained as planning metadata where Metro publishes station areas, but proposal overlays do not display individual station dots by default.'
   ],
@@ -537,7 +537,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
           title: 'K Line Extension to Torrance',
           sourceType: 'official_project',
           publisher: 'Los Angeles County Metropolitan Transportation Authority',
-          url: 'https://www.metro.net/projects/k-line-extension-to-torrance/',
+          url: 'https://www.metro.net/projects/green-line-extension/',
           accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
           note: 'Metro lists the 4.5-mile extension, two new stations, January 2026 Final EIR certification and Hawthorne Option approval, planning phase, and late 2036 completion pending funding.'
         }
@@ -828,7 +828,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
           title: 'Metro Board initial approval sets stage for generational transformation of Sepulveda Pass corridor',
           sourceType: 'public_agency',
           publisher: 'Los Angeles County Metropolitan Transportation Authority',
-          url: 'https://www.metro.net/about/metro-boards-initial-approval-sets-stage-for-generational-transformation-of-sepulveda-pass-corridor/',
+          url: 'https://www.metro.net/about/media-relations/metro-boards-initial-approval-sets-stage-for-generational-transformation-of-sepulveda-pass-corridor/',
           accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
           note: 'Metro media release confirms the underground heavy rail LPA, Van Nuys to E Line connection, D/E/G/ESFV/Metrolink/UCLA connections, and continued design refinement.'
         }
