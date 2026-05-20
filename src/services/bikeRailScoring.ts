@@ -6,7 +6,7 @@ import type {
 
 export const BIKE_RAIL_SCORING_POLICY = {
   method: 'vr-502-bike-rail-access-heuristic-v1',
-  googleApiUse: 'No live Google Bicycling or Directions calls are made in the deterministic test path. Google Maps Bicycling can inform a future reviewed refresh.',
+  googleApiUse: 'No live Google Bicycling or Routes calls are made in the deterministic test path. Google Maps Bicycling can inform a future reviewed refresh.',
   missingData: [
     'protected bike lane network',
     'low-stress bike network',

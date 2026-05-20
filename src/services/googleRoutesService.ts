@@ -1,5 +1,5 @@
 // Google Routes API Service for VeloRail
-// Wraps Google Directions API for bike and transit routing
+// Wraps the modern Google Maps JavaScript Routes Library for bike and transit routing.
 
 import { isGoogleMapsConfigured } from './config';
 import type {
@@ -8,29 +8,145 @@ import type {
   RouteLeg,
   TravelMode,
   LineString,
-  GoogleRouteResult
+  GoogleRouteResult,
+  GoogleTransitDetails
 } from '@/types';
 
-// Directions service instance (initialized lazily)
-let directionsService: google.maps.DirectionsService | null = null;
+type GoogleRouteTravelMode = 'BICYCLING' | 'DRIVING' | 'WALKING' | 'TRANSIT';
+type GoogleTransitMode = 'RAIL' | 'SUBWAY' | 'TRAIN' | 'LIGHT_RAIL';
+
+type LatLngValue = {
+  lat: number | (() => number);
+  lng: number | (() => number);
+};
+
+type GoogleRoutesTransitStop = {
+  name?: string;
+  location?: LatLngValue;
+};
+
+type GoogleRoutesTransitLine = {
+  name?: string;
+  shortName?: string;
+  color?: string;
+  vehicle?: {
+    name?: string;
+    type?: string;
+    vehicleType?: string;
+  };
+};
+
+type GoogleRoutesTransitDetails = {
+  arrivalStop?: GoogleRoutesTransitStop;
+  arrivalTime?: Date | string;
+  departureStop?: GoogleRoutesTransitStop;
+  departureTime?: Date | string;
+  headsign?: string;
+  stopCount?: number;
+  transitLine?: GoogleRoutesTransitLine;
+};
+
+type GoogleRoutesStep = {
+  distanceMeters?: number;
+  durationMillis?: number;
+  staticDurationMillis?: number;
+  endLocation?: LatLngValue;
+  path?: LatLngValue[];
+  startLocation?: LatLngValue;
+  transitDetails?: GoogleRoutesTransitDetails;
+  travelMode?: GoogleRouteTravelMode;
+};
+
+type GoogleRoutesLeg = {
+  distanceMeters?: number;
+  durationMillis?: number;
+  staticDurationMillis?: number;
+  path?: LatLngValue[];
+  steps?: GoogleRoutesStep[];
+};
+
+type GoogleRoutesRoute = {
+  distanceMeters?: number;
+  durationMillis?: number;
+  staticDurationMillis?: number;
+  legs?: GoogleRoutesLeg[];
+  path?: LatLngValue[];
+};
+
+type GoogleRoutesComputeRequest = {
+  origin: google.maps.LatLngLiteral;
+  destination: google.maps.LatLngLiteral;
+  travelMode: GoogleRouteTravelMode;
+  computeAlternativeRoutes?: boolean;
+  departureTime?: Date;
+  fields: string[];
+  routingPreference?: 'TRAFFIC_AWARE' | 'TRAFFIC_AWARE_OPTIMAL' | 'TRAFFIC_UNAWARE';
+  transitPreference?: {
+    allowedTransitModes?: GoogleTransitMode[];
+    routingPreference?: 'LESS_WALKING' | 'FEWER_TRANSFERS';
+  };
+};
+
+type GoogleRoutesComputeResponse = {
+  routes?: GoogleRoutesRoute[];
+};
+
+type GoogleRouteClass = {
+  computeRoutes: (request: GoogleRoutesComputeRequest) => Promise<GoogleRoutesComputeResponse>;
+};
+
+type GoogleRoutesLibraryWithRoute = google.maps.RoutesLibrary & {
+  Route?: GoogleRouteClass;
+};
+
+const ROUTE_FIELDS = ['path', 'distanceMeters', 'durationMillis', 'legs'];
+
+// Routes class is loaded lazily so the app can still render when Maps is not configured.
+let routeClassPromise: Promise<GoogleRouteClass | null> | null = null;
 
 // ============================================
 // Initialization
 // ============================================
 
 export function initGoogleRoutesService(): boolean {
-  if (typeof google !== 'undefined' && google.maps) {
-    directionsService = new google.maps.DirectionsService();
-    return true;
-  }
-  return false;
+  return isGoogleRoutesRuntimeAvailable();
 }
 
-function ensureService(): google.maps.DirectionsService | null {
-  if (!directionsService) {
-    initGoogleRoutesService();
+function isGoogleRoutesRuntimeAvailable(): boolean {
+  if (typeof google === 'undefined' || !google.maps) return false;
+
+  const mapsWithRoutesNamespace = google.maps as unknown as {
+    importLibrary?: typeof google.maps.importLibrary;
+    routes?: { Route?: GoogleRouteClass };
+  };
+
+  return Boolean(mapsWithRoutesNamespace.importLibrary || mapsWithRoutesNamespace.routes?.Route);
+}
+
+async function ensureRouteClass(): Promise<GoogleRouteClass | null> {
+  if (!isGoogleRoutesRuntimeAvailable()) return null;
+
+  if (!routeClassPromise) {
+    routeClassPromise = (async () => {
+      const mapsWithRoutesNamespace = google.maps as unknown as {
+        importLibrary?: typeof google.maps.importLibrary;
+        routes?: { Route?: GoogleRouteClass };
+      };
+
+      if (mapsWithRoutesNamespace.routes?.Route) {
+        return mapsWithRoutesNamespace.routes.Route;
+      }
+
+      if (!mapsWithRoutesNamespace.importLibrary) {
+        return null;
+      }
+
+      const routesLibrary = await mapsWithRoutesNamespace.importLibrary('routes') as GoogleRoutesLibraryWithRoute;
+      return routesLibrary.Route || mapsWithRoutesNamespace.routes?.Route || null;
+    })();
   }
-  return directionsService;
+
+  return routeClassPromise;
 }
 
 // ============================================
@@ -90,42 +206,14 @@ export function decodePolyline(encoded: string): [number, number][] {
 // ============================================
 
 /**
- * Get bike route between two points using Google Directions BICYCLING mode
+ * Get bike route between two points using Google Routes BICYCLING mode
  */
 export async function getBikeRoute(
   origin: Location,
   destination: Location
 ): Promise<GoogleRouteResult | null> {
-  const service = ensureService();
-  if (!service || !isGoogleMapsConfigured()) {
-    console.warn('Google Directions not available for bike routing');
-    return null;
-  }
-
-  const request: google.maps.DirectionsRequest = {
-    origin: new google.maps.LatLng(origin.lat, origin.lon),
-    destination: new google.maps.LatLng(destination.lat, destination.lon),
-    travelMode: google.maps.TravelMode.BICYCLING,
-    unitSystem: google.maps.UnitSystem.METRIC,
-    avoidHighways: true
-  };
-
-  try {
-    const result = await new Promise<google.maps.DirectionsResult>((resolve, reject) => {
-      service.route(request, (response, status) => {
-        if (status === google.maps.DirectionsStatus.OK && response) {
-          resolve(response);
-        } else {
-          reject(new Error(`Bike directions failed: ${status}`));
-        }
-      });
-    });
-
-    return convertToGoogleRouteResult(result);
-  } catch (error) {
-    console.error('Google bike routing error:', error);
-    return null;
-  }
+  const route = await computeGoogleRoute(origin, destination, 'BICYCLING', 'bike routing');
+  return route ? convertToGoogleRouteResult(route) : null;
 }
 
 // ============================================
@@ -133,46 +221,17 @@ export async function getBikeRoute(
 // ============================================
 
 /**
- * Get driving route between two points using Google Directions DRIVING mode
+ * Get driving route between two points using Google Routes DRIVING mode
  */
 export async function getDrivingRoute(
   origin: Location,
   destination: Location
 ): Promise<GoogleRouteResult | null> {
-  const service = ensureService();
-  if (!service || !isGoogleMapsConfigured()) {
-    console.warn('Google Directions not available for driving routing');
-    return null;
-  }
+  const route = await computeGoogleRoute(origin, destination, 'DRIVING', 'driving routing', {
+    routingPreference: 'TRAFFIC_AWARE'
+  });
 
-  const request: google.maps.DirectionsRequest = {
-    origin: new google.maps.LatLng(origin.lat, origin.lon),
-    destination: new google.maps.LatLng(destination.lat, destination.lon),
-    travelMode: google.maps.TravelMode.DRIVING,
-    unitSystem: google.maps.UnitSystem.METRIC,
-    drivingOptions: {
-      departureTime: new Date(),
-      trafficModel: google.maps.TrafficModel.BEST_GUESS
-    }
-  };
-
-  try {
-    const result = await new Promise<google.maps.DirectionsResult>((resolve, reject) => {
-      service.route(request, (response, status) => {
-        if (status === google.maps.DirectionsStatus.OK && response) {
-          resolve(response);
-        } else {
-          reject(new Error(`Driving directions failed: ${status}`));
-        }
-      });
-    });
-
-    // Use traffic-aware duration for driving
-    return convertToGoogleRouteResult(result, false, true);
-  } catch (error) {
-    console.error('Google driving routing error:', error);
-    return null;
-  }
+  return route ? convertToGoogleRouteResult(route) : null;
 }
 
 // ============================================
@@ -180,41 +239,14 @@ export async function getDrivingRoute(
 // ============================================
 
 /**
- * Get walking route between two points using Google Directions WALKING mode
+ * Get walking route between two points using Google Routes WALKING mode
  */
 export async function getWalkingRoute(
   origin: Location,
   destination: Location
 ): Promise<GoogleRouteResult | null> {
-  const service = ensureService();
-  if (!service || !isGoogleMapsConfigured()) {
-    console.warn('Google Directions not available for walking routing');
-    return null;
-  }
-
-  const request: google.maps.DirectionsRequest = {
-    origin: new google.maps.LatLng(origin.lat, origin.lon),
-    destination: new google.maps.LatLng(destination.lat, destination.lon),
-    travelMode: google.maps.TravelMode.WALKING,
-    unitSystem: google.maps.UnitSystem.METRIC
-  };
-
-  try {
-    const result = await new Promise<google.maps.DirectionsResult>((resolve, reject) => {
-      service.route(request, (response, status) => {
-        if (status === google.maps.DirectionsStatus.OK && response) {
-          resolve(response);
-        } else {
-          reject(new Error(`Walking directions failed: ${status}`));
-        }
-      });
-    });
-
-    return convertToGoogleRouteResult(result);
-  } catch (error) {
-    console.error('Google walking routing error:', error);
-    return null;
-  }
+  const route = await computeGoogleRoute(origin, destination, 'WALKING', 'walking routing');
+  return route ? convertToGoogleRouteResult(route) : null;
 }
 
 // ============================================
@@ -229,116 +261,204 @@ export async function getTransitRoute(
   destination: Location,
   departureTime: Date
 ): Promise<GoogleRouteResult | null> {
-  const service = ensureService();
-  if (!service || !isGoogleMapsConfigured()) {
-    console.warn('Google Directions not available for transit routing');
-    return null;
-  }
+  const route = await computeGoogleRoute(origin, destination, 'TRANSIT', 'transit routing', {
+    departureTime,
+    transitPreference: {
+      allowedTransitModes: ['RAIL', 'SUBWAY', 'TRAIN', 'LIGHT_RAIL'],
+      routingPreference: 'LESS_WALKING'
+    }
+  });
 
-  const request: google.maps.DirectionsRequest = {
-    origin: new google.maps.LatLng(origin.lat, origin.lon),
-    destination: new google.maps.LatLng(destination.lat, destination.lon),
-    travelMode: google.maps.TravelMode.TRANSIT,
-    transitOptions: {
-      departureTime: departureTime,
-      modes: [google.maps.TransitMode.RAIL, google.maps.TransitMode.SUBWAY, google.maps.TransitMode.TRAM],
-      routingPreference: google.maps.TransitRoutePreference.LESS_WALKING
-    },
-    unitSystem: google.maps.UnitSystem.METRIC
-  };
-
-  try {
-    const result = await new Promise<google.maps.DirectionsResult>((resolve, reject) => {
-      service.route(request, (response, status) => {
-        if (status === google.maps.DirectionsStatus.OK && response) {
-          resolve(response);
-        } else {
-          reject(new Error(`Transit directions failed: ${status}`));
-        }
-      });
-    });
-
-    return convertToGoogleRouteResult(result, true);
-  } catch (error) {
-    console.error('Google transit routing error:', error);
-    return null;
-  }
+  return route ? convertToGoogleRouteResult(route, true) : null;
 }
 
 // ============================================
 // Result Conversion
 // ============================================
 
-function convertToGoogleRouteResult(
-  result: google.maps.DirectionsResult,
-  includeTransitDetails = false,
-  useTrafficDuration = false
-): GoogleRouteResult {
-  const route = result.routes[0];
-  const leg = route.legs[0];
-
-  // Get coordinates from overview path
-  const coordinates = route.overview_path.map(
-    point => [point.lng(), point.lat()] as [number, number]
-  );
-
-  // Use traffic-aware duration for driving if available
-  let duration = leg.duration!.value;
-  if (useTrafficDuration && leg.duration_in_traffic) {
-    duration = leg.duration_in_traffic.value;
-    console.log(`Using traffic-aware duration: ${(duration / 60).toFixed(0)} min (vs ${(leg.duration!.value / 60).toFixed(0)} min without traffic)`);
+async function computeGoogleRoute(
+  origin: Location,
+  destination: Location,
+  travelMode: GoogleRouteTravelMode,
+  description: string,
+  overrides: Partial<GoogleRoutesComputeRequest> = {}
+): Promise<GoogleRoutesRoute | null> {
+  const routeClass = await ensureRouteClass();
+  if (!routeClass || !isGoogleMapsConfigured()) {
+    console.warn(`Google Routes API not available for ${description}`);
+    return null;
   }
+
+  try {
+    const response = await routeClass.computeRoutes({
+      origin: toGoogleLatLng(origin),
+      destination: toGoogleLatLng(destination),
+      travelMode,
+      computeAlternativeRoutes: false,
+      fields: ROUTE_FIELDS,
+      ...overrides
+    });
+
+    return response.routes?.[0] || null;
+  } catch (error) {
+    console.error(`Google ${description} error:`, error);
+    return null;
+  }
+}
+
+function convertToGoogleRouteResult(
+  route: GoogleRoutesRoute,
+  includeTransitDetails = false
+): GoogleRouteResult {
+  const coordinates = getRouteCoordinates(route);
 
   const routeResult: GoogleRouteResult = {
     geometry: {
       type: 'LineString',
       coordinates
     },
-    distance: leg.distance!.value / 1000, // meters to km
-    duration: duration, // seconds
+    distance: getRouteDistanceKm(route),
+    duration: getRouteDurationSeconds(route),
     source: 'google'
   };
 
   // Extract transit details if requested
-  if (includeTransitDetails && leg.steps) {
-    const transitStep = leg.steps.find(
-      step => step.travel_mode === 'TRANSIT' && step.transit
+  if (includeTransitDetails) {
+    const transitStep = getRouteSteps(route).find(
+      step => step.travelMode === 'TRANSIT' && step.transitDetails
     );
 
-    if (transitStep?.transit) {
-      const t = transitStep.transit;
-      routeResult.transitDetails = {
-        line: {
-          name: t.line.name || '',
-          shortName: t.line.short_name || '',
-          color: t.line.color || '#666666',
-          vehicle: {
-            type: t.line.vehicle?.type || 'RAIL'
-          }
-        },
-        departureStop: {
-          name: t.departure_stop.name,
-          location: {
-            lat: t.departure_stop.location.lat(),
-            lng: t.departure_stop.location.lng()
-          }
-        },
-        arrivalStop: {
-          name: t.arrival_stop.name,
-          location: {
-            lat: t.arrival_stop.location.lat(),
-            lng: t.arrival_stop.location.lng()
-          }
-        },
-        departureTime: t.departure_time.value,
-        arrivalTime: t.arrival_time.value,
-        numStops: t.num_stops,
-        headsign: t.headsign || ''
-      };
+    const transitDetails = transitStep ? getTransitDetails(transitStep) : null;
+    if (transitDetails) {
+      routeResult.transitDetails = transitDetails;
     }
   }
 
   return routeResult;
+}
+
+function toGoogleLatLng(location: Location): google.maps.LatLngLiteral {
+  return {
+    lat: location.lat,
+    lng: location.lon
+  };
+}
+
+function readCoordinateValue(value: number | (() => number)): number {
+  return typeof value === 'function' ? value() : value;
+}
+
+function toCoordinate(point: LatLngValue): [number, number] {
+  return [readCoordinateValue(point.lng), readCoordinateValue(point.lat)];
+}
+
+function getRouteCoordinates(route: GoogleRoutesRoute): [number, number][] {
+  const path = route.path && route.path.length > 0
+    ? route.path
+    : route.legs?.flatMap(leg => leg.path || leg.steps?.flatMap(step => step.path || []) || []) || [];
+
+  return path.map(toCoordinate);
+}
+
+function getRouteSteps(route: GoogleRoutesRoute): GoogleRoutesStep[] {
+  return route.legs?.flatMap(leg => leg.steps || []) || [];
+}
+
+function getRouteDistanceKm(route: GoogleRoutesRoute): number {
+  if (typeof route.distanceMeters === 'number') return route.distanceMeters / 1000;
+
+  const legDistance = route.legs?.reduce((total, leg) => total + (leg.distanceMeters || 0), 0) || 0;
+  if (legDistance > 0) return legDistance / 1000;
+
+  return 0;
+}
+
+function getRouteDurationSeconds(route: GoogleRoutesRoute): number {
+  const durationMillis = route.durationMillis || route.staticDurationMillis;
+  if (typeof durationMillis === 'number') return Math.round(durationMillis / 1000);
+
+  const legDurationMillis = route.legs?.reduce(
+    (total, leg) => total + (leg.durationMillis || leg.staticDurationMillis || 0),
+    0
+  ) || 0;
+
+  return Math.round(legDurationMillis / 1000);
+}
+
+function getStepDurationSeconds(step: GoogleRoutesStep): number {
+  const durationMillis = step.durationMillis || step.staticDurationMillis || 0;
+  return Math.round(durationMillis / 1000);
+}
+
+function getStepDistanceKm(step: GoogleRoutesStep): number {
+  return (step.distanceMeters || 0) / 1000;
+}
+
+function getStepGeometry(step: GoogleRoutesStep): LineString {
+  let coordinates = step.path?.map(toCoordinate) || [];
+
+  if (coordinates.length === 0 && step.startLocation && step.endLocation) {
+    coordinates = [toCoordinate(step.startLocation), toCoordinate(step.endLocation)];
+  }
+
+  return {
+    type: 'LineString',
+    coordinates
+  };
+}
+
+function coerceDate(value: Date | string | undefined): Date {
+  if (value instanceof Date) return value;
+
+  if (value) {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
+  return new Date();
+}
+
+function getStopLocation(stop: GoogleRoutesTransitStop | undefined): { lat: number; lng: number } {
+  if (!stop?.location) {
+    return { lat: 0, lng: 0 };
+  }
+
+  return {
+    lat: readCoordinateValue(stop.location.lat),
+    lng: readCoordinateValue(stop.location.lng)
+  };
+}
+
+function getTransitDetails(step: GoogleRoutesStep): GoogleTransitDetails | null {
+  const details = step.transitDetails;
+  if (!details) return null;
+
+  const line = details.transitLine || {};
+  const departureStop = details.departureStop || {};
+  const arrivalStop = details.arrivalStop || {};
+
+  return {
+    line: {
+      name: line.name || '',
+      shortName: line.shortName || '',
+      color: line.color || '#666666',
+      vehicle: {
+        type: line.vehicle?.type || line.vehicle?.vehicleType || line.vehicle?.name || 'RAIL'
+      }
+    },
+    departureStop: {
+      name: departureStop.name || '',
+      location: getStopLocation(departureStop)
+    },
+    arrivalStop: {
+      name: arrivalStop.name || '',
+      location: getStopLocation(arrivalStop)
+    },
+    departureTime: coerceDate(details.departureTime),
+    arrivalTime: coerceDate(details.arrivalTime),
+    numStops: details.stopCount || 0,
+    headsign: details.headsign || ''
+  };
 }
 
 // ============================================
@@ -401,39 +521,40 @@ export interface TransitLegInfo {
 }
 
 /**
- * Extract all transit legs from a Google Directions result
+ * Extract all transit legs from a Google Routes result
  * Useful for multi-transfer routes
  */
 export function extractTransitLegs(
-  result: google.maps.DirectionsResult
+  result: GoogleRoutesComputeResponse
 ): TransitLegInfo[] {
   const legs: TransitLegInfo[] = [];
-  const route = result.routes[0];
+  const route = result.routes?.[0];
+  if (!route) return legs;
 
-  for (const leg of route.legs) {
+  for (const leg of route.legs || []) {
     for (const step of leg.steps || []) {
-      if (step.travel_mode === 'TRANSIT' && step.transit && step.polyline) {
-        const t = step.transit;
-        const coordinates = decodePolyline(step.polyline.points);
+      if (step.travelMode === 'TRANSIT' && step.transitDetails) {
+        const transitDetails = getTransitDetails(step);
+        if (!transitDetails) continue;
 
         legs.push({
-          geometry: { type: 'LineString', coordinates },
-          distance: step.distance!.value / 1000,
-          duration: step.duration!.value,
-          lineName: t.line.name || '',
-          lineShortName: t.line.short_name || '',
-          lineColor: t.line.color || '#666666',
-          vehicleType: t.line.vehicle?.type || 'RAIL',
-          departureStopName: t.departure_stop.name,
-          departureStopLat: t.departure_stop.location.lat(),
-          departureStopLng: t.departure_stop.location.lng(),
-          arrivalStopName: t.arrival_stop.name,
-          arrivalStopLat: t.arrival_stop.location.lat(),
-          arrivalStopLng: t.arrival_stop.location.lng(),
-          departureTime: t.departure_time.value,
-          arrivalTime: t.arrival_time.value,
-          numStops: t.num_stops,
-          headsign: t.headsign || ''
+          geometry: getStepGeometry(step),
+          distance: getStepDistanceKm(step),
+          duration: getStepDurationSeconds(step),
+          lineName: transitDetails.line.name,
+          lineShortName: transitDetails.line.shortName,
+          lineColor: transitDetails.line.color,
+          vehicleType: transitDetails.line.vehicle.type,
+          departureStopName: transitDetails.departureStop.name,
+          departureStopLat: transitDetails.departureStop.location.lat,
+          departureStopLng: transitDetails.departureStop.location.lng,
+          arrivalStopName: transitDetails.arrivalStop.name,
+          arrivalStopLat: transitDetails.arrivalStop.location.lat,
+          arrivalStopLng: transitDetails.arrivalStop.location.lng,
+          departureTime: transitDetails.departureTime,
+          arrivalTime: transitDetails.arrivalTime,
+          numStops: transitDetails.numStops,
+          headsign: transitDetails.headsign
         });
       }
     }
@@ -461,37 +582,17 @@ export async function getFullTransitRoute(
     transitInfo?: TransitLegInfo;
   }>;
 } | null> {
-  const service = ensureService();
-  if (!service || !isGoogleMapsConfigured()) {
-    return null;
-  }
+  const route = await computeGoogleRoute(origin, destination, 'TRANSIT', 'full transit routing', {
+    departureTime,
+    transitPreference: {
+      allowedTransitModes: ['RAIL', 'SUBWAY', 'TRAIN', 'LIGHT_RAIL'],
+      routingPreference: 'LESS_WALKING'
+    }
+  });
 
-  const request: google.maps.DirectionsRequest = {
-    origin: new google.maps.LatLng(origin.lat, origin.lon),
-    destination: new google.maps.LatLng(destination.lat, destination.lon),
-    travelMode: google.maps.TravelMode.TRANSIT,
-    transitOptions: {
-      departureTime: departureTime,
-      modes: [google.maps.TransitMode.RAIL, google.maps.TransitMode.SUBWAY, google.maps.TransitMode.TRAM],
-      routingPreference: google.maps.TransitRoutePreference.LESS_WALKING
-    },
-    unitSystem: google.maps.UnitSystem.METRIC
-  };
+  if (!route) return null;
 
   try {
-    const result = await new Promise<google.maps.DirectionsResult>((resolve, reject) => {
-      service.route(request, (response, status) => {
-        if (status === google.maps.DirectionsStatus.OK && response) {
-          resolve(response);
-        } else {
-          reject(new Error(`Transit directions failed: ${status}`));
-        }
-      });
-    });
-
-    const route = result.routes[0];
-    const dirLeg = route.legs[0];
-
     const legs: Array<{
       mode: 'WALKING' | 'TRANSIT';
       geometry: LineString;
@@ -500,50 +601,49 @@ export async function getFullTransitRoute(
       transitInfo?: TransitLegInfo;
     }> = [];
 
-    for (const step of dirLeg.steps || []) {
-      if (!step.polyline) continue;
-      const coordinates = decodePolyline(step.polyline.points);
-
-      if (step.travel_mode === 'WALKING') {
+    for (const step of getRouteSteps(route)) {
+      if (step.travelMode === 'WALKING') {
         legs.push({
           mode: 'WALKING',
-          geometry: { type: 'LineString', coordinates },
-          distance: step.distance!.value / 1000,
-          duration: step.duration!.value
+          geometry: getStepGeometry(step),
+          distance: getStepDistanceKm(step),
+          duration: getStepDurationSeconds(step)
         });
-      } else if (step.travel_mode === 'TRANSIT' && step.transit) {
-        const t = step.transit;
+      } else if (step.travelMode === 'TRANSIT' && step.transitDetails) {
+        const transitDetails = getTransitDetails(step);
+        if (!transitDetails) continue;
+
         legs.push({
           mode: 'TRANSIT',
-          geometry: { type: 'LineString', coordinates },
-          distance: step.distance!.value / 1000,
-          duration: step.duration!.value,
+          geometry: getStepGeometry(step),
+          distance: getStepDistanceKm(step),
+          duration: getStepDurationSeconds(step),
           transitInfo: {
-            geometry: { type: 'LineString', coordinates },
-            distance: step.distance!.value / 1000,
-            duration: step.duration!.value,
-            lineName: t.line.name || '',
-            lineShortName: t.line.short_name || '',
-            lineColor: t.line.color || '#666666',
-            vehicleType: t.line.vehicle?.type || 'RAIL',
-            departureStopName: t.departure_stop.name,
-            departureStopLat: t.departure_stop.location.lat(),
-            departureStopLng: t.departure_stop.location.lng(),
-            arrivalStopName: t.arrival_stop.name,
-            arrivalStopLat: t.arrival_stop.location.lat(),
-            arrivalStopLng: t.arrival_stop.location.lng(),
-            departureTime: t.departure_time.value,
-            arrivalTime: t.arrival_time.value,
-            numStops: t.num_stops,
-            headsign: t.headsign || ''
+            geometry: getStepGeometry(step),
+            distance: getStepDistanceKm(step),
+            duration: getStepDurationSeconds(step),
+            lineName: transitDetails.line.name,
+            lineShortName: transitDetails.line.shortName,
+            lineColor: transitDetails.line.color,
+            vehicleType: transitDetails.line.vehicle.type,
+            departureStopName: transitDetails.departureStop.name,
+            departureStopLat: transitDetails.departureStop.location.lat,
+            departureStopLng: transitDetails.departureStop.location.lng,
+            arrivalStopName: transitDetails.arrivalStop.name,
+            arrivalStopLat: transitDetails.arrivalStop.location.lat,
+            arrivalStopLng: transitDetails.arrivalStop.location.lng,
+            departureTime: transitDetails.departureTime,
+            arrivalTime: transitDetails.arrivalTime,
+            numStops: transitDetails.numStops,
+            headsign: transitDetails.headsign
           }
         });
       }
     }
 
     return {
-      totalDuration: dirLeg.duration!.value,
-      totalDistance: dirLeg.distance!.value / 1000,
+      totalDuration: getRouteDurationSeconds(route),
+      totalDistance: getRouteDistanceKm(route),
       legs
     };
   } catch (error) {

@@ -1,6 +1,6 @@
 # Google Maps First Architecture Policy
 
-VeloRail uses Google Maps Platform as the default rendering, routing, and location integration surface. New map or route features must start from the Google Maps JavaScript API, Google Maps SDK wrappers already in the repo, and Google Directions or Places capabilities before adding custom geospatial logic or another network service.
+VeloRail uses Google Maps Platform as the default rendering, routing, and location integration surface. New map or route features must start from the Google Maps JavaScript API, Google Maps SDK wrappers already in the repo, and Google Routes or Places capabilities before adding custom geospatial logic or another network service.
 
 This policy keeps the app centered on Google Maps while allowing LA-specific transit planning data where Google does not expose future, freight, agency, or scenario geometries.
 
@@ -8,23 +8,23 @@ This policy keeps the app centered on Google Maps while allowing LA-specific tra
 
 The repository currently uses these Google Maps APIs and SDK features:
 
-- `@react-google-maps/api` loads the Maps JavaScript API in `src/App.tsx` with the `places` and `geometry` libraries.
+- `@react-google-maps/api` loads the Maps JavaScript API in `src/App.tsx` with the `places`, `geometry`, and `routes` libraries.
 - `GoogleMap` and `useGoogleMap` provide the React map surface in `src/components/Map/MapContainer.tsx` and `src/components/Map/RouteOverlay.tsx`.
 - `google.maps.MapOptions`, `ColorScheme.DARK`, `ControlPosition`, and `LatLngBounds` configure the map and fit routes to the viewport.
 - `google.maps.TransitLayer` and `google.maps.BicyclingLayer` provide first-party transit and bicycling map layers.
 - `google.maps.Polyline`, `Marker`, `InfoWindow`, and `SymbolPath.CIRCLE` render route legs, optional station dots, start and end markers, vehicle markers, and app-owned planning overlays.
 - `google.maps.places.AutocompleteService` and `PlacesService.getDetails` provide primary place search and coordinate lookup in `src/services/geocoding.ts`.
 - `google.maps.Geocoder` provides primary address geocoding with LA bounds in `src/services/geocoding.ts`.
-- `google.maps.DirectionsService` provides bike, driving, walking, and transit routing in `src/services/googleRoutesService.ts` and the legacy compatibility wrapper `src/google_directions.js`.
-- Directions requests use `BICYCLING`, `DRIVING`, `WALKING`, and `TRANSIT` travel modes, metric units, traffic-aware driving durations, and rail-focused transit options where available.
+- `google.maps.routes.Route.computeRoutes` provides bike, driving, walking, and transit routing in `src/services/googleRoutesService.ts` and the legacy compatibility wrapper `src/google_directions.js`.
+- Routes requests use `BICYCLING`, `DRIVING`, `WALKING`, and `TRANSIT` travel modes, `distanceMeters` and `durationMillis` result fields, traffic-aware driving durations, and rail-focused transit options where available.
 - `google.maps.geometry.encoding.decodePath` decodes Google polylines when available.
-- `@googlemaps/js-api-loader` remains in the legacy `src/google_map.js` path for loading `maps`, `places`, and `geometry`.
+- `@googlemaps/js-api-loader` remains in the legacy `src/google_map.js` path for loading `maps`, `places`, `geometry`, and `routes`.
 - `VITE_GOOGLE_MAPS_API_KEY` is the required API key setting, and `CONFIG.GOOGLE_ROUTES_ENABLED` keeps Google routing enabled by default.
 
 ## Default Decision Rules
 
 - Rendering: Use Google Maps as the base map. Render custom route lines, optional station markers, vehicle markers, and planning overlays as Google Maps overlays.
-- Routing: Use Google Directions through the existing services for bike, walk, drive, transit, and mixed-mode routing whenever it can express the trip.
+- Routing: Use Google Routes through the existing services for bike, walk, drive, transit, and mixed-mode routing whenever it can express the trip.
 - Location search: Use Google Places and Google Geocoding first. Fallback providers may remain only for resilience when Google is unavailable or not configured.
 - Styling: Prefer Google Maps built-in layer behavior for first-party transit and bicycling visibility. Custom styling must not hide or replace Google transit semantics unless the feature explicitly requires an overlay.
 - Provider additions: Do not introduce alternate map providers. A non-Google data or routing service must be documented as a fallback or a feature-gap exception, not a replacement surface.
@@ -56,7 +56,7 @@ Existing examples include LA Metro and Metrolink GTFS feeds, Swiftly and Metroli
 Before merging map, transit, route, or scenario work:
 
 - Confirm Google Maps remains the base rendering surface.
-- Confirm Google Directions, Places, Geocoding, Transit Layer, Bicycling Layer, or Google overlays were used where feasible.
+- Confirm Google Routes, Places, Geocoding, Transit Layer, Bicycling Layer, or Google overlays were used where feasible.
 - Confirm any non-Google provider is a documented fallback or feature-gap exception.
 - Confirm custom transit overlays include source and provenance metadata.
 - Confirm GTFS, freight, and simulation logic is labeled separately from Google first-party routing or map data.

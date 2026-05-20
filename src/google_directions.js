@@ -1,80 +1,90 @@
-// Google Directions API Helper
+// Google Routes API Helper
 // Replaces OSRM for routing (walk, drive, bike)
 
 import { CONFIG, isGoogleMapsConfigured } from './config.js';
 
-// Directions service instance (initialized lazily)
-let directionsService = null;
+// Routes class is loaded lazily after Maps JavaScript is available.
+let routeClassPromise = null;
 
 /**
- * Initialize the Directions Service
+ * Initialize the Google Routes runtime.
  * Must be called after Google Maps is loaded
  */
 export function initDirectionsService() {
-    if (typeof google !== 'undefined' && google.maps) {
-        directionsService = new google.maps.DirectionsService();
-        return true;
+    return typeof google !== 'undefined' && Boolean(google.maps?.importLibrary || google.maps?.routes?.Route);
+}
+
+async function ensureRouteClass() {
+    if (!initDirectionsService()) return null;
+
+    if (!routeClassPromise) {
+        routeClassPromise = (async () => {
+            if (google.maps.routes?.Route) {
+                return google.maps.routes.Route;
+            }
+
+            const routesLibrary = await google.maps.importLibrary('routes');
+            return routesLibrary.Route || google.maps.routes?.Route || null;
+        })();
     }
-    return false;
+
+    return routeClassPromise;
 }
 
 /**
- * Get Google Maps travel mode from profile string
+ * Get Google Routes travel mode from profile string
  */
 function getTravelMode(profile) {
     switch (profile) {
         case 'walking':
         case 'foot':
-            return google.maps.TravelMode.WALKING;
+            return 'WALKING';
         case 'driving':
         case 'car':
-            return google.maps.TravelMode.DRIVING;
+            return 'DRIVING';
         case 'cycling':
         case 'bicycle':
-            return google.maps.TravelMode.BICYCLING;
+            return 'BICYCLING';
         case 'transit':
-            return google.maps.TravelMode.TRANSIT;
+            return 'TRANSIT';
         default:
-            return google.maps.TravelMode.DRIVING;
+            return 'DRIVING';
     }
 }
 
 /**
- * Convert Google route to our standard format
- * @param {google.maps.DirectionsResult} result - Google Directions result
+ * Convert Google Routes result to our standard format
+ * @param {Object} route - Google Routes route
  * @returns {Object} Standardized route object
  */
-function convertGoogleRoute(result) {
-    const route = result.routes[0];
-    const leg = route.legs[0];
-
-    // Convert the overview path to GeoJSON LineString coordinates
-    const coordinates = route.overview_path.map(point => [point.lng(), point.lat()]);
+function convertGoogleRoute(route) {
+    const coordinates = (route.path || []).map(point => [
+        typeof point.lng === 'function' ? point.lng() : point.lng,
+        typeof point.lat === 'function' ? point.lat() : point.lat
+    ]);
 
     return {
         geometry: {
             type: 'LineString',
             coordinates: coordinates
         },
-        distance: leg.distance.value / 1000, // meters to km
-        duration: leg.duration.value, // seconds
+        distance: (route.distanceMeters || 0) / 1000,
+        duration: Math.round((route.durationMillis || route.staticDurationMillis || 0) / 1000),
         source: 'google'
     };
 }
 
 /**
- * Get a route using Google Directions API
+ * Get a route using Google Routes API
  * @param {Array} waypoints - Array of {lat, lon} waypoint objects
  * @param {string} profile - Travel mode: 'cycling', 'driving', 'walking'
  * @returns {Promise<Object|null>} Route object or null on failure
  */
 export async function getGoogleRoute(waypoints, profile = 'cycling') {
-    // Ensure service is initialized
-    if (!directionsService) {
-        if (!initDirectionsService()) {
-            console.warn('Google Directions Service not available, falling back to straight line');
-            return createFallbackRoute(waypoints);
-        }
+    const Route = await ensureRouteClass();
+    if (!Route) {
+        console.warn('Google Routes API not available, falling back to straight line');
+        return createFallbackRoute(waypoints);
     }
 
     if (!isGoogleMapsConfigured()) {
@@ -82,50 +92,27 @@ export async function getGoogleRoute(waypoints, profile = 'cycling') {
         return createFallbackRoute(waypoints);
     }
 
-    // Build request
-    const origin = new google.maps.LatLng(waypoints[0].lat, waypoints[0].lon);
-    const destination = new google.maps.LatLng(
-        waypoints[waypoints.length - 1].lat,
-        waypoints[waypoints.length - 1].lon
-    );
-
-    // Intermediate waypoints (if more than 2 points)
-    const intermediateWaypoints = waypoints.length > 2
-        ? waypoints.slice(1, -1).map(wp => ({
-            location: new google.maps.LatLng(wp.lat, wp.lon),
-            stopover: false
-        }))
-        : [];
-
     const request = {
-        origin: origin,
-        destination: destination,
-        waypoints: intermediateWaypoints,
+        origin: { lat: waypoints[0].lat, lng: waypoints[0].lon },
+        destination: {
+            lat: waypoints[waypoints.length - 1].lat,
+            lng: waypoints[waypoints.length - 1].lon
+        },
         travelMode: getTravelMode(profile),
-        optimizeWaypoints: false,
-        provideRouteAlternatives: false,
-        unitSystem: google.maps.UnitSystem.METRIC
+        computeAlternativeRoutes: false,
+        fields: ['path', 'distanceMeters', 'durationMillis']
     };
 
-    // Add bike-friendly options for cycling
-    if (profile === 'cycling' || profile === 'bicycle') {
-        request.avoidHighways = true;
+    if (profile === 'driving' || profile === 'car') {
+        request.routingPreference = 'TRAFFIC_AWARE';
     }
 
     try {
-        const result = await new Promise((resolve, reject) => {
-            directionsService.route(request, (response, status) => {
-                if (status === 'OK') {
-                    resolve(response);
-                } else {
-                    reject(new Error(`Directions request failed: ${status}`));
-                }
-            });
-        });
-
-        return convertGoogleRoute(result);
+        const result = await Route.computeRoutes(request);
+        const route = result.routes?.[0];
+        return route ? convertGoogleRoute(route) : createFallbackRoute(waypoints);
     } catch (error) {
-        console.error('Google Directions error:', error);
+        console.error('Google Routes error:', error);
         return createFallbackRoute(waypoints);
     }
 }
@@ -181,7 +168,7 @@ function deg2rad(deg) {
 
 /**
  * Get route using OSRM-compatible interface
- * Maps to Google Directions API
+ * Maps to Google Routes API
  * @param {Array} waypoints - Array of {lat, lon} waypoint objects
  * @param {string} profile - OSRM profile: 'cycling', 'driving', 'walking'
  */

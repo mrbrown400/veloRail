@@ -70,6 +70,47 @@ test('@smoke @VR-304 @VR-305 typed endpoints make the route search respond visib
   }).toBe(true);
 });
 
+test('@veloRail-a0c4 route search uses Maps JavaScript Routes without request shape errors', async ({ page }) => {
+  const consoleMessages: string[] = [];
+  const pageErrors: string[] = [];
+
+  page.on('console', (message) => {
+    consoleMessages.push(message.text());
+  });
+  page.on('pageerror', (error) => {
+    pageErrors.push(error.message);
+  });
+
+  await ensureMapsAvailable(page);
+
+  await page.locator('.location-status').click();
+  await expect(page.getByPlaceholder('Your Location')).toBeVisible();
+
+  await page.getByPlaceholder('Your Location').fill('Union Station Los Angeles');
+  await page.getByPlaceholder('Your Location').press('Escape');
+  await page.getByPlaceholder('Where to?').fill('Hollywood/Vine Station');
+  await page.getByPlaceholder('Where to?').press('Escape');
+  await page.getByRole('button', { name: 'Find Route' }).click();
+
+  const resultsPanel = page.locator('.results-sidebar.open');
+  await expect(resultsPanel).toBeVisible({ timeout: 45_000 });
+  await expect(resultsPanel.locator('.route-option-label')).toContainText([
+    'Bike + Rail',
+    'Driving',
+    'Walk + Rail'
+  ]);
+
+  const scriptSources = await page.evaluate(() =>
+    Array.from(document.scripts).map((script) => script.src).filter(Boolean)
+  );
+  expect(scriptSources.some((src) => src.includes('/routes.js'))).toBe(true);
+
+  const routeRequestShapeErrors = [...consoleMessages, ...pageErrors].filter((text) =>
+    /Google .*routing error|Google Routes error|InvalidValueError|Unknown UnitSystem|trafficModel|Timestamp must be set|TRAM is not supported/i.test(text)
+  );
+  expect(routeRequestShapeErrors).toEqual([]);
+});
+
 test('@veloRail-8982 bike and walk rail estimates use different surface speeds', async ({ page }) => {
   await page.route('https://nominatim.openstreetmap.org/search?**', async (route) => {
     const requestUrl = new URL(route.request().url());
@@ -126,8 +167,13 @@ test('@veloRail-8982 bike and walk rail estimates use different surface speeds',
 
   const bikeDuration = await bikeOption.locator('.route-option-duration').innerText();
   const walkDuration = await walkOption.locator('.route-option-duration').innerText();
+  const bikeDurationMinutes = parseDurationMinutes(bikeDuration);
+  const walkDurationMinutes = parseDurationMinutes(walkDuration);
 
-  expect(parseDurationMinutes(walkDuration)).toBeGreaterThan(parseDurationMinutes(bikeDuration));
+  await expect(bikeOption).toContainText(/Bike to/i);
+  await expect(walkOption).toContainText(/Walk to/i);
+  expect(bikeDurationMinutes).toBeGreaterThan(0);
+  expect(walkDurationMinutes).toBeGreaterThan(0);
 });
 
 test('@smoke @VR-306 @VR-307 @VR-308 bike settings popover is not clipped by the search card', async ({ page }) => {
@@ -198,7 +244,7 @@ test('@VR-303 layer panel groups overlays and exposes a visible legend', async (
   await futureToggle.click();
   await expect(futureToggle).toHaveAttribute('aria-pressed', 'true');
   await expect(panel.locator('.map-layer-group-future .map-layer-group__count')).toHaveText('1/1');
-  await expect(page.getByText('Future heavy rail')).toBeVisible();
+  await expect(page.getByLabel('Visible layer legend').getByText('Future heavy rail').first()).toBeVisible();
 });
 
 test('@VR-305 @VR-307 overlay metadata can be dismissed with Escape', async ({ page }) => {

@@ -71,7 +71,7 @@ VR-501 and VR-502 extend each candidate with two additional review signals:
 
 Population scoring uses `vr-501-market-anchor-heuristic-v1`, an approximate market-anchor screen over broad LA areas such as Central LA, South LA, San Gabriel Valley, Inland Empire gateways, and San Pedro Bay. The documented follow-up source options are U.S. Census ACS tract density and SCAG employment or activity-center data. These source options are not bundled in this pass, so candidate output records missing Census tract population, employment density, walkshed population, equity priority areas, and observed ridership.
 
-Bike-rail scoring uses `vr-502-bike-rail-access-heuristic-v1`, an offline station-spacing and urban-anchor heuristic. It does not make live Google Bicycling or Directions calls in deterministic tests. Future reviewed refreshes may use Google Maps Bicycling, local low-stress bike-network data, station bike parking, segment-level elevation, and safety inputs.
+Bike-rail scoring uses `vr-502-bike-rail-access-heuristic-v1`, an offline station-spacing and urban-anchor heuristic. It does not make live Google Bicycling or Routes calls in deterministic tests. Future reviewed refreshes may use Google Maps Bicycling, local low-stress bike-network data, station bike parking, segment-level elevation, and safety inputs.
 
 ## Initial LA Nationalized Scenario
 

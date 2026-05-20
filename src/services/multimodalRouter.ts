@@ -1,5 +1,5 @@
 // Multimodal Router for VeloRail
-// Orchestrates bike+rail routing using Google Directions API
+// Orchestrates bike+rail routing using Google Routes API
 // 3-call pattern: bike to station -> transit -> bike from station
 
 import {
@@ -57,7 +57,7 @@ function formatDuration(seconds: number): string {
 const MAX_BIKE_DISTANCE_KM = 8;
 
 /**
- * Calculate a bike+rail route using closest station selection + Google Directions API
+ * Calculate a bike+rail route using closest station selection + Google Routes API
  *
  * Simple algorithm:
  * 1. Find the closest BRT/LRT/HRT station to origin
@@ -587,7 +587,7 @@ export async function calculateWalkRailRoute(
 // ============================================
 
 /**
- * Calculate a driving route using Google Directions
+ * Calculate a driving route using Google Routes
  */
 export async function calculateGoogleDrivingRoute(
   origin: Location,

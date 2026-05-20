@@ -254,7 +254,7 @@ export class LocalStationDataProvider implements StationDataProvider {
 
 // export class GoogleStationDataProvider implements StationDataProvider {
 //   // TODO: Implement using Google Places API for stations
-//   // and Google Directions API for transit times
+//   // and Google Routes API for transit times
 // }
 
 // ============================================

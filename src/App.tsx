@@ -7,7 +7,7 @@ import { useUIStore } from './stores';
 import { CONFIG } from './services/config';
 import { initGooglePlaces } from './services/geocoding';
 
-const libraries: ('places' | 'geometry')[] = ['places', 'geometry'];
+const libraries: ('places' | 'geometry' | 'routes')[] = ['places', 'geometry', 'routes'];
 
 function App() {
   const { sidebarOpen } = useUIStore();

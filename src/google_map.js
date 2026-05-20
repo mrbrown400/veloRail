@@ -127,6 +127,7 @@ export async function initMap(elementId) {
         mapsLibrary = await importLibrary('maps');
         await importLibrary('places');
         await importLibrary('geometry');
+        await importLibrary('routes');
 
         // Create the map
         map = new mapsLibrary.Map(document.getElementById(elementId), {

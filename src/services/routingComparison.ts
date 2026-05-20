@@ -123,7 +123,7 @@ export const DEFAULT_GOOGLE_BASELINE_MODES: GoogleBaselineMode[] = [
 ];
 
 const GOOGLE_SCENARIO_CAVEAT =
-  'Google Maps baseline reflects currently supported Google Directions data and does not include VeloRail-only future or hypothetical scenario assumptions.';
+  'Google Maps baseline reflects currently supported Google Routes data and does not include VeloRail-only future or hypothetical scenario assumptions.';
 
 const GOOGLE_UNAVAILABLE_CAVEAT =
   'Google Maps baseline was unavailable from the supplied provider or local Google Maps configuration.';

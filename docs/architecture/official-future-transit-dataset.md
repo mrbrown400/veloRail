@@ -74,7 +74,7 @@ VR-104 exposes this dataset through a completed network comparison mode in the m
 - `present-plus-future` turns on `future-projects` so users can compare the current Google Maps transit layer with official planned, funded, or under construction project context.
 - Switching the Future Transit overlay directly updates the comparison mode because the comparison state is intentionally built on top of the existing overlay visibility model.
 
-Future service remains overlay context only. It is not current Google Maps operational service, and VR-104 does not change routing calculations or make Google Directions include app-owned future project geometry.
+Future service remains overlay context only. It is not current Google Maps operational service, and VR-104 does not change routing calculations or make Google Routes include app-owned future project geometry.
 
 ## Update Workflow
 
