@@ -782,6 +782,18 @@
       "url": "https://linear.app/velorail/issue/MBR-56"
     },
     {
+      "id": "MBR-58",
+      "linearIdentifier": "MBR-58",
+      "browserGateTag": "MBR-58",
+      "title": "Research Google Maps UX patterns and API parity opportunities",
+      "type": "task",
+      "labels": [
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-58"
+    },
+    {
       "id": "MBR-65",
       "linearIdentifier": "MBR-65",
       "browserGateTag": "MBR-65",
@@ -816,6 +828,42 @@
       ],
       "priority": 2,
       "url": "https://linear.app/velorail/issue/MBR-67"
+    },
+    {
+      "id": "MBR-71",
+      "linearIdentifier": "MBR-71",
+      "browserGateTag": "MBR-71",
+      "title": "Research Google Maps search, Places, and geocoding parity",
+      "type": "task",
+      "labels": [
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-71"
+    },
+    {
+      "id": "MBR-72",
+      "linearIdentifier": "MBR-72",
+      "browserGateTag": "MBR-72",
+      "title": "Research Google Maps directions and route-result UX parity",
+      "type": "task",
+      "labels": [
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-72"
+    },
+    {
+      "id": "MBR-73",
+      "linearIdentifier": "MBR-73",
+      "browserGateTag": "MBR-73",
+      "title": "Research Google Maps mobile controls and panel interactions",
+      "type": "task",
+      "labels": [
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-73"
     }
   ]
 }
