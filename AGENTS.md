@@ -55,6 +55,7 @@ Static Phase 1 assets:
 - `docs/agentic/skills-portability.md` for Agent Skills-style `SKILL.md` review.
 - `docs/agentic/codex-skill-discovery.md` for reviewing external skill catalogs before adoption.
 - `docs/agentic/repo-map-lattice.md` for the static `lat.md`-style repo relationship pilot.
+- `docs/agentic/codex-cloud-setup.md` for Codex cloud setup, runtime pins, environment variables, and verification commands.
 
 Do not add a new agentic harness daemon, MCP server, database, or orchestration UI to VeloRail by default. That policy does not ban product data storage or normal app infrastructure when a feature requires it. New harness runtimes increase security surface, setup drift, cloud/local mismatch, and workflow overlap with Codex worktrees, Linear, GitHub, repo docs, and Playwright gates. Put global experiments in a separate Codex harness first, then adopt into VeloRail only after a benchmark proves value.
 
@@ -109,6 +110,7 @@ Use repo docs instead of agent-private stores:
 - `docs/agentic/repo-map-lattice.md` for static relationships between workstreams, owner files, docs, and gates.
 - `docs/agentic/codex-native-migration.md` for migration status and legacy stack mapping.
 - `docs/agentic/phase-1-codex-harness.md` for the current strict harness adoption policy.
+- `docs/agentic/codex-cloud-setup.md` for reproducible Codex cloud environment setup.
 - `docs/architecture/` for durable architecture decisions.
 
 Files under `docs/agentic/legacy/` are historical migration exports only. Do not treat old Seeds, Mulch, Canopy, Overstory, or GitNexus instructions inside those files as active workflow.

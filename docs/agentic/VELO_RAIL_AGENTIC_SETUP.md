@@ -29,11 +29,24 @@ Do not add a new agentic harness daemon, MCP server, database, or orchestration 
 The Phase 1 static assets are:
 
 - `docs/agentic/phase-1-codex-harness.md`
+- `docs/agentic/codex-cloud-setup.md`
 - `docs/agentic/templates/linear-issue-spec.md`
 - `docs/agentic/templates/implementation-plan.md`
 - `docs/agentic/skills-portability.md`
 - `docs/agentic/codex-skill-discovery.md`
 - `docs/agentic/repo-map-lattice.md`
+
+## Codex Cloud
+
+Use `docs/agentic/codex-cloud-setup.md` when configuring Codex cloud for this repo. It records the Node runtime pin, setup script, environment variables, internet-access posture, and verification commands.
+
+The setup script is:
+
+```bash
+bash scripts/codex-cloud-setup.sh
+```
+
+Repo-scoped Codex defaults live in `.codex/config.toml`. Keep runtime, MCP, code-index, and orchestration additions out of that file unless a Linear issue and the harness-curation workflow approve them.
 
 ## Mem And Repo Map
 

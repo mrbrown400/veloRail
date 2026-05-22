@@ -38,6 +38,6 @@ The first Codex-native harness pass adds policy rather than infrastructure:
 - Superpowers remains selective workflow support, not a replacement for VeloRail's own `AGENTS.md`, `.agents/skills/`, Linear, GitHub, and gates.
 - Static Markdown code maps are preferred over generated harness databases or background services for VeloRail. Any `lat.md`-style pilot must improve `docs/agentic/repo-map.md` without adding a daemon, MCP server, harness database, or orchestration UI.
 
-The static Phase 1 assets live in `docs/agentic/templates/`, `docs/agentic/skills-portability.md`, `docs/agentic/codex-skill-discovery.md`, and `docs/agentic/repo-map-lattice.md`.
+The static Phase 1 assets live in `docs/agentic/templates/`, `docs/agentic/skills-portability.md`, `docs/agentic/codex-skill-discovery.md`, `docs/agentic/repo-map-lattice.md`, and `docs/agentic/codex-cloud-setup.md`.
 
 This keeps VeloRail compatible with local Codex and Codex cloud: durable guidance is checked into the repo, while cross-repo personal memory stays in Mem.
