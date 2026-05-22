@@ -768,6 +768,54 @@
       ],
       "priority": 1,
       "url": "https://linear.app/velorail/issue/MBR-48"
+    },
+    {
+      "id": "MBR-56",
+      "linearIdentifier": "MBR-56",
+      "browserGateTag": "MBR-56",
+      "title": "Define frontend redesign project plan and success criteria",
+      "type": "task",
+      "labels": [
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-56"
+    },
+    {
+      "id": "MBR-65",
+      "linearIdentifier": "MBR-65",
+      "browserGateTag": "MBR-65",
+      "title": "Establish redesign decision log and review checkpoints",
+      "type": "task",
+      "labels": [
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-65"
+    },
+    {
+      "id": "MBR-66",
+      "linearIdentifier": "MBR-66",
+      "browserGateTag": "MBR-66",
+      "title": "Define frontend redesign success metrics and gate matrix",
+      "type": "task",
+      "labels": [
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-66"
+    },
+    {
+      "id": "MBR-67",
+      "linearIdentifier": "MBR-67",
+      "browserGateTag": "MBR-67",
+      "title": "Build redesign risk register and dependency map",
+      "type": "task",
+      "labels": [
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-67"
     }
   ]
 }
