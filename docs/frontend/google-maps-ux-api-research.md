@@ -101,7 +101,7 @@ Direct Google Maps web observations were made on public Los Angeles locations on
 
 - Search work should be framed as a service-wrapper migration plus UI state cleanup: session tokens, visible empty/error states, per-field validation, clear controls, origin/destination swap, and service-area validation.
 - Directions work should first stabilize the route data contract: stable IDs, optional source/fallback metadata, warnings, arrival time, stop count, vehicle type, and nullable fields for fare/platform only if requested. Driving should be presented as a comparison benchmark rather than a peer route family.
-- Route alternatives should not be enabled until store selection stops relying on duplicate-prone labels and tests cover same-mode alternatives.
+- Route alternatives should sequence route-family clarity first, then Google same-mode alternatives after store selection stops relying on duplicate-prone labels and tests cover expanded route contracts.
 - Mobile work should coordinate bottom surfaces rather than stacking panels. Route results, metadata, and layers currently compete for the same screen area.
 - Overlay work should keep native Google layers for context and VeloRail overlays for planning data. Larger scenario datasets may justify Data layer or GeoJSON, but that is not required for this milestone.
 - Map setup work should adopt Map ID and Advanced Markers now, with separate verification for marker accessibility, marker library loading, and Google Cloud configuration.
@@ -112,14 +112,9 @@ Direct Google Maps web observations were made on public Los Angeles locations on
 1. Driving should be comparison-only, not a peer route result.
 2. Map ID and Advanced Markers should be adopted now as a separate setup and accessibility follow-up.
 3. Search validation should allow endpoints as far west as Oxnard, east as San Bernardino, north as San Fernando, and south as San Clemente. Implementation should convert those anchors into an explicit validation boundary instead of relying only on a loose rectangular bias.
+4. Route alternatives should follow the recommended sequence: make VeloRail route-family alternatives clear first, then add Google same-mode alternatives after stable route IDs, expanded route fields, and selection tests are in place. Long term, support both.
 
 ## Remaining Owner Questions
 
-1. Alternatives terminology needs a product decision:
-   - VeloRail route-family alternatives are product-level route strategies such as Bike + Rail, Walk + Rail, future transit, passenger-conversion scenarios, and Driving as a comparison benchmark.
-   - Google same-mode alternatives are multiple paths within one Google routing mode for the same origin and destination, such as several transit itineraries or alternate bike routes returned by `computeAlternativeRoutes`.
-   - Prioritizing route-family alternatives keeps the UI focused on VeloRail's identity and is closest to the current architecture.
-   - Prioritizing Google same-mode alternatives makes the app feel more like Google Maps, but requires stable route IDs, expanded route fields, and more card/detail selection complexity.
-   - Supporting both is likely the long-term best UX, but it should be sequenced as route-family clarity first, then same-mode alternatives after the route contract is ready.
-2. Should CI ever run live Google Maps smoke tests, or should live-key browser checks stay local/manual?
-3. How should degraded providers be named in user-facing states without overexposing implementation details?
+1. Should CI ever run live Google Maps smoke tests, or should live-key browser checks stay local/manual?
+2. How should degraded providers be named in user-facing states without overexposing implementation details?
