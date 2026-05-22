@@ -110,7 +110,7 @@ Gaps to address in implementation:
 - `gestureHandling: "greedy"` is acceptable for a full-screen map app, but sheet scrolling must not accidentally pan the map.
 - Visual keyboard appearance should not hide origin/destination fields or the active prediction list.
 - Safe-area insets should be considered for bottom controls.
-- Advanced Markers could improve marker accessibility, but require a map ID and marker library decision.
+- Owner decision: adopt Map ID and Advanced Markers now, but keep that as separate setup and accessibility work from mobile panel layout.
 
 ## Current VeloRail Responsive Gaps
 

@@ -13,7 +13,7 @@ The highest-value follow-up work is:
 1. Migrate search internals from legacy Places autocomplete services to the newer Place Autocomplete Data API while preserving VeloRail's custom `PlaceAutocomplete` UI.
 2. Keep custom route result cards and `RouteOverlay` rendering, but expand the route data contract before adding Google-like same-mode route alternatives, warnings, fares, or richer transit itinerary fields.
 3. Convert mobile route results, layers, and metadata into coordinated bottom-sheet states so the map remains usable and VeloRail overlays stay discoverable.
-4. Defer Advanced Marker and Map ID adoption to an owner decision because they touch map setup, styling, accessibility, and API configuration.
+4. Adopt Map ID and Advanced Markers now as explicit follow-up setup and accessibility work because they touch map setup, styling, testing, and API configuration.
 
 Direct Google Maps web observations were made on public Los Angeles locations on 2026-05-22 for interaction-pattern research only. They were not used as source data.
 
@@ -70,9 +70,9 @@ Direct Google Maps web observations were made on public Los Angeles locations on
 | Routes transit options | Transit modes and preferences, departure/arrival time, route alternatives where supported. | Useful for current transit, not future service. | Do not use as source of future-transit facts. |
 | Native layers | `TransitLayer` and `BicyclingLayer` can be attached or detached from the map. | Already matches VeloRail's native layer model. | Layers are not queryable feature datasets. |
 | Polylines, markers, InfoWindows | Base primitives for route and overlay rendering. | Already in use. | Keep custom styling for VeloRail-owned overlays. |
-| Advanced Markers | Recommended marker path with richer HTML/CSS and accessibility support. | Useful but requires map ID and marker library planning. | Owner decision before migration. |
+| Advanced Markers | Recommended marker path with richer HTML/CSS and accessibility support. | Owner decision: adopt now. | Track as setup and accessibility work with marker library and map ID changes. |
 | Data layer and GeoJSON | Loads and styles GeoJSON-like feature data on the map. | Candidate for larger future or scenario datasets. | Not required for current docs milestone. |
-| Map IDs and cloud styling | Enables cloud styling and some advanced marker features. | Possible future setup decision. | Touches Google Cloud configuration and testing. |
+| Map IDs and cloud styling | Enables cloud styling and some advanced marker features. | Owner decision: adopt now. | Touches Google Cloud configuration and testing, so keep it separate from route UX work. |
 
 ## API Limitation And Risk Table
 
@@ -85,13 +85,13 @@ Direct Google Maps web observations were made on public Los Angeles locations on
 | Transit route horizon | Google transit route availability is schedule-bound. | Future transit overlays cannot rely on live transit routing as truth. | Keep future/vision/freight scenario data VeloRail-owned with provenance. |
 | Walking and biking warnings | Google routing docs require warnings for some non-driving modes. | VeloRail is car-free and will lean on these modes. | Model and display warnings before exposing richer Google route details. |
 | Native layers are not data APIs | `TransitLayer` and `BicyclingLayer` render map details but do not expose route geometry. | They cannot replace VeloRail overlay data or metadata. | Keep native layers as context only. |
-| Marker migration touches setup | Advanced Markers require marker library and map ID decisions. | It is not a drop-in visual-only change. | Track as a separate setup and accessibility issue. |
+| Marker migration touches setup | Advanced Markers require marker library and Map ID setup. | It is not a drop-in visual-only change. | Adopt now, but track as a separate setup and accessibility issue. |
 | Billing and quota drift | Places, Routes, and Maps JS bill differently and change over time. | Live tests and hidden requests can become expensive or flaky. | Use mocks for deterministic tests and strict browser smoke only when keys are configured. |
 | Product observations are not source data | Google Maps web UI can change without notice. | Docs should not hard-code scraped details. | Use product observation only for interaction patterns. |
 
 ## VeloRail-Specific Divergences
 
-- VeloRail should not optimize for car-first parity. Driving can remain a comparison route when useful, but Bike + Rail and Walk + Rail should remain first-class.
+- VeloRail should not optimize for car-first parity. Owner decision: Driving should be comparison-only, not a peer route result. Bike + Rail and Walk + Rail should remain first-class.
 - Future transit, visionary concepts, passenger-conversion corridors, freight suitability, GTFS ingestion, and scenario generation remain VeloRail-owned data and logic. Google Maps APIs can render and contextualize them but should not be treated as their source of truth.
 - VeloRail route cards should include planning provenance and uncertainty when future or scenario routes are shown. Google Maps route cards do not cover that product need.
 - Photon, Nominatim, OSRM, and static station fallbacks should remain fallback-only under the Google Maps-first policy, with degraded-provider feedback where user-facing.
@@ -100,17 +100,26 @@ Direct Google Maps web observations were made on public Los Angeles locations on
 ## Implementation Implications
 
 - Search work should be framed as a service-wrapper migration plus UI state cleanup: session tokens, visible empty/error states, per-field validation, clear controls, origin/destination swap, and service-area validation.
-- Directions work should first stabilize the route data contract: stable IDs, optional source/fallback metadata, warnings, arrival time, stop count, vehicle type, and nullable fields for fare/platform only if requested.
+- Directions work should first stabilize the route data contract: stable IDs, optional source/fallback metadata, warnings, arrival time, stop count, vehicle type, and nullable fields for fare/platform only if requested. Driving should be presented as a comparison benchmark rather than a peer route family.
 - Route alternatives should not be enabled until store selection stops relying on duplicate-prone labels and tests cover same-mode alternatives.
 - Mobile work should coordinate bottom surfaces rather than stacking panels. Route results, metadata, and layers currently compete for the same screen area.
 - Overlay work should keep native Google layers for context and VeloRail overlays for planning data. Larger scenario datasets may justify Data layer or GeoJSON, but that is not required for this milestone.
+- Map setup work should adopt Map ID and Advanced Markers now, with separate verification for marker accessibility, marker library loading, and Google Cloud configuration.
 - Browser tests should use fixtures for deterministic UX and strict Google Maps smoke checks only when `VITE_GOOGLE_MAPS_API_KEY` is available.
 
-## Open Owner Questions
+## Owner Decisions Captured
 
-1. Should Driving remain a peer result in `all` mode, or become a comparison-only benchmark hidden behind a control?
-2. Should the next map setup issue adopt a Map ID now to unblock Advanced Markers and cloud styling, or defer until marker accessibility work is scheduled?
-3. Should VeloRail prioritize Google same-mode alternatives, VeloRail route-family alternatives, or both?
-4. What is the hard service area for search validation: Los Angeles city, LA County, Metro service area, or a VeloRail-specific planning boundary?
-5. Should CI ever run live Google Maps smoke tests, or should live-key browser checks stay local/manual?
-6. How should degraded providers be named in user-facing states without overexposing implementation details?
+1. Driving should be comparison-only, not a peer route result.
+2. Map ID and Advanced Markers should be adopted now as a separate setup and accessibility follow-up.
+3. Search validation should allow endpoints as far west as Oxnard, east as San Bernardino, north as San Fernando, and south as San Clemente. Implementation should convert those anchors into an explicit validation boundary instead of relying only on a loose rectangular bias.
+
+## Remaining Owner Questions
+
+1. Alternatives terminology needs a product decision:
+   - VeloRail route-family alternatives are product-level route strategies such as Bike + Rail, Walk + Rail, future transit, passenger-conversion scenarios, and Driving as a comparison benchmark.
+   - Google same-mode alternatives are multiple paths within one Google routing mode for the same origin and destination, such as several transit itineraries or alternate bike routes returned by `computeAlternativeRoutes`.
+   - Prioritizing route-family alternatives keeps the UI focused on VeloRail's identity and is closest to the current architecture.
+   - Prioritizing Google same-mode alternatives makes the app feel more like Google Maps, but requires stable route IDs, expanded route fields, and more card/detail selection complexity.
+   - Supporting both is likely the long-term best UX, but it should be sequenced as route-family clarity first, then same-mode alternatives after the route contract is ready.
+2. Should CI ever run live Google Maps smoke tests, or should live-key browser checks stay local/manual?
+3. How should degraded providers be named in user-facing states without overexposing implementation details?

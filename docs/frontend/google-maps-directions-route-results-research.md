@@ -30,11 +30,17 @@ Google Maps directions patterns that matter for VeloRail:
 
 VeloRail should borrow hierarchy and synchronization, not the car-first priority order. Bike + Rail and Walk + Rail should remain first-class route families.
 
+Alternatives terminology:
+
+- VeloRail route-family alternatives are product-level route strategies: Bike + Rail, Walk + Rail, future transit, passenger-conversion scenarios, and Driving as a comparison benchmark.
+- Google same-mode alternatives are multiple paths within one Google routing mode for the same origin and destination, such as multiple transit itineraries or alternate bike routes returned after enabling `computeAlternativeRoutes`.
+- Route-family alternatives should stay primary because they express VeloRail's car-free and future-transit identity. Same-mode alternatives should wait until stable route IDs and richer route fields are modeled.
+
 ## Route Alternatives Behavior
 
 | Area | Google behavior | VeloRail current state | Recommendation |
 | --- | --- | --- | --- |
-| Cross-mode alternatives | Mode choices expose different travel modes with ETA context. | `compareRoutes` returns Bike + Rail, Driving, and Walk + Rail for `all`. | Keep one card per VeloRail route family for now. |
+| Cross-mode alternatives | Mode choices expose different travel modes with ETA context. | `compareRoutes` returns Bike + Rail, Driving, and Walk + Rail for `all`. | Keep Bike + Rail and Walk + Rail as primary route families; show Driving as comparison-only. |
 | Same-mode alternatives | Routes can return a default plus alternatives where supported. | `googleRoutesService.ts` sets `computeAlternativeRoutes: false`. | Treat as future API and data-contract work. |
 | Stable selection | Google route alternatives have route metadata and indexes. | `ResultsSidebar` compares selected state by route label. | Add stable route IDs before adding same-mode alternatives. |
 | Transit options | Google can show multiple transit patterns and departure windows. | VeloRail usually returns one walk+rail and one bike+rail family route. | Do not imply a frequency list until the service contract supports it. |

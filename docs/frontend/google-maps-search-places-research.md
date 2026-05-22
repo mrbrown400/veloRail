@@ -37,7 +37,7 @@ VeloRail should copy the state clarity and prediction hierarchy, not the full Go
 | --- | --- | --- |
 | Custom autocomplete UI | Place Autocomplete Data API can return suggestions for custom-rendered controls. | Preserve `PlaceAutocomplete` and route-search styling. |
 | Location bias | Autocomplete and geocoding can bias results toward an area. | Keep LA-centered suggestions and geocoding. |
-| Location restriction | Autocomplete Data API can restrict prediction geography in some request shapes. | Consider for route endpoints after owner defines service boundary. |
+| Location restriction | Autocomplete Data API can restrict prediction geography in some request shapes. | Consider for route endpoints inside the owner boundary: Oxnard west, San Bernardino east, San Fernando north, and San Clemente south. |
 | Origin context | Autocomplete can take an origin for distance-aware prediction context. | Useful after start location is known. |
 | Primary type filtering | Places requests can narrow prediction categories. | Use cautiously; VeloRail needs stations, landmarks, and addresses. |
 | Session tokens | Autocomplete sessions can group predictions and place-detail selection. | Needed for billing clarity and lifecycle tests. |
@@ -56,7 +56,7 @@ VeloRail should copy the state clarity and prediction hierarchy, not the full Go
 | Clear control | Users must manually edit text. | Less efficient than Google-style search clearing. | Add per-field clear affordances. |
 | Swap direction | Expanded start/end fields have no reverse action. | Directions parity gap. | Add origin/destination swap once state semantics are explicit. |
 | Current location | `useGeolocation` may request on mount and can refresh through the button. | Permission timing may feel more aggressive than Google Maps. | Make location use clearly user-initiated and explain denied/unavailable states. |
-| Query bias | Search uses LA center/radius and geocoder bounds. | Bounds bias does not guarantee in-area results. | Validate final coordinates against the accepted VeloRail service area. |
+| Query bias | Search uses LA center/radius and geocoder bounds. | Bounds bias does not guarantee in-area results. | Validate final coordinates against the accepted VeloRail service area: Oxnard, San Bernardino, San Fernando, and San Clemente as outer anchors. |
 | Fallback providers | Photon/Nominatim fallback silently. | Useful resilience, but can blur Google Maps-first behavior. | Keep fallback-only, with degraded feedback when routing quality changes. |
 | Selection state | Typed text and selected `Location` can diverge. | Submit-time geocoding helps, but unresolved input is not explicit. | Track selected place versus raw input per field. |
 
@@ -86,6 +86,7 @@ VeloRail should copy the state clarity and prediction hierarchy, not the full Go
 - Preserve `placeId`, provider, confidence/source metadata, display label, and coordinates.
 - Keep Google Geocoder first for free-text submit resolution.
 - Add post-resolution service-area validation because bounds and biasing do not reject every out-of-area match.
+- Use the owner boundary as implementation input: as far west as Oxnard, east as San Bernardino, north as San Fernando, and south as San Clemente. Convert that into an explicit polygon or documented bounding rule before rejecting user-entered endpoints.
 - Keep Photon and Nominatim as fallback-only resilience. If fallback results are used, expose that as degraded confidence for route planning.
 - Add cache keys that distinguish provider, query, and bias/restriction context so future boundary changes do not reuse stale assumptions.
 
@@ -98,7 +99,7 @@ Recommended unit coverage:
 - Zero results remain visible.
 - Service error differs from zero results.
 - Google geocoder success, no result, and fallback result.
-- Service-area validation accepts and rejects known fixture coordinates.
+- Service-area validation accepts fixture coordinates near Oxnard, San Bernardino, San Fernando, and San Clemente, then rejects known out-of-bound coordinates.
 - Raw typed input versus selected `Location` state.
 
 Recommended browser coverage:
