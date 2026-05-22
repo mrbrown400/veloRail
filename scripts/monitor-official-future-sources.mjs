@@ -4,9 +4,11 @@ import crypto from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
 import { createServer } from 'vite';
 
 const DEFAULT_SNAPSHOT_PATH = '.velorail-monitor/official-future-sources.json';
+const FALLBACK_SNAPSHOT_DIR = '.velorail-monitor/fallback-snapshots';
 const DEFAULT_TIMEOUT_MS = 20000;
 const SNAPSHOT_VERSION = 1;
 
@@ -154,9 +156,110 @@ async function readSnapshot(snapshotPath) {
   }
 }
 
+export function getFallbackSnapshotPath(snapshotPath) {
+  const extension = path.extname(snapshotPath) || '.json';
+  const baseName = path.basename(snapshotPath, extension);
+  const snapshotKey = crypto
+    .createHash('sha256')
+    .update(path.resolve(snapshotPath))
+    .digest('hex')
+    .slice(0, 12);
+
+  return path.join(FALLBACK_SNAPSHOT_DIR, `${baseName}.${snapshotKey}${extension}`);
+}
+
+function getSnapshotTimestamp(snapshot) {
+  const timestamp = Date.parse(snapshot?.updatedAt ?? '');
+  return Number.isFinite(timestamp) ? timestamp : Number.NEGATIVE_INFINITY;
+}
+
+export function choosePreferredSnapshot(primarySnapshot, primaryPath, fallbackSnapshot, fallbackPath) {
+  if (primarySnapshot && fallbackSnapshot) {
+    if (getSnapshotTimestamp(fallbackSnapshot) > getSnapshotTimestamp(primarySnapshot)) {
+      return {
+        snapshot: fallbackSnapshot,
+        sourcePath: fallbackPath
+      };
+    }
+
+    return {
+      snapshot: primarySnapshot,
+      sourcePath: primaryPath
+    };
+  }
+
+  if (primarySnapshot) {
+    return {
+      snapshot: primarySnapshot,
+      sourcePath: primaryPath
+    };
+  }
+
+  if (fallbackSnapshot) {
+    return {
+      snapshot: fallbackSnapshot,
+      sourcePath: fallbackPath
+    };
+  }
+
+  return {
+    snapshot: null,
+    sourcePath: null
+  };
+}
+
+export async function readSnapshotWithFallback(snapshotPath) {
+  const fallbackPath = getFallbackSnapshotPath(snapshotPath);
+  const [primarySnapshot, fallbackSnapshot] = await Promise.all([
+    readSnapshot(snapshotPath),
+    fallbackPath === snapshotPath ? null : readSnapshot(fallbackPath)
+  ]);
+  const preferred = choosePreferredSnapshot(
+    primarySnapshot,
+    snapshotPath,
+    fallbackSnapshot,
+    fallbackPath
+  );
+
+  return {
+    ...preferred,
+    fallbackPath
+  };
+}
+
+export function isRecoverableSnapshotWriteError(error) {
+  return ['EACCES', 'EPERM', 'EROFS'].includes(error?.code);
+}
+
 async function writeSnapshot(snapshotPath, snapshot) {
   await mkdir(path.dirname(snapshotPath), { recursive: true });
   await writeFile(snapshotPath, `${JSON.stringify(snapshot, null, 2)}\n`);
+}
+
+export async function writeSnapshotWithFallback(snapshotPath, snapshot) {
+  const fallbackPath = getFallbackSnapshotPath(snapshotPath);
+
+  try {
+    await writeSnapshot(snapshotPath, snapshot);
+    return {
+      requestedPath: snapshotPath,
+      savedPath: snapshotPath,
+      usedFallback: false,
+      warning: null
+    };
+  } catch (error) {
+    if (!isRecoverableSnapshotWriteError(error)) {
+      throw error;
+    }
+
+    await writeSnapshot(fallbackPath, snapshot);
+    return {
+      requestedPath: snapshotPath,
+      savedPath: fallbackPath,
+      usedFallback: true,
+      warning: `Snapshot path ${snapshotPath} was not writable (${error.code}); saved fallback snapshot to ${fallbackPath}.`
+    };
+  }
 }
 
 async function fetchTarget(target, timeoutMs) {
@@ -246,7 +349,7 @@ function scanExpansionKeywords(text) {
   return keywords.filter((keyword) => text.includes(keyword));
 }
 
-function compareSnapshots(previousSnapshot, currentSnapshot) {
+export function compareSnapshots(previousSnapshot, currentSnapshot) {
   const previousTargets = previousSnapshot?.targets ?? {};
   const changes = [];
 
@@ -264,7 +367,13 @@ function compareSnapshots(previousSnapshot, currentSnapshot) {
       continue;
     }
 
-    if (previous.fingerprint !== current.fingerprint) {
+    if (
+      previous.ok
+      && current.ok
+      && previous.fingerprint
+      && current.fingerprint
+      && previous.fingerprint !== current.fingerprint
+    ) {
       changes.push({
         id,
         label: current.label,
@@ -279,7 +388,7 @@ function compareSnapshots(previousSnapshot, currentSnapshot) {
       continue;
     }
 
-    if (previous.status !== current.status) {
+    if (previous.ok && current.ok && previous.status !== current.status) {
       changes.push({
         id,
         label: current.label,
@@ -306,11 +415,28 @@ function compareSnapshots(previousSnapshot, currentSnapshot) {
   return changes;
 }
 
-function buildSnapshot(results) {
+export function buildSnapshot(results) {
   const targets = {};
 
   for (const result of results) {
     targets[result.id] = result;
+  }
+
+  return {
+    version: SNAPSHOT_VERSION,
+    updatedAt: new Date().toISOString(),
+    targets
+  };
+}
+
+export function buildStoredSnapshot(results, previousSnapshot) {
+  const previousTargets = previousSnapshot?.targets ?? {};
+  const targets = {};
+
+  for (const result of results) {
+    targets[result.id] = !result.ok && previousTargets[result.id]
+      ? previousTargets[result.id]
+      : result;
   }
 
   return {
@@ -338,9 +464,13 @@ function printSummary(summary) {
   }
 
   if (summary.snapshotUpdated) {
-    console.log(`Snapshot updated: ${summary.snapshotPath}`);
+    console.log(`Snapshot updated: ${summary.snapshotSavedPath}`);
   } else {
-    console.log(`Snapshot not updated. Re-run with --update-snapshot to save current fingerprints.`);
+    console.log('Snapshot not updated. Re-run with --update-snapshot to save current fingerprints.');
+  }
+
+  if (summary.snapshotWarning) {
+    console.log(`Snapshot warning: ${summary.snapshotWarning}`);
   }
 }
 
@@ -355,13 +485,19 @@ async function main() {
   const targets = await loadTargets();
   const results = await Promise.all(targets.map((target) => fetchTarget(target, options.timeoutMs)));
   const currentSnapshot = buildSnapshot(results);
-  const previousSnapshot = await readSnapshot(options.snapshotPath);
+  const previousSnapshotResult = await readSnapshotWithFallback(options.snapshotPath);
+  const previousSnapshot = previousSnapshotResult.snapshot;
   const changes = compareSnapshots(previousSnapshot, currentSnapshot);
   const fetchIssues = results.filter((result) => !result.ok);
+  const storedSnapshot = buildStoredSnapshot(results, previousSnapshot);
   const summary = {
     snapshotPath: options.snapshotPath,
+    snapshotReadPath: previousSnapshotResult.sourcePath,
+    snapshotFallbackPath: previousSnapshotResult.fallbackPath,
     previousSnapshotFound: Boolean(previousSnapshot),
-    snapshotUpdated: options.updateSnapshot,
+    snapshotUpdated: false,
+    snapshotSavedPath: null,
+    snapshotWarning: null,
     checkedTargetCount: results.length,
     changes,
     fetchIssues: fetchIssues.map(({ id, label, url, status, statusText }) => ({
@@ -374,7 +510,10 @@ async function main() {
   };
 
   if (options.updateSnapshot) {
-    await writeSnapshot(options.snapshotPath, currentSnapshot);
+    const writeResult = await writeSnapshotWithFallback(options.snapshotPath, storedSnapshot);
+    summary.snapshotUpdated = true;
+    summary.snapshotSavedPath = writeResult.savedPath;
+    summary.snapshotWarning = writeResult.warning;
   }
 
   if (options.json) {
@@ -388,7 +527,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}

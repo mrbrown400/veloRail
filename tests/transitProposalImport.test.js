@@ -98,6 +98,9 @@ test('official LA future transit batch validates and renders overlay-ready input
   const kLineNorth = result.dataset.proposals.find(
     proposal => proposal.id === 'metro-k-line-northern-extension'
   );
+  const kLineTorrance = result.dataset.proposals.find(
+    proposal => proposal.id === 'metro-k-line-extension-torrance'
+  );
   const sepulvedaValleyWestside = result.dataset.proposals.find(
     proposal => proposal.id === 'metro-sepulveda-transit-corridor-valley-westside'
   );
@@ -105,6 +108,10 @@ test('official LA future transit batch validates and renders overlay-ready input
     proposal => proposal.id === 'metro-sepulveda-transit-corridor-westside-lax'
   );
 
+  assert.equal(
+    kLineTorrance.provenance[0].url,
+    'https://www.metro.net/projects/k-line-extension-to-torrance/'
+  );
   assert.equal(kLineNorth.timeline.openingYear, 2049);
   assert.equal(kLineNorth.mode, 'light_rail');
   assert.match(kLineNorth.provenance[0].note, /San Vicente-Fairfax LPA/);

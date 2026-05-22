@@ -105,7 +105,7 @@ export const OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS = [
     'K Line Extension to Torrance project page',
     'Los Angeles County Metropolitan Transportation Authority',
     'official_project',
-    'https://www.metro.net/projects/green-line-extension/',
+    'https://www.metro.net/projects/k-line-extension-to-torrance/',
     OFFICIAL_FUTURE_PRIMARY_DRIFT_CHECKS,
     'Primary source for approved alignment option, funding status, station count, and completion target.'
   ),
@@ -537,7 +537,7 @@ export const OFFICIAL_LA_FUTURE_TRANSIT_DATASET: TransitProposalDataset = {
           title: 'K Line Extension to Torrance',
           sourceType: 'official_project',
           publisher: 'Los Angeles County Metropolitan Transportation Authority',
-          url: 'https://www.metro.net/projects/green-line-extension/',
+          url: 'https://www.metro.net/projects/k-line-extension-to-torrance/',
           accessedAt: OFFICIAL_FUTURE_TRANSIT_REVIEWED_AT,
           note: 'Metro lists the 4.5-mile extension, two new stations, January 2026 Final EIR certification and Hawthorne Option approval, planning phase, and late 2036 completion pending funding.'
         }

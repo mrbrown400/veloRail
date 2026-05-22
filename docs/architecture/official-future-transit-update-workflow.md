@@ -38,9 +38,10 @@ Use the source monitor to catch changed Metro pages before the quarterly manual 
 ```bash
 npm run monitor:official-future-transit -- --update-snapshot
 npm run monitor:official-future-transit -- --fail-on-change --update-snapshot
+npm run monitor:official-future-transit -- --fail-on-change --fail-on-error --update-snapshot
 ```
 
-The monitor fetches every `OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS` URL plus broad discovery targets in `OFFICIAL_FUTURE_TRANSIT_DISCOVERY_TARGETS`, normalizes page text, stores local fingerprints under `.velorail-monitor/`, and reports changed pages. It does not automatically rewrite `officialFutureTransitProposals.ts`; changed pages still require human review of the official source before updating project facts.
+The monitor fetches every `OFFICIAL_FUTURE_TRANSIT_SOURCE_WATCH_TARGETS` URL plus broad discovery targets in `OFFICIAL_FUTURE_TRANSIT_DISCOVERY_TARGETS`, normalizes page text, stores local fingerprints under `.velorail-monitor/`, and reports changed pages. If the requested snapshot path is not writable, the monitor saves a repo-local fallback snapshot under `.velorail-monitor/fallback-snapshots/` and reuses the freshest available snapshot on later runs. Fetch failures are reported separately from content drift and do not overwrite the last known successful fingerprint for a target. The monitor does not automatically rewrite `officialFutureTransitProposals.ts`; changed pages still require human review of the official source before updating project facts.
 
 ## Source Watch Targets
 

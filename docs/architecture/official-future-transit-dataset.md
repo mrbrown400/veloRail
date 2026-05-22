@@ -41,7 +41,7 @@ Each source record includes `accessedAt: 2026-05-20`. `veloRail-d29c` adds `OFFI
 - East San Fernando Valley Light Rail Transit: https://www.metro.net/projects/east-sfv/
 - ESFV construction notice coverage: https://thesource.metro.net/upcoming-directional-closures-on-van-nuys-boulevard-for-work-on-east-san-fernando-valley-light-rail-project/
 - Southeast Gateway Line: https://www.metro.net/projects/southeastgateway/
-- K Line Extension to Torrance: https://www.metro.net/projects/green-line-extension/
+- K Line Extension to Torrance: https://www.metro.net/projects/k-line-extension-to-torrance/
 - K Line Northern Extension: https://www.metro.net/projects/kline-northern-extension/
 - Sepulveda Transit Corridor: https://www.metro.net/projects/sepulvedacorridor/
 - Sepulveda LPA approval: https://www.metro.net/about/media-relations/metro-boards-initial-approval-sets-stage-for-generational-transformation-of-sepulveda-pass-corridor/
