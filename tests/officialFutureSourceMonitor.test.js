@@ -5,6 +5,7 @@ import {
   buildStoredSnapshot,
   choosePreferredSnapshot,
   compareSnapshots,
+  describeFetchError,
   getFallbackSnapshotPath
 } from '../scripts/monitor-official-future-sources.mjs';
 
@@ -122,4 +123,19 @@ test('getFallbackSnapshotPath generates a stable repo-local fallback path', () =
 
   assert.match(fallbackPath, /^\.velorail-monitor\/fallback-snapshots\/velorail-official-future-sources\.[0-9a-f]{12}\.json$/);
   assert.equal(fallbackPath, getFallbackSnapshotPath(snapshotPath));
+});
+
+test('describeFetchError preserves error name, cause, and abort state', () => {
+  const controller = new AbortController();
+  const error = new TypeError('fetch failed');
+  error.cause = { code: 'ENOTFOUND' };
+  controller.abort();
+
+  assert.deepEqual(describeFetchError(error, controller.signal), {
+    errorName: 'TypeError',
+    errorMessage: 'fetch failed',
+    errorCause: 'ENOTFOUND',
+    aborted: true,
+    statusText: 'TypeError: fetch failed: cause=ENOTFOUND: aborted=true'
+  });
 });

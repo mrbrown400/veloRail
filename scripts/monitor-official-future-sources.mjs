@@ -231,6 +231,44 @@ export function isRecoverableSnapshotWriteError(error) {
   return ['EACCES', 'EPERM', 'EROFS'].includes(error?.code);
 }
 
+export function describeFetchError(error, signal) {
+  if (!(error instanceof Error)) {
+    return {
+      errorName: 'UnknownError',
+      errorMessage: String(error),
+      errorCause: null,
+      aborted: signal.aborted,
+      statusText: String(error)
+    };
+  }
+
+  const cause = error.cause;
+  const causeCode = typeof cause === 'object' && cause !== null && 'code' in cause
+    ? cause.code
+    : null;
+  const causeMessage = typeof cause === 'object' && cause !== null && 'message' in cause
+    ? cause.message
+    : null;
+  const errorCause = causeCode ?? causeMessage ?? (typeof cause === 'string' ? cause : null);
+  const parts = [error.name, error.message];
+
+  if (errorCause) {
+    parts.push(`cause=${errorCause}`);
+  }
+
+  if (signal.aborted) {
+    parts.push('aborted=true');
+  }
+
+  return {
+    errorName: error.name,
+    errorMessage: error.message,
+    errorCause,
+    aborted: signal.aborted,
+    statusText: parts.join(': ')
+  };
+}
+
 async function writeSnapshot(snapshotPath, snapshot) {
   await mkdir(path.dirname(snapshotPath), { recursive: true });
   await writeFile(snapshotPath, `${JSON.stringify(snapshot, null, 2)}\n`);
@@ -292,11 +330,17 @@ async function fetchTarget(target, timeoutMs) {
       checkedAt: new Date().toISOString()
     };
   } catch (error) {
+    const errorDetails = describeFetchError(error, controller.signal);
+
     return {
       ...target,
       ok: false,
       status: 0,
-      statusText: error instanceof Error ? error.message : String(error),
+      statusText: errorDetails.statusText,
+      errorName: errorDetails.errorName,
+      errorMessage: errorDetails.errorMessage,
+      errorCause: errorDetails.errorCause,
+      aborted: errorDetails.aborted,
       finalUrl: target.url,
       contentType: '',
       byteLength: 0,
@@ -500,12 +544,26 @@ async function main() {
     snapshotWarning: null,
     checkedTargetCount: results.length,
     changes,
-    fetchIssues: fetchIssues.map(({ id, label, url, status, statusText }) => ({
+    fetchIssues: fetchIssues.map(({
       id,
       label,
       url,
       status,
-      statusText
+      statusText,
+      errorName = null,
+      errorMessage = null,
+      errorCause = null,
+      aborted = false
+    }) => ({
+      id,
+      label,
+      url,
+      status,
+      statusText,
+      errorName,
+      errorMessage,
+      errorCause,
+      aborted
     }))
   };
 
