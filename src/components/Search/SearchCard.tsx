@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FormEvent } from 'react';
+import { useState, useEffect, useCallback, useRef, type FormEvent } from 'react';
 import { PlaceAutocomplete } from './PlaceAutocomplete';
 import { LocationStatus } from './LocationStatus';
 import { TimeSelector } from './TimeSelector';
@@ -16,6 +16,41 @@ interface SearchCardProps {
 }
 
 const ROUTE_SEARCH_FEEDBACK_ID = 'route-search-feedback';
+const START_FIELD_ID = 'route-start-field';
+const END_FIELD_ID = 'route-end-field';
+const START_STATUS_ID = 'route-start-status';
+const END_STATUS_ID = 'route-end-status';
+
+type EndpointField = 'start' | 'destination';
+type FieldErrors = Partial<Record<EndpointField, string>>;
+
+const SERVICE_AREA_BOUNDS = {
+  north: 34.35,
+  south: 33.40,
+  west: -119.20,
+  east: -117.25
+};
+
+const SERVICE_AREA_LABEL = 'VeloRail service area: Oxnard, San Bernardino, San Fernando, and San Clemente anchors';
+
+function isInServiceArea(location: Location): boolean {
+  return location.lat >= SERVICE_AREA_BOUNDS.south
+    && location.lat <= SERVICE_AREA_BOUNDS.north
+    && location.lon >= SERVICE_AREA_BOUNDS.west
+    && location.lon <= SERVICE_AREA_BOUNDS.east;
+}
+
+function formatPlaceValue(place: PlaceResult): string {
+  return place.address ? `${place.name}, ${place.address}` : place.name;
+}
+
+function getDegradedMessage(location: Location | PlaceResult | null, label: EndpointField): string | null {
+  if (!location?.isFallback) return null;
+  const providerLabel = location.provider === 'photon' ? 'Photon' : 'Nominatim';
+  const fieldLabel = label === 'start' ? 'origin' : 'destination';
+
+  return `${fieldLabel} resolved through ${providerLabel} fallback. Route quality may be less precise than Google Places.`;
+}
 
 export function SearchCard({ className = '' }: SearchCardProps) {
   const { searchParams, setSearchParams, isLoading, error, setError } = useRouteStore();
@@ -23,11 +58,16 @@ export function SearchCard({ className = '' }: SearchCardProps) {
   const { location, status: locationStatus, refresh: refreshLocation } = useGeolocation();
   const { calculateRoutes } = useRouting();
 
-  // Local state for input values
+  const startInputRef = useRef<HTMLInputElement | null>(null);
+
   const [startValue, setStartValue] = useState('');
   const [endValue, setEndValue] = useState('');
   const [isResolvingPlaces, setIsResolvingPlaces] = useState(false);
   const [searchMessage, setSearchMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [resolvingField, setResolvingField] = useState<EndpointField | null>(null);
+  const [degradedMessage, setDegradedMessage] = useState<string | null>(null);
+  const [shouldFocusOrigin, setShouldFocusOrigin] = useState(false);
 
   // Sync geolocation
   useEffect(() => {
@@ -36,42 +76,105 @@ export function SearchCard({ className = '' }: SearchCardProps) {
     }
   }, [location, isUsingGeolocation]);
 
+  useEffect(() => {
+    if (searchMode === 'expanded' && shouldFocusOrigin) {
+      startInputRef.current?.focus();
+      setShouldFocusOrigin(false);
+    }
+  }, [searchMode, shouldFocusOrigin]);
+
   const clearFeedback = useCallback(() => {
     setSearchMessage(null);
     setError(null);
+    setDegradedMessage(null);
   }, [setError]);
+
+  const clearFieldError = useCallback((field: EndpointField) => {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  }, []);
+
+  const setFieldError = useCallback((field: EndpointField, message: string) => {
+    setFieldErrors((current) => ({ ...current, [field]: message }));
+  }, []);
 
   const handleStartSelect = useCallback((place: PlaceResult) => {
     clearFeedback();
-    setStartValue(place.address ? `${place.name}, ${place.address}` : place.name);
+    clearFieldError('start');
+    setStartValue(formatPlaceValue(place));
     if (place.lat !== null && place.lon !== null) {
-      setSearchParams({ start: { lat: place.lat, lon: place.lon, display_name: place.name } });
+      const location: Location = {
+        lat: place.lat,
+        lon: place.lon,
+        display_name: place.name,
+        provider: place.provider,
+        isFallback: place.isFallback
+      };
+      if (!isInServiceArea(location)) {
+        setSearchParams({ start: null });
+        setFieldError('start', `Start is outside the ${SERVICE_AREA_LABEL}.`);
+        return;
+      }
+      setSearchParams({ start: location });
+      setDegradedMessage(getDegradedMessage(place, 'start'));
     }
-  }, [clearFeedback, setSearchParams]);
+  }, [clearFeedback, clearFieldError, setFieldError, setSearchParams]);
 
   const handleEndSelect = useCallback((place: PlaceResult) => {
     clearFeedback();
-    setEndValue(place.address ? `${place.name}, ${place.address}` : place.name);
+    clearFieldError('destination');
+    setEndValue(formatPlaceValue(place));
     if (place.lat !== null && place.lon !== null) {
-      setSearchParams({ end: { lat: place.lat, lon: place.lon, display_name: place.name } });
+      const location: Location = {
+        lat: place.lat,
+        lon: place.lon,
+        display_name: place.name,
+        provider: place.provider,
+        isFallback: place.isFallback
+      };
+      if (!isInServiceArea(location)) {
+        setSearchParams({ end: null });
+        setFieldError('destination', `Destination is outside the ${SERVICE_AREA_LABEL}.`);
+        return;
+      }
+      setSearchParams({ end: location });
+      setDegradedMessage(getDegradedMessage(place, 'destination'));
     }
-  }, [clearFeedback, setSearchParams]);
+  }, [clearFeedback, clearFieldError, setFieldError, setSearchParams]);
 
   const resolveTypedLocation = async (
     selectedLocation: Location | null,
     typedValue: string,
     label: 'start' | 'destination'
   ): Promise<Location | null> => {
-    if (selectedLocation) return selectedLocation;
+    if (selectedLocation) {
+      if (!isInServiceArea(selectedLocation)) {
+        setFieldError(label, `${label === 'start' ? 'Start' : 'Destination'} is outside the ${SERVICE_AREA_LABEL}.`);
+        return null;
+      }
+      return selectedLocation;
+    }
 
     const query = typedValue.trim();
     if (!query || query === 'Your Location') return null;
 
-    setSearchMessage(`Looking up ${label} location...`);
+    clearFieldError(label);
+    setResolvingField(label);
+    setSearchMessage(`Looking up ${label === 'start' ? 'origin' : 'destination'} location...`);
     const resolved = await geocode(query);
+    setResolvingField(null);
 
     if (!resolved) {
-      setError(`Could not find the ${label} location "${query}". Choose a suggestion or try a more specific place.`);
+      setFieldError(label, `Could not find the ${label === 'start' ? 'origin' : 'destination'} "${query}". Choose a suggestion or try a more specific place.`);
+      return null;
+    }
+
+    if (!isInServiceArea(resolved)) {
+      setFieldError(label, `${label === 'start' ? 'Start' : 'Destination'} is outside the ${SERVICE_AREA_LABEL}.`);
       return null;
     }
 
@@ -84,6 +187,7 @@ export function SearchCard({ className = '' }: SearchCardProps) {
       setSearchParams({ end: resolved });
     }
 
+    setDegradedMessage(getDegradedMessage(resolved, label));
     return resolved;
   };
 
@@ -91,6 +195,8 @@ export function SearchCard({ className = '' }: SearchCardProps) {
     event?.preventDefault();
     setError(null);
     setSearchMessage(null);
+    setFieldErrors({});
+    setDegradedMessage(null);
     setIsResolvingPlaces(true);
 
     try {
@@ -105,15 +211,17 @@ export function SearchCard({ className = '' }: SearchCardProps) {
       if (!start) {
         if (searchMode === 'collapsed') {
           expandSearch();
+          setShouldFocusOrigin(true);
         }
-        setError('Enter a start location or choose a place suggestion before finding a route.');
+        setFieldError('start', 'Add a start location or use current location to continue.');
+        setSearchMessage('Destination saved. Add an origin to compare car-free routes.');
         return;
       }
 
       // Get end location
       const end = await resolveTypedLocation(searchParams.end, endValue, 'destination');
       if (!end) {
-        setError('Enter a destination or choose a place suggestion before finding a route.');
+        setFieldError('destination', 'Enter a destination or choose a place suggestion before finding a route.');
         return;
       }
 
@@ -128,6 +236,7 @@ export function SearchCard({ className = '' }: SearchCardProps) {
       setError(message);
     } finally {
       setIsResolvingPlaces(false);
+      setResolvingField(null);
     }
   };
 
@@ -153,6 +262,8 @@ export function SearchCard({ className = '' }: SearchCardProps) {
   };
 
   const handleUseLocation = async () => {
+    clearFeedback();
+    clearFieldError('start');
     await refreshLocation();
   };
 
@@ -160,7 +271,7 @@ export function SearchCard({ className = '' }: SearchCardProps) {
     <Card
       className={`search-card ${className}`}
       ariaLabel="Route search"
-      aria-describedby={error || searchMessage ? ROUTE_SEARCH_FEEDBACK_ID : undefined}
+      aria-describedby={error || searchMessage || degradedMessage ? ROUTE_SEARCH_FEEDBACK_ID : undefined}
     >
       <form
         className="search-form"
@@ -178,19 +289,31 @@ export function SearchCard({ className = '' }: SearchCardProps) {
 
         {/* Search Inputs */}
         <div className="search-inputs">
+          <p id={START_STATUS_ID} className="sr-only">
+            Origin can be typed manually or set from current location.
+          </p>
+          <p id={END_STATUS_ID} className="sr-only">
+            Destination can be selected from suggestions or resolved from typed text.
+          </p>
           {searchMode === 'collapsed' ? (
             // Collapsed: Destination only
             <>
               <PlaceAutocomplete
+                id={END_FIELD_ID}
+                label="Destination"
                 value={endValue}
                 onChange={(value) => {
                   clearFeedback();
+                  clearFieldError('destination');
                   setEndValue(value);
                   setSearchParams({ end: null });
                 }}
                 onSelect={handleEndSelect}
                 placeholder="Where to?"
                 icon="end"
+                error={fieldErrors.destination}
+                statusMessage={resolvingField === 'destination' ? 'Resolving destination...' : null}
+                describedBy={END_STATUS_ID}
               />
               <LocationStatus
                 status={locationStatus}
@@ -201,9 +324,12 @@ export function SearchCard({ className = '' }: SearchCardProps) {
             // Expanded: Start + Destination
             <>
               <PlaceAutocomplete
+                id={START_FIELD_ID}
+                label="Start location"
                 value={startValue}
                 onChange={(value) => {
                   clearFeedback();
+                  clearFieldError('start');
                   setStartValue(value);
                   setSearchParams({ start: null });
                 }}
@@ -212,17 +338,31 @@ export function SearchCard({ className = '' }: SearchCardProps) {
                 icon="start"
                 onLocationRequest={handleUseLocation}
                 showLocationButton
+                inputRef={startInputRef}
+                error={fieldErrors.start}
+                statusMessage={resolvingField === 'start' ? 'Resolving origin...' : null}
+                describedBy={START_STATUS_ID}
+              />
+              <LocationStatus
+                status={locationStatus}
+                onClick={handleUseLocation}
               />
               <PlaceAutocomplete
+                id={END_FIELD_ID}
+                label="Destination"
                 value={endValue}
                 onChange={(value) => {
                   clearFeedback();
+                  clearFieldError('destination');
                   setEndValue(value);
                   setSearchParams({ end: null });
                 }}
                 onSelect={handleEndSelect}
                 placeholder="Where to?"
                 icon="end"
+                error={fieldErrors.destination}
+                statusMessage={resolvingField === 'destination' ? 'Resolving destination...' : null}
+                describedBy={END_STATUS_ID}
               />
             </>
           )}
@@ -253,14 +393,14 @@ export function SearchCard({ className = '' }: SearchCardProps) {
           </select>
         </div>
 
-        {(error || searchMessage) && (
+        {(error || searchMessage || degradedMessage) && (
           <div
             id={ROUTE_SEARCH_FEEDBACK_ID}
-            className={`search-feedback ${error ? 'search-feedback--error' : ''}`}
+            className={`search-feedback ${error ? 'search-feedback--error' : degradedMessage ? 'search-feedback--degraded' : ''}`}
             role={error ? 'alert' : 'status'}
             aria-live="polite"
           >
-            {error || searchMessage}
+            {error || searchMessage || degradedMessage}
           </div>
         )}
 
@@ -272,7 +412,7 @@ export function SearchCard({ className = '' }: SearchCardProps) {
             variant="primary"
             fullWidth
             type="submit"
-            aria-describedby={error || searchMessage ? ROUTE_SEARCH_FEEDBACK_ID : undefined}
+            aria-describedby={error || searchMessage || degradedMessage ? ROUTE_SEARCH_FEEDBACK_ID : undefined}
           >
             {isResolvingPlaces ? 'Looking up...' : isLoading ? 'Calculating...' : 'Find Route'}
           </Button>

@@ -20,6 +20,7 @@ export function LocationStatus({ status, onClick }: LocationStatusProps) {
       case 'granted':
         return <CheckIcon />;
       case 'denied':
+      case 'timeout':
         return <AlertIcon />;
       case 'unavailable':
         return <UnavailableIcon />;
@@ -36,10 +37,12 @@ export function LocationStatus({ status, onClick }: LocationStatusProps) {
         return 'Using your location';
       case 'denied':
         return 'Location access denied';
+      case 'timeout':
+        return 'Location request timed out';
       case 'unavailable':
         return 'Location unavailable';
       default:
-        return 'Unknown status';
+        return 'Use current location';
     }
   };
 
@@ -48,6 +51,7 @@ export function LocationStatus({ status, onClick }: LocationStatusProps) {
       case 'granted':
         return 'success';
       case 'denied':
+      case 'timeout':
       case 'unavailable':
         return 'warning';
       default:
@@ -64,9 +68,9 @@ export function LocationStatus({ status, onClick }: LocationStatusProps) {
     >
       <span className="location-status-icon" aria-hidden="true">{getStatusIcon()}</span>
       <span>{getStatusText()}</span>
-      {(status === 'denied' || status === 'unavailable') && onClick && (
+      {(status === 'idle' || status === 'denied' || status === 'timeout' || status === 'unavailable') && onClick && (
         <span className="location-status-action">
-          Enter start
+          {status === 'idle' ? 'Set start' : 'Enter start'}
         </span>
       )}
     </button>

@@ -119,6 +119,15 @@ export interface MapOverlayMetadata {
   sources: MapOverlayMetadataSource[];
 }
 
+export interface MapOverlayFeatureListItem {
+  id: string;
+  overlayId: MapOverlayId;
+  label: string;
+  description: string;
+  scenario: MapOverlayScenario;
+  metadata: MapOverlayMetadata;
+}
+
 interface SetMapOverlay {
   setMap: (map: google.maps.Map | null) => void;
 }
@@ -141,6 +150,14 @@ export const CURRENT_TRANSIT_OVERLAY_ID = 'current-transit';
 export const FUTURE_PROJECTS_OVERLAY_ID = 'future-projects';
 export const FUTURE_STATION_MIN_ZOOM = 11;
 export const MAP_OVERLAY_METADATA_EVENT = 'velorail:map-overlay-metadata-selected';
+export const MAP_OVERLAY_Z_INDEX = {
+  PROPOSAL_BASE: 2000,
+  PROPOSAL_LAYER_STEP: 100,
+  SELECTED_ROUTE_OUTER_CASING: 9000,
+  SELECTED_ROUTE_INNER_CASING: 9001,
+  SELECTED_ROUTE_MAIN: 9002,
+  SELECTED_ROUTE_MARKER: 9003
+} as const;
 export const MAP_OVERLAY_FUTURE_SERVICE_NOTICE =
   'Future service is official planned, funded, or under construction overlay context, not current Google Maps operational service.';
 export const MAP_OVERLAY_VISIONARY_SERVICE_NOTICE =
@@ -465,6 +482,14 @@ export function getMapOverlayLegendItems(): MapOverlayLegendItem[] {
   ];
 }
 
+export function getMapOverlayFeatureListItems(): MapOverlayFeatureListItem[] {
+  return [
+    ...getProposalFeatureListItems(FUTURE_PROJECTS_OVERLAY_ID, 'future', FUTURE_GROUPS),
+    ...getProposalFeatureListItems('visionary-concepts', 'visionary', VISIONARY_GROUPS),
+    ...getProposalFeatureListItems('nationalized-rail', 'nationalized', NATIONALIZED_GROUPS)
+  ];
+}
+
 export function getDefaultMapOverlayVisibility(): MapOverlayVisibility {
   return Object.fromEntries(
     MAP_OVERLAY_DEFINITIONS.map((definition) => [
@@ -504,6 +529,24 @@ function getProposalLegendItems(
       scenario
     }];
   });
+}
+
+function getProposalFeatureListItems(
+  overlayId: MapOverlayId,
+  scenario: MapOverlayScenario,
+  groups: ProposalLayerGroup[]
+): MapOverlayFeatureListItem[] {
+  return getProposalOverlayInputsByGroup(groups).map(({ proposal }) => ({
+    id: `${overlayId}-${proposal.id}`,
+    overlayId,
+    label: proposal.shortName ?? proposal.name,
+    description: proposal.uncertainty.disclaimer
+      ?? proposal.uncertainty.sourceNotes
+      ?? proposal.geometry.geometryNotes
+      ?? getProposalOverlayStyle(proposal).legend.description,
+    scenario,
+    metadata: getProposalMetadata(proposal)
+  }));
 }
 
 function createNativeLegendItem(
@@ -558,7 +601,9 @@ function createProposalGroupOverlay(
 
     getProposalOverlayInputsByGroup(groups).forEach((input, proposalIndex) => {
       const { proposal, polyline, markers } = input;
-      const zIndex = layerOrder * 100 + proposalIndex;
+      const zIndex = MAP_OVERLAY_Z_INDEX.PROPOSAL_BASE
+        + layerOrder * MAP_OVERLAY_Z_INDEX.PROPOSAL_LAYER_STEP
+        + proposalIndex;
       const proposalOverlays = createProposalOverlays(map, proposal, polyline, markers, zIndex, infoWindow);
 
       overlays.push(...proposalOverlays.overlays);
@@ -862,6 +907,7 @@ export function getProposalMetadata(
     metadataDetail('Status', formatToken(status)),
     metadataDetail('Classification', formatToken(proposal.classification)),
     metadataDetail('Confidence', formatToken(markerInput?.confidence ?? proposal.confidence.level)),
+    metadataDetail('Uncertainty', formatToken(proposal.uncertainty.level)),
     metadataDetail('Geometry', proposal.geometry.geometrySource ? formatToken(proposal.geometry.geometrySource) : undefined),
     metadataDetail('Opening', markerInput?.openingYear?.toString() ?? proposal.timeline?.openingYear?.toString()),
     metadataDetail('Phase', markerInput?.phase ?? proposal.timeline?.phase),

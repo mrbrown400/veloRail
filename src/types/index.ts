@@ -67,6 +67,8 @@ export interface Location {
   lat: number;
   lon: number;
   display_name?: string;
+  provider?: 'google' | 'nominatim' | 'photon' | 'geolocation';
+  isFallback?: boolean;
   isGeolocation?: boolean;
   accuracy?: number;
   heading?: number | null;
@@ -83,6 +85,8 @@ export interface PlaceResult {
   lat: number | null;
   lon: number | null;
   placeId?: string;
+  provider?: 'google' | 'photon';
+  isFallback?: boolean;
 }
 
 // ============================================
@@ -210,7 +214,7 @@ export interface TrackedVehicle {
 // ============================================
 
 export type SearchMode = 'collapsed' | 'expanded';
-export type LocationStatus = 'pending' | 'granted' | 'denied' | 'unavailable';
+export type LocationStatus = 'idle' | 'pending' | 'granted' | 'denied' | 'timeout' | 'unavailable';
 
 export interface AutocompleteState {
   activeInput: HTMLInputElement | null;

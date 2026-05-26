@@ -55,8 +55,8 @@ export function useRouting(): UseRoutingReturn {
           trackVehicle(transitLeg.tripId || null, transitLeg.routeId || null);
         }
       } else {
-        setSidebarOpen(false);
-        setError('No routes found for those locations. Try another mode, a more specific place, or a shorter trip.');
+        setSidebarOpen(true);
+        setError('No route options found for those locations. Try another mode, a more specific place, or a shorter trip.');
       }
 
       return routes;

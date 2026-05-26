@@ -70,7 +70,34 @@ test('@smoke @VR-304 @VR-305 typed endpoints make the route search respond visib
   }).toBe(true);
 });
 
-test('@veloRail-a0c4 route search uses Maps JavaScript Routes without request shape errors', async ({ page }) => {
+test('@MBR-83 collapsed destination submit expands origin repair and preserves destination', async ({ page }) => {
+  await ensureMapsAvailable(page);
+
+  const destinationInput = page.getByPlaceholder('Where to?');
+  await destinationInput.fill('Hollywood/Vine Station');
+  await page.getByRole('button', { name: 'Find Route' }).click();
+
+  const originInput = page.getByPlaceholder('Your Location');
+  await expect(originInput).toBeVisible();
+  await expect(originInput).toBeFocused();
+  await expect(page.getByPlaceholder('Where to?')).toHaveValue('Hollywood/Vine Station');
+  await expect(page.getByText('Add a start location or use current location to continue.')).toBeVisible();
+  await expect(page.getByText('Destination saved. Add an origin to compare car-free routes.')).toBeVisible();
+});
+
+test('@MBR-83 autocomplete input exposes combobox state and typed fallback repair path', async ({ page }) => {
+  await ensureMapsAvailable(page);
+
+  const destinationInput = page.getByPlaceholder('Where to?');
+  await expect(destinationInput).toHaveAttribute('role', 'combobox');
+  await destinationInput.fill('zzzzzzzzzz impossible station');
+
+  await expect(destinationInput).toHaveAttribute('aria-controls', /route-end-field-listbox/);
+  await page.keyboard.press('Escape');
+  await expect(destinationInput).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('@MBR-84 @veloRail-a0c4 route search uses Maps JavaScript Routes without request shape errors', async ({ page }) => {
   const consoleMessages: string[] = [];
   const pageErrors: string[] = [];
 
@@ -99,6 +126,7 @@ test('@veloRail-a0c4 route search uses Maps JavaScript Routes without request sh
     'Driving',
     'Walk + Rail'
   ]);
+  await expect(resultsPanel.locator('.route-option', { hasText: 'Driving' }).first()).toContainText('Comparison only');
 
   const scriptSources = await page.evaluate(() =>
     Array.from(document.scripts).map((script) => script.src).filter(Boolean)
@@ -214,7 +242,7 @@ test('@VR-101 @VR-102 @VR-103 @VR-105 future transit overlay control is grouped 
   await expect(futureToggle).toHaveAttribute('aria-pressed', 'false');
 });
 
-test('@VR-303 layer panel groups overlays and exposes a visible legend', async ({ page }) => {
+test('@MBR-85 @VR-303 layer panel groups overlays and exposes a visible legend', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const panel = page.getByLabel('Map layers and legend');
@@ -280,7 +308,7 @@ test('@VR-306 @VR-308 mobile overlay panels stay within the viewport', async ({ 
   expect(panelBox!.height).toBeLessThanOrEqual(viewport!.height * 0.52);
 });
 
-test('@VR-306 @VR-307 route results can close and reopen when options are available', async ({ page }) => {
+test('@MBR-84 @VR-306 @VR-307 route results can close and reopen when options are available', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   await page.locator('.location-status').click();
@@ -301,6 +329,7 @@ test('@VR-306 @VR-307 route results can close and reopen when options are availa
 
   const sidebarVisible = await page.locator('.results-sidebar.open').isVisible().catch(() => false);
   test.skip(!sidebarVisible, 'Route API returned no route options in this environment.');
+  const selectedDetailHeading = await page.locator('.route-details h3').innerText();
 
   await page.getByRole('button', { name: 'Close route results' }).click();
   await expect(page.locator('.results-sidebar.open')).toBeHidden();
@@ -309,6 +338,7 @@ test('@VR-306 @VR-307 route results can close and reopen when options are availa
   await expect(reopenButton).toBeVisible();
   await reopenButton.click();
   await expect(page.locator('.results-sidebar.open')).toBeVisible();
+  await expect(page.locator('.route-details h3')).toHaveText(selectedDetailHeading);
 });
 
 function parseDurationMinutes(duration: string): number {

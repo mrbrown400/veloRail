@@ -3,7 +3,7 @@ import type { Location, LocationStatus } from '@/types';
 
 // State
 let currentLocation: Location | null = null;
-let locationStatus: LocationStatus = 'pending';
+let locationStatus: LocationStatus = 'idle';
 let watchId: number | null = null;
 const positionCallbacks = new Set<(location: Location) => void>();
 
@@ -45,7 +45,10 @@ export async function requestGeolocation(): Promise<Location> {
         resolve(location);
       },
       (error) => {
-        locationStatus = error.code === 1 ? 'denied' : 'unavailable';
+        locationStatus =
+          error.code === 1 ? 'denied'
+          : error.code === 3 ? 'timeout'
+          : 'unavailable';
         reject(error);
       },
       GEOLOCATION_OPTIONS
@@ -74,7 +77,10 @@ export function startWatchingPosition(callback?: (location: Location) => void): 
       },
       (error) => {
         console.error('Watch position error:', error);
-        locationStatus = error.code === 1 ? 'denied' : 'unavailable';
+        locationStatus =
+          error.code === 1 ? 'denied'
+          : error.code === 3 ? 'timeout'
+          : 'unavailable';
       },
       {
         ...GEOLOCATION_OPTIONS,
@@ -138,6 +144,7 @@ function createLocationObject(position: GeolocationPosition): Location {
     lat: position.coords.latitude,
     lon: position.coords.longitude,
     display_name: 'Your Location',
+    provider: 'geolocation',
     isGeolocation: true,
     accuracy: position.coords.accuracy,
     heading: position.coords.heading,

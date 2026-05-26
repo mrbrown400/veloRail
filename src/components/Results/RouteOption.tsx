@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { BikeIcon, BusIcon, CarIcon, Chip, FutureRailIcon, TrainIcon, WalkIcon } from '@/components/ui';
 import type { Route, RouteLeg, TravelMode } from '@/types';
 
@@ -53,26 +53,19 @@ function getBikeSafetyScore(legs: RouteLeg[]): number | null {
 
 export function RouteOption({ route, isSelected, onClick }: RouteOptionProps) {
   const isFuture = route.isFuture;
+  const isDrivingComparison = route.label.toLowerCase().includes('driving')
+    || route.legs.every((leg) => leg.mode === 'driving');
   const transferCount = getTransferCount(route.legs);
   const safetyScore = getBikeSafetyScore(route.legs);
   const segmentLabels = route.legs.map((leg) => getModeLabel(leg.mode));
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClick();
-    }
-  };
-
   return (
-    <div
-      className={`route-option ${isSelected ? 'selected' : ''} ${isFuture ? 'future' : ''}`}
+    <button
+      type="button"
+      className={`route-option ${isSelected ? 'selected' : ''} ${isFuture ? 'future' : ''} ${isDrivingComparison ? 'route-option--comparison' : ''}`}
       onClick={onClick}
-      role="button"
-      tabIndex={0}
       aria-pressed={isSelected}
-      aria-label={`${route.label}, ${route.formattedDuration}, ${route.totalDistance.toFixed(1)} kilometers`}
-      onKeyDown={handleKeyDown}
+      aria-label={`${route.label}, ${route.formattedDuration}, ${route.totalDistance.toFixed(1)} kilometers${isDrivingComparison ? ', comparison only' : ''}${isSelected ? ', selected' : ''}`}
     >
       {isFuture && (
         <Chip tone="future" className="future-route-badge">
@@ -91,6 +84,12 @@ export function RouteOption({ route, isSelected, onClick }: RouteOptionProps) {
             {route.formattedDuration}
           </span>
         </div>
+
+        {isDrivingComparison && (
+          <Chip tone="neutral" className="route-option-comparison-badge">
+            Comparison only
+          </Chip>
+        )}
 
         <div className="route-mode-sequence" aria-label={`Segments: ${segmentLabels.join(', ')}`}>
           {route.legs.map((leg, index) => (
@@ -127,6 +126,6 @@ export function RouteOption({ route, isSelected, onClick }: RouteOptionProps) {
           {safetyScore !== null && <span>Bike safety {safetyScore}</span>}
         </div>
       </div>
-    </div>
+    </button>
   );
 }

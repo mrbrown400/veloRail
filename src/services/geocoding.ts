@@ -131,15 +131,16 @@ async function googlePlacesSearch(
 }
 
 function normalizeGoogleResult(prediction: google.maps.places.AutocompletePrediction): PlaceResult {
-  return {
-    id: prediction.place_id,
-    name: prediction.structured_formatting?.main_text || prediction.description.split(',')[0],
-    address: prediction.structured_formatting?.secondary_text || prediction.description,
-    type: prediction.types?.[0] || 'place',
-    lat: null,
-    lon: null,
-    placeId: prediction.place_id
-  };
+    return {
+      id: prediction.place_id,
+      name: prediction.structured_formatting?.main_text || prediction.description.split(',')[0],
+      address: prediction.structured_formatting?.secondary_text || prediction.description,
+      type: prediction.types?.[0] || 'place',
+      lat: null,
+      lon: null,
+      placeId: prediction.place_id,
+      provider: 'google'
+    };
 }
 
 /**
@@ -243,7 +244,9 @@ function normalizePhotonResult(feature: {
     address: addressParts.join(', ') || props.county || '',
     type: props.osm_value || props.type || 'place',
     lat: coords[1],
-    lon: coords[0]
+    lon: coords[0],
+    provider: 'photon',
+    isFallback: true
   };
 }
 
@@ -282,9 +285,10 @@ export async function getPlaceDetails(place: PlaceResult): Promise<PlaceResult> 
       const details = await getGooglePlaceDetails(place.placeId);
       return {
         ...place,
-        lat: details.lat,
-        lon: details.lon
-      };
+          lat: details.lat,
+          lon: details.lon,
+          provider: 'google'
+        };
     } catch (error) {
       console.error('Failed to get place details:', error);
       const geocoded = await geocode(`${place.name}, ${place.address}`);
@@ -381,7 +385,8 @@ export async function geocode(query: string): Promise<Location | null> {
       const result: Location = {
         lat: response.geometry.location.lat(),
         lon: response.geometry.location.lng(),
-        display_name: response.formatted_address
+        display_name: response.formatted_address,
+        provider: 'google'
       };
       geocodeCache.set(cacheKey, result);
       return result;
@@ -403,7 +408,9 @@ export async function geocode(query: string): Promise<Location | null> {
       const result: Location = {
         lat: parseFloat(data[0].lat),
         lon: parseFloat(data[0].lon),
-        display_name: data[0].display_name
+        display_name: data[0].display_name,
+        provider: 'nominatim',
+        isFallback: true
       };
       geocodeCache.set(cacheKey, result);
       return result;

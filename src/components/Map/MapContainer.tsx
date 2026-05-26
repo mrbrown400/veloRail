@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { GoogleMap } from '@react-google-maps/api';
 import { MapOverlayRenderer } from './MapOverlayRenderer';
 import { RouteOverlay } from './RouteOverlay';
@@ -10,6 +10,7 @@ import {
   MAP_OVERLAY_VISIONARY_SERVICE_NOTICE,
   getMapOverlayComparisonModeDefinition,
   getMapOverlayComparisonModes,
+  getMapOverlayFeatureListItems,
   getMapOverlayGroupDefinitions,
   getMapOverlayLegendItems,
   getOrderedMapOverlayDefinitions,
@@ -54,6 +55,7 @@ const overlayControlById = new Map(
 );
 const overlayGroups = getMapOverlayGroupDefinitions();
 const overlayLegendItems = getMapOverlayLegendItems();
+const overlayFeatureListItems = getMapOverlayFeatureListItems();
 const comparisonModes = getMapOverlayComparisonModes();
 
 const getRouteViewportPadding = (): google.maps.Padding => {
@@ -95,6 +97,8 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLegendOpen, setIsLegendOpen] = useState(false);
   const [selectedOverlayMetadata, setSelectedOverlayMetadata] = useState<MapOverlayMetadata | null>(null);
+  const metadataHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const metadataTriggerRef = useRef<HTMLElement | null>(null);
   const { selectedRoute } = useRouteStore();
   const { vehiclePosition, trackedVehicle } = useRealtimeStore();
   const overlayVisibility = useMapOverlayStore((state) => state.visibility);
@@ -106,6 +110,9 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
     (overlay) => overlayVisibility[overlay.id] ?? false
   ).length;
   const visibleLegendItems = overlayLegendItems.filter(
+    (item) => overlayVisibility[item.overlayId] ?? false
+  );
+  const visibleFeatureListItems = overlayFeatureListItems.filter(
     (item) => overlayVisibility[item.overlayId] ?? false
   );
   const isVisionaryOverlayVisible = overlayVisibility['visionary-concepts'] ?? false;
@@ -128,6 +135,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
   useEffect(() => {
     const handleMetadataSelected = (event: Event) => {
       const customEvent = event as CustomEvent<MapOverlayMetadata>;
+      metadataTriggerRef.current = null;
       setSelectedOverlayMetadata(customEvent.detail);
     };
 
@@ -136,6 +144,24 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
     return () => {
       window.removeEventListener(MAP_OVERLAY_METADATA_EVENT, handleMetadataSelected);
     };
+  }, []);
+
+  useEffect(() => {
+    if (selectedOverlayMetadata) {
+      metadataHeadingRef.current?.focus();
+    }
+  }, [selectedOverlayMetadata]);
+
+  const closeMetadata = useCallback(() => {
+    setSelectedOverlayMetadata(null);
+    window.requestAnimationFrame(() => {
+      metadataTriggerRef.current?.focus();
+    });
+  }, []);
+
+  const openFeatureMetadata = useCallback((metadata: MapOverlayMetadata, trigger: HTMLElement) => {
+    metadataTriggerRef.current = trigger;
+    setSelectedOverlayMetadata(metadata);
   }, []);
 
   // Fit bounds when route changes
@@ -168,7 +194,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
 
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setSelectedOverlayMetadata(null);
+        closeMetadata();
       }
     };
 
@@ -177,7 +203,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
     return () => {
       window.removeEventListener('keydown', closeOnEscape);
     };
-  }, [selectedOverlayMetadata]);
+  }, [closeMetadata, selectedOverlayMetadata]);
 
   // Get color for vehicle marker
   const getVehicleColor = () => {
@@ -264,6 +290,37 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
               onToggleOverlay={toggleOverlay}
             />
           ))}
+        </div>
+
+        <div className="map-layer-feature-list" aria-label="Keyboard-accessible overlay metadata">
+          <div className="map-layer-feature-list__header">
+            <span className="map-layer-feature-list__title">Layer details</span>
+            <span className="map-layer-feature-list__count">
+              {visibleFeatureListItems.length} visible
+            </span>
+          </div>
+          <p className="map-layer-feature-list__notice">
+            Google Maps renders these lines; VeloRail owns the planning facts, provenance, confidence, and uncertainty.
+          </p>
+          {visibleFeatureListItems.length > 0 ? (
+            <div className="map-layer-feature-list__items">
+              {visibleFeatureListItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`map-layer-feature-list__item map-layer-feature-list__item--${item.scenario}`}
+                  onClick={(event) => openFeatureMetadata(item.metadata, event.currentTarget)}
+                >
+                  <span className="map-layer-feature-list__label">{item.label}</span>
+                  <span className="map-layer-feature-list__description">{item.description}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="map-layer-feature-list__empty">
+              Turn on Future, Visionary, or Nationalized Rail Planning layers to review source metadata from the keyboard.
+            </p>
+          )}
         </div>
 
         {isLegendOpen && (
@@ -381,7 +438,14 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
               <span className={`map-overlay-metadata__badge ${selectedOverlayMetadata.badgeClassName}`}>
                 {selectedOverlayMetadata.badgeLabel}
               </span>
-              <h2 id={metadataTitleId} className="map-overlay-metadata__title">{selectedOverlayMetadata.title}</h2>
+              <h2
+                id={metadataTitleId}
+                ref={metadataHeadingRef}
+                className="map-overlay-metadata__title"
+                tabIndex={-1}
+              >
+                {selectedOverlayMetadata.title}
+              </h2>
               <span className="map-overlay-metadata__subtitle">{selectedOverlayMetadata.subtitle}</span>
             </div>
             <Button
@@ -389,13 +453,17 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
               variant="ghost"
               size="icon"
               aria-label="Close metadata"
-              onClick={() => setSelectedOverlayMetadata(null)}
+              onClick={closeMetadata}
               leftIcon={<CloseIcon />}
             />
           </div>
 
           <p id={metadataDescriptionId} className="sr-only">
             Metadata details for the selected map overlay. Press Escape or Close metadata to dismiss this panel.
+          </p>
+
+          <p className="map-overlay-metadata__source-boundary">
+            Google Maps renders the geometry. VeloRail owns this planning metadata, source boundary, confidence, and uncertainty.
           </p>
 
           <dl className="map-overlay-metadata__details">
@@ -419,16 +487,31 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
               <ul>
                 {selectedOverlayMetadata.sources.map((source) => (
                   <li key={`${source.title}-${source.url ?? source.accessedAt ?? source.sourceType}`}>
-                    {source.url ? (
-                      <a href={source.url} target="_blank" rel="noopener noreferrer">
-                        {source.publisher ?? source.title}
-                      </a>
-                    ) : (
-                      <span>{source.publisher ?? source.title}</span>
-                    )}
-                    {source.accessedAt && (
-                      <span className="map-overlay-metadata__source-date">
-                        {source.accessedAt}
+                    <span className="map-overlay-metadata__source-main">
+                      {source.url ? (
+                        <a href={source.url} target="_blank" rel="noopener noreferrer">
+                          {source.title}
+                        </a>
+                      ) : (
+                        <span>{source.title}</span>
+                      )}
+                      {source.publisher && (
+                        <span className="map-overlay-metadata__source-publisher">
+                          {source.publisher}
+                        </span>
+                      )}
+                    </span>
+                    <span className="map-overlay-metadata__source-meta">
+                      <span>{source.sourceType}</span>
+                      {source.accessedAt && (
+                        <span className="map-overlay-metadata__source-date">
+                          {source.accessedAt}
+                        </span>
+                      )}
+                    </span>
+                    {source.note && (
+                      <span className="map-overlay-metadata__source-note">
+                        {source.note}
                       </span>
                     )}
                   </li>
@@ -481,7 +564,10 @@ function ComparisonModeControlGroup({
               icon={mode.futureOverlayVisible ? <FutureRailIcon /> : <TransitIcon />}
             >
               <span className="layer-btn__content">
-                <span className="layer-btn-label">{mode.label}</span>
+                <span className="layer-btn-copy">
+                  <span className="layer-btn-label">{mode.label}</span>
+                  <span className="layer-btn-description">{mode.description}</span>
+                </span>
                 <span className="layer-btn-state" aria-hidden="true" />
               </span>
             </ToggleChip>
@@ -544,7 +630,10 @@ function LayerControlGroup({
               icon={<LayerIcon id={overlay.id} scenario={overlay.scenario} />}
             >
               <span className="layer-btn__content">
-                <span className="layer-btn-label">{overlay.label}</span>
+                <span className="layer-btn-copy">
+                  <span className="layer-btn-label">{overlay.label}</span>
+                  <span className="layer-btn-description">{overlay.description}</span>
+                </span>
                 <span className="layer-btn-state" aria-hidden="true" />
               </span>
             </ToggleChip>

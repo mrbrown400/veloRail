@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useGoogleMap } from '@react-google-maps/api';
+import { MAP_OVERLAY_Z_INDEX } from './mapOverlayRegistry';
 import type { Route, RouteLeg } from '@/types';
 
 interface RouteOverlayProps {
@@ -43,7 +44,8 @@ export function RouteOverlay({ route }: RouteOverlayProps) {
         strokeColor: '#ffffff',
         strokeWeight: 2
       },
-      title: 'Start'
+      title: 'Start',
+      zIndex: MAP_OVERLAY_Z_INDEX.SELECTED_ROUTE_MARKER
     });
     markersRef.current.push(startMarker);
 
@@ -59,7 +61,8 @@ export function RouteOverlay({ route }: RouteOverlayProps) {
         strokeColor: '#ffffff',
         strokeWeight: 2
       },
-      title: 'Destination'
+      title: 'Destination',
+      zIndex: MAP_OVERLAY_Z_INDEX.SELECTED_ROUTE_MARKER
     });
     markersRef.current.push(endMarker);
 
@@ -115,7 +118,7 @@ function drawLeg(
     strokeColor: '#ffffff',
     strokeWeight: casingWeight,
     strokeOpacity: 0.9,
-    zIndex: 9000
+    zIndex: MAP_OVERLAY_Z_INDEX.SELECTED_ROUTE_OUTER_CASING
   });
   polylines.push(whiteCasing);
 
@@ -126,7 +129,7 @@ function drawLeg(
     strokeColor: '#1a1a2e',
     strokeWeight: casingWeight - 3,
     strokeOpacity: 1,
-    zIndex: 9001
+    zIndex: MAP_OVERLAY_Z_INDEX.SELECTED_ROUTE_INNER_CASING
   });
   polylines.push(darkCasing);
 
@@ -147,7 +150,7 @@ function drawLeg(
         offset: '0',
         repeat: isWalk ? '12px' : '14px'
       }],
-      zIndex: 9002
+      zIndex: MAP_OVERLAY_Z_INDEX.SELECTED_ROUTE_MAIN
     });
     polylines.push(dashedLine);
   } else {
@@ -157,7 +160,7 @@ function drawLeg(
       strokeColor: getLineColor(),
       strokeWeight: lineWeight,
       strokeOpacity: 1,
-      zIndex: 9002
+      zIndex: MAP_OVERLAY_Z_INDEX.SELECTED_ROUTE_MAIN
     });
     polylines.push(solidLine);
   }
@@ -176,7 +179,8 @@ function drawLeg(
           strokeColor: '#ffffff',
           strokeWeight: 2
         },
-        title: station.name
+        title: station.name,
+        zIndex: MAP_OVERLAY_Z_INDEX.SELECTED_ROUTE_MARKER
       });
       markers.push(stationMarker);
     });

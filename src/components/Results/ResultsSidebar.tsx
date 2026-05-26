@@ -12,12 +12,11 @@ export function ResultsSidebar() {
   const { routes, selectedRoute, selectRoute, isLoading, error } = useRouteStore();
   const { sidebarOpen, setSidebarOpen } = useUIStore();
   const hasRoutes = routes.length > 0;
+  const isNoRoute = Boolean(error && /^no route/i.test(error));
 
   const handleClose = useCallback(() => {
     setSidebarOpen(false);
-    // Clear the selected route when closing the sidebar
-    selectRoute(null);
-  }, [setSidebarOpen, selectRoute]);
+  }, [setSidebarOpen]);
 
   const handleSelectRoute = useCallback((route: Route) => {
     selectRoute(route);
@@ -68,10 +67,10 @@ export function ResultsSidebar() {
           )}
 
           {!isLoading && error && (
-            <div className="route-results-state route-results-state--error" role="alert">
+            <div className={`route-results-state ${isNoRoute ? 'route-results-state--no-route' : 'route-results-state--error'}`} role="alert">
               <AlertIcon className="route-results-state__icon" />
               <div>
-                <h3>Route search failed</h3>
+                <h3>{isNoRoute ? 'No route options found' : 'Route search failed'}</h3>
                 <p>{error}</p>
               </div>
             </div>
@@ -88,7 +87,7 @@ export function ResultsSidebar() {
                   <RouteOption
                     key={`${route.label}-${index}`}
                     route={route}
-                    isSelected={selectedRoute?.label === route.label}
+                    isSelected={selectedRoute === route}
                     onClick={() => handleSelectRoute(route)}
                   />
                 ))}

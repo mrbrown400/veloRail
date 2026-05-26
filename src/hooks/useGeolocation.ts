@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   requestGeolocation,
   startWatchingPosition
@@ -25,37 +25,6 @@ export function useGeolocation(): UseGeolocationReturn {
 
   const [error, setError] = useState<string | null>(null);
 
-  // Initial geolocation request on mount
-  useEffect(() => {
-    const initGeolocation = async () => {
-      setLocationStatus('pending');
-
-      try {
-        const location = await requestGeolocation();
-        setCurrentLocation(location);
-        setLocationStatus('granted');
-        setUsingGeolocation(true);
-        setError(null);
-      } catch (err) {
-        if (err instanceof GeolocationPositionError) {
-          if (err.code === 1) {
-            setLocationStatus('denied');
-            setError('Location access denied');
-          } else {
-            setLocationStatus('unavailable');
-            setError('Location unavailable');
-          }
-        } else {
-          setLocationStatus('unavailable');
-          setError('Failed to get location');
-        }
-        setUsingGeolocation(false);
-      }
-    };
-
-    initGeolocation();
-  }, [setCurrentLocation, setLocationStatus, setUsingGeolocation]);
-
   const refresh = useCallback(async () => {
     setLocationStatus('pending');
     setError(null);
@@ -70,6 +39,9 @@ export function useGeolocation(): UseGeolocationReturn {
         if (err.code === 1) {
           setLocationStatus('denied');
           setError('Location access denied');
+        } else if (err.code === 3) {
+          setLocationStatus('timeout');
+          setError('Location request timed out');
         } else {
           setLocationStatus('unavailable');
           setError('Location unavailable');

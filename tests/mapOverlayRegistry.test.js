@@ -9,10 +9,12 @@ test('map overlay registry has deterministic order and default visibility', asyn
     getDefaultMapOverlayVisibility,
     getMapOverlayComparisonModeForVisibility,
     getMapOverlayComparisonModes,
+    getMapOverlayFeatureListItems,
     getMapOverlayGroupDefinitions,
     getOrderedMapOverlayDefinitions,
     MAP_OVERLAY_FUTURE_SERVICE_NOTICE,
     MAP_OVERLAY_NATIONALIZED_SERVICE_NOTICE,
+    MAP_OVERLAY_Z_INDEX,
     MAP_OVERLAY_VISIONARY_SERVICE_NOTICE
   } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
 
@@ -65,6 +67,14 @@ test('map overlay registry has deterministic order and default visibility', asyn
   assert.match(MAP_OVERLAY_FUTURE_SERVICE_NOTICE, /not current Google Maps operational service/);
   assert.match(MAP_OVERLAY_VISIONARY_SERVICE_NOTICE, /not Google Maps transit data/);
   assert.match(MAP_OVERLAY_NATIONALIZED_SERVICE_NOTICE, /candidates require review/);
+  assert.ok(MAP_OVERLAY_Z_INDEX.SELECTED_ROUTE_MAIN > MAP_OVERLAY_Z_INDEX.PROPOSAL_BASE);
+  assert.ok(MAP_OVERLAY_Z_INDEX.SELECTED_ROUTE_MARKER > MAP_OVERLAY_Z_INDEX.SELECTED_ROUTE_MAIN);
+
+  const featureItems = getMapOverlayFeatureListItems();
+  assert.ok(featureItems.some((item) => item.overlayId === 'future-projects'));
+  assert.ok(featureItems.some((item) => item.overlayId === 'visionary-concepts'));
+  assert.ok(featureItems.some((item) => item.overlayId === 'nationalized-rail'));
+  assert.ok(featureItems.every((item) => item.metadata.sources));
 });
 
 test('map overlay legend items come from current registry and proposal labels', async () => {

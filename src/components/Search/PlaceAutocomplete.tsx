@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, type MutableRefObject } from 'react';
 import { searchPlaces, getPlaceDetails, getPlaceIcon, debounce } from '@/services/geocoding';
 import { CrosshairIcon, DestinationIcon, MapPinIcon, OriginIcon } from '@/components/ui';
 import type { PlaceResult } from '@/types';
 
 interface PlaceAutocompleteProps {
+  id: string;
+  label: string;
   value: string;
   onChange: (value: string) => void;
   onSelect: (place: PlaceResult) => void;
@@ -11,24 +13,40 @@ interface PlaceAutocompleteProps {
   icon?: 'start' | 'end';
   showLocationButton?: boolean;
   onLocationRequest?: () => void;
+  inputRef?: MutableRefObject<HTMLInputElement | null>;
+  error?: string | null;
+  statusMessage?: string | null;
+  describedBy?: string;
 }
 
 export function PlaceAutocomplete({
+  id,
+  label,
   value,
   onChange,
   onSelect,
   placeholder = 'Search for a place',
   icon,
   showLocationButton,
-  onLocationRequest
+  onLocationRequest,
+  inputRef,
+  error,
+  statusMessage,
+  describedBy
 }: PlaceAutocompleteProps) {
   const [results, setResults] = useState<PlaceResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [serviceError, setServiceError] = useState<string | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [isFocused, setIsFocused] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const localInputRef = useRef<HTMLInputElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const listboxId = `${id}-listbox`;
+  const activeOptionId = highlightedIndex >= 0 ? `${id}-option-${highlightedIndex}` : undefined;
+  const helperIds = [describedBy, error ? `${id}-error` : null, statusMessage ? `${id}-status` : null]
+    .filter(Boolean)
+    .join(' ') || undefined;
 
   // Debounced search function
   const debouncedSearch = useCallback(
@@ -36,16 +54,28 @@ export function PlaceAutocomplete({
       if (query.length < 2) {
         setResults([]);
         setIsOpen(false);
+        setServiceError(null);
         return [];
       }
 
       setIsLoading(true);
+      setIsOpen(true);
+      setServiceError(null);
       try {
         const searchResults = await searchPlaces(query, { limit: 5 }, signal);
         setResults(searchResults);
-        setIsOpen(searchResults.length > 0);
+        setIsOpen(true);
         setHighlightedIndex(-1);
         return searchResults;
+      } catch (searchError) {
+        if (searchError instanceof Error && searchError.name === 'AbortError') {
+          setResults([]);
+          return [];
+        }
+        setResults([]);
+        setServiceError('Place search is unavailable. You can still type an address and submit it.');
+        setIsOpen(true);
+        return [];
       } finally {
         setIsLoading(false);
       }
@@ -60,14 +90,16 @@ export function PlaceAutocomplete({
     }
 
     if (value && value !== 'Your Location') {
-      debouncedSearch(value);
+      void debouncedSearch(value);
     } else {
       setResults([]);
       setIsOpen(false);
+      setServiceError(null);
     }
   }, [value, isFocused, debouncedSearch]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setServiceError(null);
     onChange(e.target.value);
   };
 
@@ -76,6 +108,7 @@ export function PlaceAutocomplete({
     setIsOpen(false);
     setResults([]);
     setIsFocused(false);
+    setServiceError(null);
 
     // Get coordinates if not available
     let placeWithCoords = place;
@@ -94,13 +127,17 @@ export function PlaceAutocomplete({
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setHighlightedIndex(prev =>
-          Math.min(prev + 1, results.length - 1)
-        );
+        if (results.length > 0) {
+          setHighlightedIndex(prev =>
+            Math.min(prev + 1, results.length - 1)
+          );
+        }
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setHighlightedIndex(prev => Math.max(prev - 1, -1));
+        if (results.length > 0) {
+          setHighlightedIndex(prev => Math.max(prev - 1, -1));
+        }
         break;
       case 'Enter':
         if (highlightedIndex >= 0 && highlightedIndex < results.length) {
@@ -111,7 +148,7 @@ export function PlaceAutocomplete({
       case 'Escape':
         e.preventDefault();
         setIsOpen(false);
-        inputRef.current?.blur();
+        setHighlightedIndex(-1);
         break;
     }
   };
@@ -119,7 +156,7 @@ export function PlaceAutocomplete({
   const handleFocus = () => {
     setIsFocused(true);
     // Show existing results if we have them
-    if (results.length > 0 && value.length >= 2) {
+    if (value.length >= 2 && (results.length > 0 || serviceError)) {
       setIsOpen(true);
     }
   };
@@ -138,12 +175,19 @@ export function PlaceAutocomplete({
     : <MapPinIcon />;
 
   return (
-    <div className="search-input-wrapper">
+    <div className={`search-input-wrapper ${error ? 'search-input-wrapper--error' : ''}`}>
+      <label className="sr-only" htmlFor={id}>{label}</label>
       <span className={`search-input-icon ${icon || ''}`} aria-hidden="true">
         {searchIcon}
       </span>
       <input
-        ref={inputRef}
+        id={id}
+        ref={(node) => {
+          localInputRef.current = node;
+          if (inputRef) {
+            inputRef.current = node;
+          }
+        }}
         type="text"
         className="search-input"
         value={value}
@@ -153,6 +197,13 @@ export function PlaceAutocomplete({
         onBlur={handleBlur}
         placeholder={placeholder}
         autoComplete="off"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={isOpen}
+        aria-controls={listboxId}
+        aria-activedescendant={activeOptionId}
+        aria-invalid={Boolean(error)}
+        aria-describedby={helperIds}
       />
       {showLocationButton && onLocationRequest && (
         <button
@@ -168,18 +219,26 @@ export function PlaceAutocomplete({
 
       {/* Dropdown */}
       <div
+        id={listboxId}
         ref={dropdownRef}
         className={`autocomplete-dropdown ${isOpen ? 'visible' : ''}`}
+        role="listbox"
+        aria-label={`${label} suggestions`}
       >
         {isLoading ? (
-          <div className="autocomplete-loading">Searching...</div>
+          <div className="autocomplete-loading" role="status">Searching...</div>
+        ) : serviceError ? (
+          <div className="autocomplete-error" role="alert">{serviceError}</div>
         ) : results.length === 0 && value.length >= 2 ? (
-          <div className="autocomplete-no-results">No results found</div>
+          <div className="autocomplete-no-results" role="status">No results found. Press Enter to try the typed address.</div>
         ) : (
           results.map((place, index) => (
             <div
               key={place.id}
+              id={`${id}-option-${index}`}
               className={`autocomplete-item ${index === highlightedIndex ? 'highlighted' : ''}`}
+              role="option"
+              aria-selected={index === highlightedIndex}
               onMouseDown={() => handleSelect(place)}
               onMouseEnter={() => setHighlightedIndex(index)}
             >
@@ -194,6 +253,16 @@ export function PlaceAutocomplete({
           ))
         )}
       </div>
+      {statusMessage && (
+        <p id={`${id}-status`} className="search-field-message" role="status">
+          {statusMessage}
+        </p>
+      )}
+      {error && (
+        <p id={`${id}-error`} className="search-field-message search-field-message--error" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

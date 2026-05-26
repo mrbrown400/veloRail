@@ -22,6 +22,11 @@
   --vr-color-rail: #1a73e8;
   --vr-color-future-surface: #fff9e6;
   --vr-color-future-text: #5d4037;
+  --vr-color-surface-error: #fce8e6;
+  --vr-color-surface-warning: #fff8e1;
+  --vr-color-surface-success: #e6f4ea;
+  --vr-color-surface-info: #e8f0fe;
+  --vr-color-provider-degraded: #8a5a00;
   --vr-color-layer-current: #1a73e8;
   --vr-color-layer-context: #188038;
   --vr-color-layer-future: #7e22ce;
@@ -75,9 +80,15 @@
   --vr-z-floating-panel: 100;
   --vr-z-popover: 150;
   --vr-z-side-panel: 200;
+  --vr-z-metadata-panel: 240;
 
   /* Layout */
   --vr-sidebar-width: 408px;
+  --vr-touch-target-min: 48px;
+  --vr-layer-panel-width: 336px;
+  --vr-metadata-panel-width: 360px;
+  --vr-sheet-half-height: 54vh;
+  --vr-sheet-max-height: 72vh;
 }
 
 .vr-button {

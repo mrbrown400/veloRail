@@ -15,7 +15,7 @@ async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
 }
 
-test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @VR-500 @VR-501 @VR-502 @veloRail-967a @veloRail-1581 @veloRail-16bd nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
+test('@MBR-85 @VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @VR-500 @VR-501 @VR-502 @veloRail-967a @veloRail-1581 @veloRail-16bd nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const nationalizedToggle = page.getByRole('button', {
@@ -91,13 +91,15 @@ test('@VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @V
   await expect(metadataPanel).toContainText('passenger demand');
   await expect(metadataPanel).toContainText('la-freight-alameda-corridor');
   await expect(metadataPanel).toContainText('Not approved Metro');
-  await expect(metadataPanel.getByRole('link', { name: 'Alameda Corridor Transportation Authority' })).toHaveAttribute('href', 'https://www.acta.org/');
+  await expect(metadataPanel).toContainText('Google Maps renders the geometry');
+  await expect(metadataPanel).toContainText('public_agency');
+  await expect(metadataPanel.getByRole('link', { name: 'Alameda Corridor Transportation Authority corridor overview' })).toHaveAttribute('href', 'https://www.acta.org/');
 
   await metadataPanel.getByRole('button', { name: 'Close metadata' }).click();
   await expect(metadataPanel).toBeHidden();
 });
 
-test('@VR-202 @VR-203 @VR-204 @VR-205 @VR-206 visionary overlay exposes speculative legend and metadata panel', async ({ page }) => {
+test('@MBR-85 @VR-202 @VR-203 @VR-204 @VR-205 @VR-206 visionary overlay exposes speculative legend and metadata panel', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const visionaryToggle = page.getByRole('button', {
@@ -159,12 +161,14 @@ test('@VR-202 @VR-203 @VR-204 @VR-205 @VR-206 visionary overlay exposes speculat
   await expect(metadataPanel).toContainText('Speculative VeloRail scenario');
   await expect(metadataPanel).toContainText('VeloRail');
   await expect(metadataPanel).toContainText('2026-05-19');
+  await expect(metadataPanel).toContainText('internal_example');
+  await expect(metadataPanel).toContainText('Internal scenario record');
 
   await metadataPanel.getByRole('button', { name: 'Close metadata' }).click();
   await expect(metadataPanel).toBeHidden();
 });
 
-test('@VR-104 @veloRail-a3d0 completed network comparison mode controls official future overlay state', async ({ page }) => {
+test('@MBR-85 @VR-104 @veloRail-a3d0 completed network comparison mode controls official future overlay state', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const layerPanel = page.getByLabel('Map layers and legend');
@@ -183,6 +187,10 @@ test('@VR-104 @veloRail-a3d0 completed network comparison mode controls official
   await expect(presentPlusFutureMode).toHaveAttribute('aria-pressed', 'true');
   await expect(futureOverlayToggle).toHaveAttribute('aria-pressed', 'true');
   await expect(layerPanel).toContainText('Present + Future');
+  await expect(page.getByRole('button', { name: /unofficial visionary rail concepts/i })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('button', {
+    name: /hypothetical passenger-conversion planning over sourced freight corridors; not approved service/i
+  })).toHaveAttribute('aria-pressed', 'false');
 
   await page.getByRole('button', { name: /legend/i }).click();
 
@@ -198,4 +206,30 @@ test('@VR-104 @veloRail-a3d0 completed network comparison mode controls official
   await expect(presentOnlyMode).toHaveAttribute('aria-pressed', 'true');
   await expect(futureOverlayToggle).toHaveAttribute('aria-pressed', 'false');
   await expect(layerPanel).toContainText('Present Only');
+});
+
+test('@MBR-85 layer feature list opens metadata without a map click and returns focus on close', async ({ page }) => {
+  await ensureMapsAvailable(page);
+
+  const futureOverlayToggle = page.getByRole('button', {
+    name: /Official planned, funded, and under-construction future rail and BRT alignments/i
+  });
+  await futureOverlayToggle.click();
+
+  const featureList = page.getByLabel('Keyboard-accessible overlay metadata');
+  await expect(featureList).toContainText('Google Maps renders these lines');
+  const firstFeature = featureList.getByRole('button').first();
+  const firstFeatureText = await firstFeature.innerText();
+
+  await firstFeature.click();
+
+  const metadataPanel = page.locator('#map-overlay-metadata-panel');
+  await expect(metadataPanel).toBeVisible();
+  await expect(metadataPanel).toContainText('Google Maps renders the geometry');
+  await expect(metadataPanel).toContainText('Uncertainty');
+
+  await metadataPanel.getByRole('button', { name: 'Close metadata' }).click();
+  await expect(metadataPanel).toBeHidden();
+  await expect(firstFeature).toBeFocused();
+  expect(firstFeatureText.length).toBeGreaterThan(0);
 });

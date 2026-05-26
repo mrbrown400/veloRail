@@ -21,7 +21,7 @@ interface UIState {
 export const useUIStore = create<UIState>((set) => ({
   searchMode: 'collapsed',
   sidebarOpen: false,
-  locationStatus: 'pending',
+  locationStatus: 'idle',
   currentLocation: null,
   isUsingGeolocation: false,
 
@@ -33,7 +33,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   setCurrentLocation: (currentLocation) => set({
     currentLocation,
-    locationStatus: currentLocation ? 'granted' : 'pending'
+    locationStatus: currentLocation ? 'granted' : 'idle'
   }),
 
   setUsingGeolocation: (isUsingGeolocation) => set({ isUsingGeolocation }),
