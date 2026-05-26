@@ -73,13 +73,17 @@
   --vr-shadow-raised: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
   --vr-shadow-floating: 0 1px 3px rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
   --vr-shadow-panel: 0 4px 8px 3px rgba(60, 64, 67, 0.15), 0 1px 3px rgba(60, 64, 67, 0.3);
+  --vr-shadow-sheet: 0 -2px 8px rgba(60, 64, 67, 0.18), 0 -1px 3px rgba(60, 64, 67, 0.22);
   --vr-focus-ring: 0 0 0 3px rgba(26, 115, 232, 0.25);
 
   /* Layering */
   --vr-z-map-overlay: 10;
   --vr-z-floating-panel: 100;
+  --vr-z-search-panel: 120;
   --vr-z-popover: 150;
+  --vr-z-autocomplete: 180;
   --vr-z-side-panel: 200;
+  --vr-z-bottom-sheet: 220;
   --vr-z-metadata-panel: 240;
 
   /* Layout */
@@ -87,6 +91,7 @@
   --vr-touch-target-min: 48px;
   --vr-layer-panel-width: 336px;
   --vr-metadata-panel-width: 360px;
+  --vr-sheet-peek-height: 76px;
   --vr-sheet-half-height: 54vh;
   --vr-sheet-max-height: 72vh;
 }

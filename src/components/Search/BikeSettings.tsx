@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   loadBikeSettings,
   saveBikeSettings,
@@ -14,6 +14,11 @@ interface BikeSettingsProps {
 export function BikeSettings({ onSettingsChange }: BikeSettingsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [settings, setSettings] = useState<BikeSettingsType>(DEFAULT_BIKE_SETTINGS);
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
+  const panelId = 'bike-settings-panel';
+  const titleId = 'bike-settings-title';
+  const speedId = 'bike-settings-speed';
+  const weightId = 'bike-settings-weight';
 
   // Load settings on mount
   useEffect(() => {
@@ -43,13 +48,22 @@ export function BikeSettings({ onSettingsChange }: BikeSettingsProps) {
     return 'Very Fast';
   };
 
+  const closePanel = () => {
+    setIsOpen(false);
+    window.requestAnimationFrame(() => {
+      toggleRef.current?.focus();
+    });
+  };
+
   return (
     <div className="bike-settings">
       <button
+        ref={toggleRef}
         type="button"
         className="bike-settings-toggle"
         onClick={() => setIsOpen(!isOpen)}
         title="Bike Settings"
+        aria-controls={panelId}
         aria-expanded={isOpen}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -60,12 +74,24 @@ export function BikeSettings({ onSettingsChange }: BikeSettingsProps) {
       </button>
 
       {isOpen && (
-        <div className="bike-settings-panel">
+        <div
+          id={panelId}
+          className="bike-settings-panel"
+          role="region"
+          aria-labelledby={titleId}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              event.stopPropagation();
+              closePanel();
+            }
+          }}
+        >
           <div className="bike-settings-header">
-            <span>Bike Settings</span>
+            <span id={titleId}>Bike Settings</span>
             <IconButton
               className="bike-settings-close"
-              onClick={() => setIsOpen(false)}
+              onClick={closePanel}
               aria-label="Close bike settings"
             >
               <CloseIcon />
@@ -75,7 +101,7 @@ export function BikeSettings({ onSettingsChange }: BikeSettingsProps) {
           <div className="bike-settings-content">
             {/* Speed Slider */}
             <div className="setting-group">
-              <label className="setting-label">
+              <label className="setting-label" htmlFor={speedId}>
                 <span>Cruising Speed</span>
                 <span className="setting-value">
                   {settings.baseSpeedKmh} km/h
@@ -83,6 +109,7 @@ export function BikeSettings({ onSettingsChange }: BikeSettingsProps) {
                 </span>
               </label>
               <input
+                id={speedId}
                 type="range"
                 min="10"
                 max="40"
@@ -90,6 +117,7 @@ export function BikeSettings({ onSettingsChange }: BikeSettingsProps) {
                 value={settings.baseSpeedKmh}
                 onChange={(e) => handleSpeedChange(Number(e.target.value))}
                 className="setting-slider"
+                aria-valuetext={`${settings.baseSpeedKmh} kilometers per hour, ${getSpeedLabel(settings.baseSpeedKmh)}`}
               />
               <div className="slider-labels">
                 <span>10</span>
@@ -100,11 +128,12 @@ export function BikeSettings({ onSettingsChange }: BikeSettingsProps) {
 
             {/* Weight Slider */}
             <div className="setting-group">
-              <label className="setting-label">
+              <label className="setting-label" htmlFor={weightId}>
                 <span>Rider + Bike Weight</span>
                 <span className="setting-value">{settings.riderWeightKg} kg</span>
               </label>
               <input
+                id={weightId}
                 type="range"
                 min="50"
                 max="150"

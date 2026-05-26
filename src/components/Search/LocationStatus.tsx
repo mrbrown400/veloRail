@@ -68,6 +68,13 @@ export function LocationStatus({ status, onClick }: LocationStatusProps) {
     >
       <span className="location-status-icon" aria-hidden="true">{getStatusIcon()}</span>
       <span>{getStatusText()}</span>
+      <span
+        className="sr-only"
+        role={status === 'denied' || status === 'timeout' || status === 'unavailable' ? 'alert' : 'status'}
+        aria-live={status === 'denied' || status === 'timeout' || status === 'unavailable' ? 'assertive' : 'polite'}
+      >
+        {getStatusText()}
+      </span>
       {(status === 'idle' || status === 'denied' || status === 'timeout' || status === 'unavailable') && onClick && (
         <span className="location-status-action">
           {status === 'idle' ? 'Set start' : 'Enter start'}

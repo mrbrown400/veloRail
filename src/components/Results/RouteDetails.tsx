@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, ReactNode, RefObject } from 'react';
 import { VehicleTrackingStatus } from './VehicleTrackingStatus';
 import {
   BikeIcon,
@@ -14,9 +14,10 @@ import type { Location, Route, RouteLeg, Station, TravelMode } from '@/types';
 
 interface RouteDetailsProps {
   route: Route;
+  headingRef?: RefObject<HTMLHeadingElement>;
 }
 
-export function RouteDetails({ route }: RouteDetailsProps) {
+export function RouteDetails({ route, headingRef }: RouteDetailsProps) {
   const transferCount = getTransferCount(route.legs);
   const safetyScore = getBikeSafetyScore(route.legs);
   const headingId = `route-details-${route.label.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
@@ -25,7 +26,7 @@ export function RouteDetails({ route }: RouteDetailsProps) {
     <section className="route-details" aria-labelledby={headingId}>
       <div className="route-details-header">
         <div>
-          <h3 id={headingId}>Selected itinerary: {route.label}</h3>
+          <h3 id={headingId} ref={headingRef} tabIndex={-1}>Selected itinerary: {route.label}</h3>
           <p>{route.summary}</p>
         </div>
         <span className="route-details-duration">{route.formattedDuration}</span>

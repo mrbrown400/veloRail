@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'map-toggle';
 type ButtonSize = 'sm' | 'md' | 'icon';
@@ -16,7 +16,7 @@ function joinClasses(classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(' ');
 }
 
-export function Button({
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({
   variant = 'secondary',
   size = 'md',
   fullWidth = false,
@@ -27,10 +27,11 @@ export function Button({
   children,
   type = 'button',
   ...props
-}: ButtonProps) {
+}, ref) {
   return (
     <button
       {...props}
+      ref={ref}
       type={type}
       aria-pressed={pressed}
       className={joinClasses([
@@ -47,14 +48,15 @@ export function Button({
       {rightIcon && <span className="vr-button__icon">{rightIcon}</span>}
     </button>
   );
-}
+});
 
 type IconButtonProps = Omit<ButtonProps, 'variant' | 'size' | 'fullWidth'>;
 
-export function IconButton({ className, children, ...props }: IconButtonProps) {
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton({ className, children, ...props }, ref) {
   return (
     <Button
       {...props}
+      ref={ref}
       variant="ghost"
       size="icon"
       className={joinClasses(['vr-icon-button', className])}
@@ -62,4 +64,4 @@ export function IconButton({ className, children, ...props }: IconButtonProps) {
       {children}
     </Button>
   );
-}
+});

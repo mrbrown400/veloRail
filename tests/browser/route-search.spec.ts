@@ -97,6 +97,46 @@ test('@MBR-83 autocomplete input exposes combobox state and typed fallback repai
   await expect(destinationInput).toHaveAttribute('aria-expanded', 'false');
 });
 
+test('@MBR-86 mobile expanded search keeps primary route action visible', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await ensureMapsAvailable(page);
+
+  await page.getByPlaceholder('Where to?').fill('Hollywood/Vine Station');
+  await page.getByTestId('find-route-button').click();
+
+  const originInput = page.getByPlaceholder('Your Location');
+  const findRouteButton = page.getByTestId('find-route-button');
+  const buttonBox = await findRouteButton.boundingBox();
+  const viewport = page.viewportSize();
+
+  await expect(originInput).toBeFocused();
+  await expect(findRouteButton).toBeVisible();
+  expect(buttonBox).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(buttonBox!.x).toBeGreaterThanOrEqual(0);
+  expect(buttonBox!.y).toBeGreaterThanOrEqual(0);
+  expect(buttonBox!.x + buttonBox!.width).toBeLessThanOrEqual(viewport!.width);
+  expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(viewport!.height);
+});
+
+test('@MBR-88 bike settings popover has named controls and Escape focus return', async ({ page }) => {
+  await ensureMapsAvailable(page);
+
+  const bikeToggle = page.getByRole('button', { name: 'Bike' });
+  await bikeToggle.click();
+
+  const bikePanel = page.getByRole('region', { name: 'Bike Settings' });
+  await expect(bikePanel).toBeVisible();
+  const speedSlider = page.getByLabel(/Cruising Speed/i);
+  await expect(speedSlider).toBeVisible();
+  await expect(page.getByLabel(/Rider \+ Bike Weight/i)).toBeVisible();
+
+  await speedSlider.focus();
+  await page.keyboard.press('Escape');
+  await expect(bikePanel).toBeHidden();
+  await expect(bikeToggle).toBeFocused();
+});
+
 test('@MBR-84 @veloRail-a0c4 route search uses Maps JavaScript Routes without request shape errors', async ({ page }) => {
   const consoleMessages: string[] = [];
   const pageErrors: string[] = [];
@@ -308,7 +348,8 @@ test('@VR-306 @VR-308 mobile overlay panels stay within the viewport', async ({ 
   expect(panelBox!.height).toBeLessThanOrEqual(viewport!.height * 0.52);
 });
 
-test('@MBR-84 @VR-306 @VR-307 route results can close and reopen when options are available', async ({ page }) => {
+test('@MBR-84 @MBR-86 @MBR-88 @VR-306 @VR-307 route results can switch sheet states, close, and reopen when options are available', async ({ page }) => {
+  await page.setViewportSize({ width: 430, height: 932 });
   await ensureMapsAvailable(page);
 
   await page.locator('.location-status').click();
@@ -329,15 +370,26 @@ test('@MBR-84 @VR-306 @VR-307 route results can close and reopen when options ar
 
   const sidebarVisible = await page.locator('.results-sidebar.open').isVisible().catch(() => false);
   test.skip(!sidebarVisible, 'Route API returned no route options in this environment.');
+  const resultsSheet = page.getByTestId('route-results-sheet');
+  await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
+
+  await page.getByRole('button', { name: 'Itinerary' }).click();
+  await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'full');
+  await expect(page.locator('.route-details h3')).toBeFocused();
   const selectedDetailHeading = await page.locator('.route-details h3').innerText();
+
+  await page.getByRole('button', { name: 'Show route options' }).click();
+  await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
 
   await page.getByRole('button', { name: 'Close route results' }).click();
   await expect(page.locator('.results-sidebar.open')).toBeHidden();
 
   const reopenButton = page.getByRole('button', { name: /show \d+ routes?/i });
   await expect(reopenButton).toBeVisible();
+  await expect(reopenButton).toBeFocused();
   await reopenButton.click();
   await expect(page.locator('.results-sidebar.open')).toBeVisible();
+  await page.getByRole('button', { name: 'Itinerary' }).click();
   await expect(page.locator('.route-details h3')).toHaveText(selectedDetailHeading);
 });
 

@@ -208,7 +208,37 @@ test('@MBR-85 @VR-104 @veloRail-a3d0 completed network comparison mode controls 
   await expect(layerPanel).toContainText('Present Only');
 });
 
-test('@MBR-85 layer feature list opens metadata without a map click and returns focus on close', async ({ page }) => {
+test('@MBR-87 mobile layer controls collapse behind a trigger and open as a sheet', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await ensureMapsAvailable(page);
+
+  const layerTrigger = page.getByRole('button', { name: /layers, \d+ active/i });
+  const layerPanel = page.getByLabel('Map layers and legend');
+
+  await expect(layerTrigger).toBeVisible();
+  await expect(layerTrigger).toHaveAttribute('aria-expanded', 'false');
+  await expect(layerPanel).toBeHidden();
+
+  await layerTrigger.click();
+  await expect(layerTrigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(layerPanel).toBeVisible();
+  await expect(layerPanel.locator('.map-layer-panel__title')).toBeFocused();
+
+  const panelBox = await layerPanel.boundingBox();
+  const viewport = page.viewportSize();
+  expect(panelBox).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(panelBox!.x).toBeGreaterThanOrEqual(0);
+  expect(panelBox!.y).toBeGreaterThanOrEqual(0);
+  expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(viewport!.width + 1);
+  expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(viewport!.height + 1);
+
+  await page.getByRole('button', { name: 'Close layers' }).click();
+  await expect(layerPanel).toBeHidden();
+  await expect(layerTrigger).toBeFocused();
+});
+
+test('@MBR-85 @MBR-88 layer feature list opens metadata without a map click and returns focus on Escape', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const futureOverlayToggle = page.getByRole('button', {
@@ -225,10 +255,11 @@ test('@MBR-85 layer feature list opens metadata without a map click and returns 
 
   const metadataPanel = page.locator('#map-overlay-metadata-panel');
   await expect(metadataPanel).toBeVisible();
+  await expect(metadataPanel.locator('.map-overlay-metadata__title')).toBeFocused();
   await expect(metadataPanel).toContainText('Google Maps renders the geometry');
   await expect(metadataPanel).toContainText('Uncertainty');
 
-  await metadataPanel.getByRole('button', { name: 'Close metadata' }).click();
+  await page.keyboard.press('Escape');
   await expect(metadataPanel).toBeHidden();
   await expect(firstFeature).toBeFocused();
   expect(firstFeatureText.length).toBeGreaterThan(0);

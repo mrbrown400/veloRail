@@ -28,7 +28,7 @@ function App() {
     return (
       <div className="app-container">
         <div className="app-state">
-          <div>
+          <div role="alert">
             <h2 className="app-state-title app-state-title--error">
               Error Loading Google Maps
             </h2>
@@ -45,8 +45,8 @@ function App() {
     return (
       <div className="app-container">
         <div className="app-state">
-          <div className="app-state-content">
-            <div className="loading-spinner app-state-spinner" />
+          <div className="app-state-content" role="status" aria-live="polite">
+            <div className="loading-spinner app-state-spinner" aria-hidden="true" />
             <p className="app-state-copy">Loading VeloRail...</p>
           </div>
         </div>

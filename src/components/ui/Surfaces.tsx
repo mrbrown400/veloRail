@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 
 interface SurfaceProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode;
@@ -35,7 +35,7 @@ export function Card({
   );
 }
 
-export function Panel({
+export const Panel = forwardRef<HTMLElement, PanelProps>(function Panel({
   as: Component = 'section',
   children,
   className,
@@ -43,16 +43,19 @@ export function Panel({
   ariaLabelledBy,
   isHidden,
   ...props
-}: PanelProps) {
+}, ref) {
+  const SurfaceComponent = Component as 'section';
+
   return (
-    <Component
+    <SurfaceComponent
       {...props}
+      ref={ref}
       className={joinClasses(['vr-panel', className])}
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
       aria-hidden={isHidden}
     >
       {children}
-    </Component>
+    </SurfaceComponent>
   );
-}
+});

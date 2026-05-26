@@ -127,7 +127,9 @@ export function PlaceAutocomplete({
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
+        e.stopPropagation();
         if (results.length > 0) {
+          setIsOpen(true);
           setHighlightedIndex(prev =>
             Math.min(prev + 1, results.length - 1)
           );
@@ -135,20 +137,26 @@ export function PlaceAutocomplete({
         break;
       case 'ArrowUp':
         e.preventDefault();
+        e.stopPropagation();
         if (results.length > 0) {
+          setIsOpen(true);
           setHighlightedIndex(prev => Math.max(prev - 1, -1));
         }
         break;
       case 'Enter':
         if (highlightedIndex >= 0 && highlightedIndex < results.length) {
           e.preventDefault();
+          e.stopPropagation();
           handleSelect(results[highlightedIndex]);
         }
         break;
       case 'Escape':
-        e.preventDefault();
-        setIsOpen(false);
-        setHighlightedIndex(-1);
+        if (isOpen) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen(false);
+          setHighlightedIndex(-1);
+        }
         break;
     }
   };

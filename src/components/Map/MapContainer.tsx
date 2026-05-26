@@ -30,7 +30,7 @@ import {
   TransitIcon,
   VisionIcon
 } from '@/components/ui';
-import { useMapOverlayStore, useRouteStore, useRealtimeStore } from '@/stores';
+import { useMapOverlayStore, useRouteStore, useRealtimeStore, useUIStore } from '@/stores';
 import { LA_CENTER } from '@/services/config';
 import type {
   MapOverlayComparisonMode,
@@ -58,15 +58,38 @@ const overlayLegendItems = getMapOverlayLegendItems();
 const overlayFeatureListItems = getMapOverlayFeatureListItems();
 const comparisonModes = getMapOverlayComparisonModes();
 
-const getRouteViewportPadding = (): google.maps.Padding => {
-  const viewportWidth = typeof window === 'undefined' ? 1024 : window.innerWidth;
+interface RouteViewportPaddingInput {
+  isLayerPanelOpen: boolean;
+  isMetadataOpen: boolean;
+  routeSheetState: 'collapsed' | 'half' | 'full';
+  sidebarOpen: boolean;
+}
 
-  if (viewportWidth <= 480) {
-    return { top: 88, right: 28, bottom: 340, left: 28 };
-  }
+const getRouteViewportPadding = ({
+  isLayerPanelOpen,
+  isMetadataOpen,
+  routeSheetState,
+  sidebarOpen
+}: RouteViewportPaddingInput): google.maps.Padding => {
+  const viewportWidth = typeof window === 'undefined' ? 1024 : window.innerWidth;
+  const viewportHeight = typeof window === 'undefined' ? 768 : window.innerHeight;
 
   if (viewportWidth <= 768) {
-    return { top: 88, right: 40, bottom: 320, left: 40 };
+    const routeSheetHeight = sidebarOpen
+      ? routeSheetState === 'full'
+        ? viewportHeight * 0.72
+        : viewportHeight * 0.54
+      : 0;
+    const layerSheetHeight = isLayerPanelOpen ? viewportHeight * 0.72 : 0;
+    const metadataSheetHeight = isMetadataOpen ? viewportHeight * 0.54 : 0;
+    const bottom = Math.max(96, routeSheetHeight, layerSheetHeight, metadataSheetHeight) + 32;
+
+    return {
+      top: 104,
+      right: viewportWidth <= 480 ? 28 : 40,
+      bottom: Math.min(Math.round(bottom), viewportHeight - 96),
+      left: viewportWidth <= 480 ? 28 : 40
+    };
   }
 
   return { top: 64, right: 72, bottom: 80, left: 440 };
@@ -96,10 +119,15 @@ interface MapContainerProps {
 export function MapContainer({ onMapLoad }: MapContainerProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLegendOpen, setIsLegendOpen] = useState(false);
+  const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(false);
+  const [viewportTick, setViewportTick] = useState(0);
   const [selectedOverlayMetadata, setSelectedOverlayMetadata] = useState<MapOverlayMetadata | null>(null);
   const metadataHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const metadataTriggerRef = useRef<HTMLElement | null>(null);
+  const layerTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const layerHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const { selectedRoute } = useRouteStore();
+  const { sidebarOpen, routeSheetState } = useUIStore();
   const { vehiclePosition, trackedVehicle } = useRealtimeStore();
   const overlayVisibility = useMapOverlayStore((state) => state.visibility);
   const comparisonMode = useMapOverlayStore((state) => state.comparisonMode);
@@ -152,12 +180,57 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
     }
   }, [selectedOverlayMetadata]);
 
+  useEffect(() => {
+    if (!isLayerPanelOpen) return undefined;
+
+    const focusTimer = window.setTimeout(() => {
+      layerHeadingRef.current?.focus();
+    }, 260);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+    };
+  }, [isLayerPanelOpen]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportTick((tick) => tick + 1);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  const closeLayerPanel = useCallback(() => {
+    setIsLayerPanelOpen(false);
+    window.requestAnimationFrame(() => {
+      layerTriggerRef.current?.focus();
+    });
+  }, []);
+
+  const toggleLayerPanel = useCallback(() => {
+    const nextOpen = !isLayerPanelOpen;
+    setIsLayerPanelOpen(nextOpen);
+    window.requestAnimationFrame(() => {
+      if (nextOpen) {
+        layerHeadingRef.current?.focus();
+      } else {
+        layerTriggerRef.current?.focus();
+      }
+    });
+  }, [isLayerPanelOpen]);
+
   const closeMetadata = useCallback(() => {
     setSelectedOverlayMetadata(null);
     window.requestAnimationFrame(() => {
-      metadataTriggerRef.current?.focus();
+      const fallbackFocusTarget = metadataTriggerRef.current
+        ?? (isLayerPanelOpen ? layerHeadingRef.current : layerTriggerRef.current);
+      fallbackFocusTarget?.focus();
     });
-  }, []);
+  }, [isLayerPanelOpen]);
 
   const openFeatureMetadata = useCallback((metadata: MapOverlayMetadata, trigger: HTMLElement) => {
     metadataTriggerRef.current = trigger;
@@ -185,16 +258,45 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
         });
       });
 
-      map.fitBounds(bounds, getRouteViewportPadding());
+      map.fitBounds(bounds, getRouteViewportPadding({
+        isLayerPanelOpen,
+        isMetadataOpen: Boolean(selectedOverlayMetadata),
+        routeSheetState,
+        sidebarOpen
+      }));
     }
-  }, [map, selectedRoute]);
+  }, [
+    isLayerPanelOpen,
+    map,
+    routeSheetState,
+    selectedOverlayMetadata,
+    selectedRoute,
+    sidebarOpen,
+    viewportTick
+  ]);
 
   useEffect(() => {
-    if (!selectedOverlayMetadata) return undefined;
-
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key !== 'Escape') return;
+
+      if (selectedOverlayMetadata) {
+        event.preventDefault();
         closeMetadata();
+        return;
+      }
+
+      if (isLegendOpen) {
+        event.preventDefault();
+        setIsLegendOpen(false);
+        window.requestAnimationFrame(() => {
+          layerHeadingRef.current?.focus();
+        });
+        return;
+      }
+
+      if (isLayerPanelOpen) {
+        event.preventDefault();
+        closeLayerPanel();
       }
     };
 
@@ -203,7 +305,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
     return () => {
       window.removeEventListener('keydown', closeOnEscape);
     };
-  }, [closeMetadata, selectedOverlayMetadata]);
+  }, [closeLayerPanel, closeMetadata, isLayerPanelOpen, isLegendOpen, selectedOverlayMetadata]);
 
   // Get color for vehicle marker
   const getVehicleColor = () => {
@@ -244,9 +346,25 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
         )}
       </GoogleMap>
 
+      <Button
+        ref={layerTriggerRef}
+        className={`map-layer-trigger ${sidebarOpen ? `map-layer-trigger--route-${routeSheetState}` : ''} ${selectedOverlayMetadata ? 'map-layer-trigger--metadata-open' : ''}`}
+        variant="map-toggle"
+        size="sm"
+        aria-controls="map-layer-panel"
+        aria-expanded={isLayerPanelOpen}
+        aria-label={`Layers, ${activeOverlayCount} active`}
+        onClick={toggleLayerPanel}
+        leftIcon={<LayersIcon />}
+      >
+        Layers
+        <span className="map-layer-trigger__count">{activeOverlayCount}</span>
+      </Button>
+
       <Panel
         as="aside"
-        className={`map-layer-panel ${selectedOverlayMetadata ? 'map-layer-panel--metadata-open' : ''}`}
+        id="map-layer-panel"
+        className={`map-layer-panel ${isLayerPanelOpen ? 'map-layer-panel--open' : ''} ${selectedOverlayMetadata ? 'map-layer-panel--metadata-open' : ''}`}
         ariaLabel="Map layers and legend"
         aria-describedby="map-layer-panel-status"
       >
@@ -254,7 +372,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
           <div className="map-layer-panel__title-row">
             <LayersIcon className="map-layer-panel__title-icon" />
             <div>
-              <h2 className="map-layer-panel__title">Layers</h2>
+              <h2 ref={layerHeadingRef} className="map-layer-panel__title" tabIndex={-1}>Layers</h2>
               <span id="map-layer-panel-status" className="map-layer-panel__status" aria-live="polite">
                 {comparisonModeDefinition.label} · {activeOverlayCount} active
               </span>
@@ -271,6 +389,14 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
           >
             Legend
           </Button>
+          <Button
+            className="map-layer-panel__close"
+            variant="ghost"
+            size="icon"
+            aria-label="Close layers"
+            onClick={closeLayerPanel}
+            leftIcon={<CloseIcon />}
+          />
         </div>
 
         <div className="map-layer-panel__groups">

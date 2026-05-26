@@ -20,7 +20,7 @@ export function useRouting(): UseRoutingReturn {
     selectRoute
   } = useRouteStore();
 
-  const { setSidebarOpen, expandSearch } = useUIStore();
+  const { openRouteSheet, expandSearch } = useUIStore();
   const { trackVehicle } = useRealtimeStore();
 
   const calculateRoutesHandler = useCallback(async (
@@ -46,7 +46,7 @@ export function useRouting(): UseRoutingReturn {
       if (routes.length > 0) {
         selectRoute(routes[0]);
         expandSearch();
-        setSidebarOpen(true);
+        openRouteSheet('half');
 
         // Start tracking vehicle for transit leg
         const primaryRoute = routes[0];
@@ -55,7 +55,7 @@ export function useRouting(): UseRoutingReturn {
           trackVehicle(transitLeg.tripId || null, transitLeg.routeId || null);
         }
       } else {
-        setSidebarOpen(true);
+        openRouteSheet('half');
         setError('No route options found for those locations. Try another mode, a more specific place, or a shorter trip.');
       }
 
@@ -76,7 +76,7 @@ export function useRouting(): UseRoutingReturn {
     setRoutes,
     selectRoute,
     expandSearch,
-    setSidebarOpen,
+    openRouteSheet,
     trackVehicle
   ]);
 

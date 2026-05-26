@@ -272,6 +272,7 @@ export function SearchCard({ className = '' }: SearchCardProps) {
       className={`search-card ${className}`}
       ariaLabel="Route search"
       aria-describedby={error || searchMessage || degradedMessage ? ROUTE_SEARCH_FEEDBACK_ID : undefined}
+      data-search-mode={searchMode}
     >
       <form
         className="search-form"
@@ -398,7 +399,7 @@ export function SearchCard({ className = '' }: SearchCardProps) {
             id={ROUTE_SEARCH_FEEDBACK_ID}
             className={`search-feedback ${error ? 'search-feedback--error' : degradedMessage ? 'search-feedback--degraded' : ''}`}
             role={error ? 'alert' : 'status'}
-            aria-live="polite"
+            aria-live={error ? 'assertive' : 'polite'}
           >
             {error || searchMessage || degradedMessage}
           </div>
@@ -412,6 +413,7 @@ export function SearchCard({ className = '' }: SearchCardProps) {
             variant="primary"
             fullWidth
             type="submit"
+            data-testid="find-route-button"
             aria-describedby={error || searchMessage || degradedMessage ? ROUTE_SEARCH_FEEDBACK_ID : undefined}
           >
             {isResolvingPlaces ? 'Looking up...' : isLoading ? 'Calculating...' : 'Find Route'}
