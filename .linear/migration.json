@@ -864,6 +864,54 @@
       ],
       "priority": 2,
       "url": "https://linear.app/velorail/issue/MBR-73"
+    },
+    {
+      "id": "MBR-60",
+      "linearIdentifier": "MBR-60",
+      "browserGateTag": "MBR-60",
+      "title": "Write unified frontend redesign product and design specification",
+      "type": "task",
+      "labels": [
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-60"
+    },
+    {
+      "id": "MBR-77",
+      "linearIdentifier": "MBR-77",
+      "browserGateTag": "MBR-77",
+      "title": "Specify end-to-end search and routing user journeys",
+      "type": "task",
+      "labels": [
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-77"
+    },
+    {
+      "id": "MBR-78",
+      "linearIdentifier": "MBR-78",
+      "browserGateTag": "MBR-78",
+      "title": "Specify map controls, overlays, and metadata requirements",
+      "type": "task",
+      "labels": [
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-78"
+    },
+    {
+      "id": "MBR-79",
+      "linearIdentifier": "MBR-79",
+      "browserGateTag": "MBR-79",
+      "title": "Define responsive, accessibility, and UI-state requirements",
+      "type": "task",
+      "labels": [
+        "gate/no-code"
+      ],
+      "priority": 2,
+      "url": "https://linear.app/velorail/issue/MBR-79"
     }
   ]
 }

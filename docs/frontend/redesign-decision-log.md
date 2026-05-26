@@ -21,16 +21,16 @@ This log records decisions that affect more than one issue, constrain future imp
 | REDESIGN-006 | 2026-05-22 | Approved | Setup / MBR-65 | Use the dedicated branch for all project work. | Keeping setup, planning, implementation, and QA work on `feature/velorail-frontend-redesign-google-maps-parity` reduces drift and keeps review context coherent. | Project owner, engineering | Git branch, PRs, commits | Check branch before editing or committing. Include issue keys in commits and PRs when used. | MBR-56 |
 | REDESIGN-007 | 2026-05-22 | Approved | Setup / MBR-65 | Store redesign planning artifacts under `docs/frontend/`. | `docs/ui/` contains prior UI audit artifacts. The redesign project needs canonical planning docs tied to the current Linear project without rewriting older UI history. | Project owner, engineering | Project plan, decision log, metrics, risk register | Link `docs/frontend/` artifacts from Linear setup issues. | MBR-56, MBR-65 |
 
-## Open Decisions Needing Owner Review
+## Decisions Needing Owner Review
 
-| ID | Milestone | Decision needed | Options to evaluate | Owner checkpoint |
-| --- | --- | --- | --- | --- |
-| REDESIGN-OPEN-001 | MBR-57 / MBR-58 | What exact behaviors define Google Maps UX parity for VeloRail? | Search behavior, route comparison, route result hierarchy, map controls, layer controls, place feedback, mobile bottom sheet patterns. | Research review before MBR-59 starts. |
-| REDESIGN-OPEN-002 | MBR-59 / MBR-60 | How binding are Figma artifacts for implementation? | Visual reference, design-system source of truth, acceptance artifact, or text spec fallback. | Design-system review before MBR-60 approval. |
-| REDESIGN-OPEN-003 | MBR-59 / MBR-63 | What is the mobile interaction model? | Persistent search shell, bottom sheet, drawer, modal panel, or hybrid. | Design-system review and mobile polish checkpoint. |
-| REDESIGN-OPEN-004 | MBR-60 | How should driving appear, if at all? | Remove, hide by default, mark comparison-only, or keep as explicit fallback. | Spec approval before implementation breakdown. |
-| REDESIGN-OPEN-005 | MBR-60 / MBR-64 | What browser and accessibility target matrix is required beyond Chromium Playwright? | Current Chromium only, mobile viewport emulation, WebKit, manual device pass, accessibility scanner, or screen-reader spot check. | Spec approval and QA review. |
-| REDESIGN-OPEN-006 | MBR-61 | What approval threshold is required for project-wide changes? | Single owner approval, product plus engineering, design plus engineering, or all three. | Issue-breakdown review before MBR-62 starts. |
+| ID | Milestone | Decision needed | Options evaluated | Current status | Resolution or next checkpoint |
+| --- | --- | --- | --- | --- | --- |
+| REDESIGN-OPEN-001 | MBR-57 / MBR-58 | What exact behaviors define Google Maps UX parity for VeloRail? | Search behavior, route comparison, route result hierarchy, map controls, layer controls, place feedback, mobile bottom sheet patterns. | Resolved by MBR-60 | Parity means Google-like interaction clarity and API reuse where feasible, while VeloRail keeps car-free route families, planning overlays, metadata provenance, and custom route rendering. |
+| REDESIGN-OPEN-002 | MBR-59 / MBR-60 | How binding are Figma artifacts for implementation? | Visual reference, design-system source of truth, acceptance artifact, or text spec fallback. | Resolved by MBR-60 | With no Figma file/workspace available, MBR-59 Markdown docs and MBR-60 specs are binding. Future linked Figma frames are visual references unless owner-approved as acceptance artifacts. |
+| REDESIGN-OPEN-003 | MBR-59 / MBR-63 | What is the mobile interaction model? | Persistent search shell, bottom sheet, drawer, modal panel, or hybrid. | Resolved by MBR-60 | Use one coordinated bottom-surface model with search, collapsed/half/full route sheets, layer sheet, metadata sheet, and modal-only focus trapping when needed. |
+| REDESIGN-OPEN-004 | MBR-60 | How should driving appear, if at all? | Remove, hide by default, mark comparison-only, or keep as explicit fallback. | Resolved by MBR-60 | Driving may remain visible only as a comparison benchmark and must be visually quieter than Bike + Rail and Walk + Rail. |
+| REDESIGN-OPEN-005 | MBR-60 / MBR-64 | What browser and accessibility target matrix is required beyond Chromium Playwright? | Current Chromium only, mobile viewport emulation, WebKit, manual device pass, accessibility scanner, or screen-reader spot check. | Resolved for implementation baseline | Require quality, task gate, issue-tagged Chromium Playwright for browser-facing issues, and mobile viewport checks at 390 by 844 and 430 by 932. MBR-64 may add WebKit, screen-reader, or scanner passes for final launch readiness. |
+| REDESIGN-OPEN-006 | MBR-61 | What approval threshold is required for project-wide changes? | Single owner approval, product plus engineering, design plus engineering, or all three. | Open | Issue-breakdown review before MBR-62 starts. |
 
 ## Review Checkpoints
 
