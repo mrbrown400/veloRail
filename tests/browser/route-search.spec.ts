@@ -50,7 +50,7 @@ async function dispatchSampleOverlayMetadata(page: import('@playwright/test').Pa
   });
 }
 
-test('@smoke @VR-304 @VR-305 typed endpoints make the route search respond visibly', async ({ page }) => {
+test('@smoke @MBR-89 @VR-304 @VR-305 typed endpoints make the route search respond visibly', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   await page.locator('.location-status').click();
@@ -70,7 +70,7 @@ test('@smoke @VR-304 @VR-305 typed endpoints make the route search respond visib
   }).toBe(true);
 });
 
-test('@MBR-83 collapsed destination submit expands origin repair and preserves destination', async ({ page }) => {
+test('@MBR-83 @MBR-89 collapsed destination submit expands origin repair and preserves destination', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const destinationInput = page.getByPlaceholder('Where to?');
@@ -85,7 +85,7 @@ test('@MBR-83 collapsed destination submit expands origin repair and preserves d
   await expect(page.getByText('Destination saved. Add an origin to compare car-free routes.')).toBeVisible();
 });
 
-test('@MBR-83 autocomplete input exposes combobox state and typed fallback repair path', async ({ page }) => {
+test('@MBR-83 @MBR-89 autocomplete input exposes combobox state and typed fallback repair path', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const destinationInput = page.getByPlaceholder('Where to?');
@@ -97,7 +97,34 @@ test('@MBR-83 autocomplete input exposes combobox state and typed fallback repai
   await expect(destinationInput).toHaveAttribute('aria-expanded', 'false');
 });
 
-test('@MBR-86 mobile expanded search keeps primary route action visible', async ({ page }) => {
+test('@MBR-89 expanded search surfaces destination repair state without opening results', async ({ page }) => {
+  await page.route('https://nominatim.openstreetmap.org/search?**', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{
+        lat: '34.0561',
+        lon: '-118.2375',
+        display_name: 'Union Station Los Angeles'
+      }])
+    });
+  });
+
+  await ensureMapsAvailable(page);
+
+  await page.locator('.location-status').click();
+  await expect(page.getByPlaceholder('Your Location')).toBeVisible();
+  await page.getByPlaceholder('Your Location').fill('Union Station Los Angeles');
+
+  await page.getByRole('button', { name: 'Find Route' }).click();
+
+  const destinationInput = page.getByPlaceholder('Where to?');
+  await expect(destinationInput).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByText('Enter a destination or choose a place suggestion before finding a route.')).toBeVisible();
+  await expect(page.locator('.results-sidebar.open')).toBeHidden();
+  await expect(page.getByTestId('find-route-button')).toBeEnabled();
+});
+
+test('@MBR-86 @MBR-89 mobile expanded search keeps primary route action visible', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ensureMapsAvailable(page);
 
@@ -119,7 +146,7 @@ test('@MBR-86 mobile expanded search keeps primary route action visible', async 
   expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(viewport!.height);
 });
 
-test('@MBR-88 bike settings popover has named controls and Escape focus return', async ({ page }) => {
+test('@MBR-88 @MBR-89 bike settings popover has named controls and Escape focus return', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const bikeToggle = page.getByRole('button', { name: 'Bike' });
@@ -137,7 +164,7 @@ test('@MBR-88 bike settings popover has named controls and Escape focus return',
   await expect(bikeToggle).toBeFocused();
 });
 
-test('@MBR-84 @veloRail-a0c4 route search uses Maps JavaScript Routes without request shape errors', async ({ page }) => {
+test('@MBR-84 @MBR-89 @veloRail-a0c4 route search uses Maps JavaScript Routes without request shape errors', async ({ page }) => {
   const consoleMessages: string[] = [];
   const pageErrors: string[] = [];
 
@@ -167,6 +194,20 @@ test('@MBR-84 @veloRail-a0c4 route search uses Maps JavaScript Routes without re
     'Walk + Rail'
   ]);
   await expect(resultsPanel.locator('.route-option', { hasText: 'Driving' }).first()).toContainText('Comparison only');
+
+  const drivingOption = resultsPanel.locator('.route-option', { hasText: 'Driving' }).first();
+  await drivingOption.click();
+  await expect(drivingOption).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.route-details h3')).toContainText('Driving');
+  await expect(page.locator('.route-details')).toContainText('Selected itinerary: Driving');
+
+  await page.getByRole('button', { name: 'Close route results' }).click();
+  await expect(resultsPanel).toBeHidden();
+  const reopenButton = page.getByRole('button', { name: /show \d+ routes?/i });
+  await expect(reopenButton).toBeVisible();
+  await reopenButton.click();
+  await expect(resultsPanel).toBeVisible();
+  await expect(page.locator('.route-details h3')).toContainText('Driving');
 
   const scriptSources = await page.evaluate(() =>
     Array.from(document.scripts).map((script) => script.src).filter(Boolean)
@@ -244,7 +285,7 @@ test('@veloRail-8982 bike and walk rail estimates use different surface speeds',
   expect(walkDurationMinutes).toBeGreaterThan(0);
 });
 
-test('@smoke @VR-306 @VR-307 @VR-308 bike settings popover is not clipped by the search card', async ({ page }) => {
+test('@smoke @MBR-89 @VR-306 @VR-307 @VR-308 bike settings popover is not clipped by the search card', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   await page.getByRole('button', { name: 'Bike' }).click();
@@ -265,7 +306,7 @@ test('@smoke @VR-306 @VR-307 @VR-308 bike settings popover is not clipped by the
   expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(viewport!.height);
 });
 
-test('@VR-101 @VR-102 @VR-103 @VR-105 future transit overlay control is grouped and default off', async ({ page }) => {
+test('@MBR-89 @VR-101 @VR-102 @VR-103 @VR-105 future transit overlay control is grouped and default off', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const futureToggle = page.getByRole('button', {
@@ -282,7 +323,7 @@ test('@VR-101 @VR-102 @VR-103 @VR-105 future transit overlay control is grouped 
   await expect(futureToggle).toHaveAttribute('aria-pressed', 'false');
 });
 
-test('@MBR-85 @VR-303 layer panel groups overlays and exposes a visible legend', async ({ page }) => {
+test('@MBR-85 @MBR-89 @VR-303 layer panel groups overlays and exposes a visible legend', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const panel = page.getByLabel('Map layers and legend');
@@ -315,7 +356,7 @@ test('@MBR-85 @VR-303 layer panel groups overlays and exposes a visible legend',
   await expect(page.getByLabel('Visible layer legend').getByText('Future heavy rail').first()).toBeVisible();
 });
 
-test('@VR-305 @VR-307 overlay metadata can be dismissed with Escape', async ({ page }) => {
+test('@MBR-89 @VR-305 @VR-307 overlay metadata can be dismissed with Escape', async ({ page }) => {
   await ensureMapsAvailable(page);
   await dispatchSampleOverlayMetadata(page);
 
@@ -327,7 +368,7 @@ test('@VR-305 @VR-307 overlay metadata can be dismissed with Escape', async ({ p
   await expect(metadataPanel).toBeHidden();
 });
 
-test('@VR-306 @VR-308 mobile overlay panels stay within the viewport', async ({ page }) => {
+test('@MBR-89 @VR-306 @VR-308 mobile overlay panels stay within the viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ensureMapsAvailable(page);
   await dispatchSampleOverlayMetadata(page);
@@ -348,7 +389,7 @@ test('@VR-306 @VR-308 mobile overlay panels stay within the viewport', async ({ 
   expect(panelBox!.height).toBeLessThanOrEqual(viewport!.height * 0.52);
 });
 
-test('@MBR-84 @MBR-86 @MBR-88 @VR-306 @VR-307 route results can switch sheet states, close, and reopen when options are available', async ({ page }) => {
+test('@MBR-84 @MBR-86 @MBR-88 @MBR-89 @VR-306 @VR-307 route results can switch sheet states, select a route, close, and reopen when options are available', async ({ page }) => {
   await page.setViewportSize({ width: 430, height: 932 });
   await ensureMapsAvailable(page);
 
@@ -372,6 +413,17 @@ test('@MBR-84 @MBR-86 @MBR-88 @VR-306 @VR-307 route results can switch sheet sta
   test.skip(!sidebarVisible, 'Route API returned no route options in this environment.');
   const resultsSheet = page.getByTestId('route-results-sheet');
   await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
+
+  const routeOptions = page.locator('.route-option');
+  await expect(routeOptions.first()).toHaveAttribute('aria-pressed', 'true');
+  const routeOptionCount = await routeOptions.count();
+  if (routeOptionCount > 1) {
+    const alternateOption = routeOptions.nth(1);
+    const alternateLabel = await alternateOption.locator('.route-option-label').innerText();
+    await alternateOption.click();
+    await expect(alternateOption).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.route-details h3')).toContainText(alternateLabel);
+  }
 
   await page.getByRole('button', { name: 'Itinerary' }).click();
   await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'full');

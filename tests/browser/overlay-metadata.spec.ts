@@ -15,7 +15,7 @@ async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
 }
 
-test('@MBR-85 @VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @VR-500 @VR-501 @VR-502 @veloRail-967a @veloRail-1581 @veloRail-16bd nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
+test('@MBR-85 @MBR-89 @VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @VR-500 @VR-501 @VR-502 @veloRail-967a @veloRail-1581 @veloRail-16bd nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const nationalizedToggle = page.getByRole('button', {
@@ -99,7 +99,7 @@ test('@MBR-85 @VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @V
   await expect(metadataPanel).toBeHidden();
 });
 
-test('@MBR-85 @VR-202 @VR-203 @VR-204 @VR-205 @VR-206 visionary overlay exposes speculative legend and metadata panel', async ({ page }) => {
+test('@MBR-85 @MBR-89 @VR-202 @VR-203 @VR-204 @VR-205 @VR-206 visionary overlay exposes speculative legend and metadata panel', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const visionaryToggle = page.getByRole('button', {
@@ -168,7 +168,7 @@ test('@MBR-85 @VR-202 @VR-203 @VR-204 @VR-205 @VR-206 visionary overlay exposes 
   await expect(metadataPanel).toBeHidden();
 });
 
-test('@MBR-85 @VR-104 @veloRail-a3d0 completed network comparison mode controls official future overlay state', async ({ page }) => {
+test('@MBR-85 @MBR-89 @VR-104 @veloRail-a3d0 completed network comparison mode controls official future overlay state', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const layerPanel = page.getByLabel('Map layers and legend');
@@ -208,7 +208,7 @@ test('@MBR-85 @VR-104 @veloRail-a3d0 completed network comparison mode controls 
   await expect(layerPanel).toContainText('Present Only');
 });
 
-test('@MBR-87 mobile layer controls collapse behind a trigger and open as a sheet', async ({ page }) => {
+test('@MBR-87 @MBR-89 mobile layer controls collapse behind a trigger and open as a sheet', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ensureMapsAvailable(page);
 
@@ -238,7 +238,7 @@ test('@MBR-87 mobile layer controls collapse behind a trigger and open as a shee
   await expect(layerTrigger).toBeFocused();
 });
 
-test('@MBR-85 @MBR-88 layer feature list opens metadata without a map click and returns focus on Escape', async ({ page }) => {
+test('@MBR-85 @MBR-88 @MBR-89 layer feature list opens metadata without a map click and returns focus on Escape', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const futureOverlayToggle = page.getByRole('button', {
