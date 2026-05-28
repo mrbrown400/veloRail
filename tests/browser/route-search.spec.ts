@@ -97,7 +97,7 @@ test('@MBR-83 autocomplete input exposes combobox state and typed fallback repai
   await expect(destinationInput).toHaveAttribute('aria-expanded', 'false');
 });
 
-test('@MBR-86 mobile expanded search keeps primary route action visible', async ({ page }) => {
+test('@MBR-86 @MBR-93 mobile expanded search keeps primary route action visible', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ensureMapsAvailable(page);
 
@@ -119,7 +119,7 @@ test('@MBR-86 mobile expanded search keeps primary route action visible', async 
   expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(viewport!.height);
 });
 
-test('@MBR-88 bike settings popover has named controls and Escape focus return', async ({ page }) => {
+test('@MBR-88 @MBR-93 bike settings popover has named controls and Escape focus return', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const bikeToggle = page.getByRole('button', { name: 'Bike' });
@@ -244,7 +244,7 @@ test('@veloRail-8982 bike and walk rail estimates use different surface speeds',
   expect(walkDurationMinutes).toBeGreaterThan(0);
 });
 
-test('@smoke @VR-306 @VR-307 @VR-308 bike settings popover is not clipped by the search card', async ({ page }) => {
+test('@smoke @MBR-93 @VR-306 @VR-307 @VR-308 bike settings popover is not clipped by the search card', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   await page.getByRole('button', { name: 'Bike' }).click();
@@ -327,7 +327,7 @@ test('@VR-305 @VR-307 overlay metadata can be dismissed with Escape', async ({ p
   await expect(metadataPanel).toBeHidden();
 });
 
-test('@VR-306 @VR-308 mobile overlay panels stay within the viewport', async ({ page }) => {
+test('@MBR-93 @VR-306 @VR-308 mobile overlay panels stay within the viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ensureMapsAvailable(page);
   await dispatchSampleOverlayMetadata(page);
