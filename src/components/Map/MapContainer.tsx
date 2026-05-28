@@ -119,7 +119,6 @@ interface MapContainerProps {
 export function MapContainer({ onMapLoad }: MapContainerProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLegendOpen, setIsLegendOpen] = useState(false);
-  const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(false);
   const [viewportTick, setViewportTick] = useState(0);
   const [selectedOverlayMetadata, setSelectedOverlayMetadata] = useState<MapOverlayMetadata | null>(null);
   const metadataHeadingRef = useRef<HTMLHeadingElement | null>(null);
@@ -127,7 +126,16 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
   const layerTriggerRef = useRef<HTMLButtonElement | null>(null);
   const layerHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const { selectedRoute } = useRouteStore();
-  const { sidebarOpen, routeSheetState } = useUIStore();
+  const {
+    activeBottomSurface,
+    sidebarOpen,
+    routeSheetState,
+    isLayerSurfaceOpen,
+    openLayerSurface,
+    closeLayerSurface,
+    openMetadataSurface,
+    closeMetadataSurface
+  } = useUIStore();
   const { vehiclePosition, trackedVehicle } = useRealtimeStore();
   const overlayVisibility = useMapOverlayStore((state) => state.visibility);
   const comparisonMode = useMapOverlayStore((state) => state.comparisonMode);
@@ -145,6 +153,9 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
   );
   const isVisionaryOverlayVisible = overlayVisibility['visionary-concepts'] ?? false;
   const isNationalizedOverlayVisible = overlayVisibility['nationalized-rail'] ?? false;
+  const isLayerPanelDominant = isLayerSurfaceOpen && activeBottomSurface === 'layers';
+  const isMetadataPanelDominant = Boolean(selectedOverlayMetadata) && activeBottomSurface === 'metadata';
+  const isRouteSheetDominant = sidebarOpen && activeBottomSurface === 'route';
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
@@ -165,6 +176,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
       const customEvent = event as CustomEvent<MapOverlayMetadata>;
       metadataTriggerRef.current = null;
       setSelectedOverlayMetadata(customEvent.detail);
+      openMetadataSurface();
     };
 
     window.addEventListener(MAP_OVERLAY_METADATA_EVENT, handleMetadataSelected);
@@ -172,16 +184,16 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
     return () => {
       window.removeEventListener(MAP_OVERLAY_METADATA_EVENT, handleMetadataSelected);
     };
-  }, []);
+  }, [openMetadataSurface]);
 
   useEffect(() => {
-    if (selectedOverlayMetadata) {
+    if (isMetadataPanelDominant) {
       metadataHeadingRef.current?.focus();
     }
-  }, [selectedOverlayMetadata]);
+  }, [isMetadataPanelDominant]);
 
   useEffect(() => {
-    if (!isLayerPanelOpen) return undefined;
+    if (!isLayerPanelDominant) return undefined;
 
     const focusTimer = window.setTimeout(() => {
       layerHeadingRef.current?.focus();
@@ -190,7 +202,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
     return () => {
       window.clearTimeout(focusTimer);
     };
-  }, [isLayerPanelOpen]);
+  }, [isLayerPanelDominant]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -205,15 +217,21 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
   }, []);
 
   const closeLayerPanel = useCallback(() => {
-    setIsLayerPanelOpen(false);
+    closeLayerSurface();
     window.requestAnimationFrame(() => {
       layerTriggerRef.current?.focus();
     });
-  }, []);
+  }, [closeLayerSurface]);
 
   const toggleLayerPanel = useCallback(() => {
-    const nextOpen = !isLayerPanelOpen;
-    setIsLayerPanelOpen(nextOpen);
+    const nextOpen = !isLayerPanelDominant;
+
+    if (nextOpen) {
+      openLayerSurface();
+    } else {
+      closeLayerSurface();
+    }
+
     window.requestAnimationFrame(() => {
       if (nextOpen) {
         layerHeadingRef.current?.focus();
@@ -221,21 +239,23 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
         layerTriggerRef.current?.focus();
       }
     });
-  }, [isLayerPanelOpen]);
+  }, [closeLayerSurface, isLayerPanelDominant, openLayerSurface]);
 
   const closeMetadata = useCallback(() => {
     setSelectedOverlayMetadata(null);
+    closeMetadataSurface();
     window.requestAnimationFrame(() => {
       const fallbackFocusTarget = metadataTriggerRef.current
-        ?? (isLayerPanelOpen ? layerHeadingRef.current : layerTriggerRef.current);
+        ?? (isLayerSurfaceOpen ? layerHeadingRef.current : layerTriggerRef.current);
       fallbackFocusTarget?.focus();
     });
-  }, [isLayerPanelOpen]);
+  }, [closeMetadataSurface, isLayerSurfaceOpen]);
 
   const openFeatureMetadata = useCallback((metadata: MapOverlayMetadata, trigger: HTMLElement) => {
     metadataTriggerRef.current = trigger;
     setSelectedOverlayMetadata(metadata);
-  }, []);
+    openMetadataSurface();
+  }, [openMetadataSurface]);
 
   // Fit bounds when route changes
   useEffect(() => {
@@ -259,19 +279,19 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
       });
 
       map.fitBounds(bounds, getRouteViewportPadding({
-        isLayerPanelOpen,
-        isMetadataOpen: Boolean(selectedOverlayMetadata),
+        isLayerPanelOpen: isLayerPanelDominant,
+        isMetadataOpen: isMetadataPanelDominant,
         routeSheetState,
-        sidebarOpen
+        sidebarOpen: isRouteSheetDominant
       }));
     }
   }, [
-    isLayerPanelOpen,
+    isLayerPanelDominant,
+    isMetadataPanelDominant,
+    isRouteSheetDominant,
     map,
     routeSheetState,
-    selectedOverlayMetadata,
     selectedRoute,
-    sidebarOpen,
     viewportTick
   ]);
 
@@ -279,7 +299,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
 
-      if (selectedOverlayMetadata) {
+      if (isMetadataPanelDominant) {
         event.preventDefault();
         closeMetadata();
         return;
@@ -294,7 +314,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
         return;
       }
 
-      if (isLayerPanelOpen) {
+      if (isLayerPanelDominant) {
         event.preventDefault();
         closeLayerPanel();
       }
@@ -305,7 +325,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
     return () => {
       window.removeEventListener('keydown', closeOnEscape);
     };
-  }, [closeLayerPanel, closeMetadata, isLayerPanelOpen, isLegendOpen, selectedOverlayMetadata]);
+  }, [closeLayerPanel, closeMetadata, isLayerPanelDominant, isLegendOpen, isMetadataPanelDominant]);
 
   // Get color for vehicle marker
   const getVehicleColor = () => {
@@ -321,7 +341,12 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
   };
 
   return (
-    <div className="map-container">
+    <div
+      className="map-container"
+      data-active-bottom-surface={activeBottomSurface}
+      data-layer-surface-open={isLayerSurfaceOpen ? 'true' : 'false'}
+      data-route-sheet-state={routeSheetState}
+    >
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         center={defaultCenter}
@@ -348,11 +373,11 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
 
       <Button
         ref={layerTriggerRef}
-        className={`map-layer-trigger ${sidebarOpen ? `map-layer-trigger--route-${routeSheetState}` : ''} ${selectedOverlayMetadata ? 'map-layer-trigger--metadata-open' : ''}`}
+        className={`map-layer-trigger ${isRouteSheetDominant ? `map-layer-trigger--route-${routeSheetState}` : ''} ${isMetadataPanelDominant ? 'map-layer-trigger--metadata-open' : ''}`}
         variant="map-toggle"
         size="sm"
         aria-controls="map-layer-panel"
-        aria-expanded={isLayerPanelOpen}
+        aria-expanded={isLayerPanelDominant}
         aria-label={`Layers, ${activeOverlayCount} active`}
         onClick={toggleLayerPanel}
         leftIcon={<LayersIcon />}
@@ -364,9 +389,11 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
       <Panel
         as="aside"
         id="map-layer-panel"
-        className={`map-layer-panel ${isLayerPanelOpen ? 'map-layer-panel--open' : ''} ${selectedOverlayMetadata ? 'map-layer-panel--metadata-open' : ''}`}
+        className={`map-layer-panel ${isLayerSurfaceOpen ? 'map-layer-panel--open' : ''} ${isLayerSurfaceOpen && !isLayerPanelDominant ? 'map-layer-panel--surface-backgrounded' : ''} ${isMetadataPanelDominant ? 'map-layer-panel--metadata-open' : ''}`}
         ariaLabel="Map layers and legend"
         aria-describedby="map-layer-panel-status"
+        data-bottom-surface="layers"
+        data-active-bottom-surface={activeBottomSurface}
       >
         <div className="map-layer-panel__header">
           <div className="map-layer-panel__title-row">
@@ -546,7 +573,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
         )}
       </Panel>
 
-      {selectedOverlayMetadata && (() => {
+      {selectedOverlayMetadata && isMetadataPanelDominant && (() => {
         const metadataTitleId = `map-overlay-metadata-title-${panelSafeId(selectedOverlayMetadata.id)}`;
         const metadataDescriptionId = `map-overlay-metadata-description-${panelSafeId(selectedOverlayMetadata.id)}`;
 
@@ -557,6 +584,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
           className="map-overlay-metadata-panel"
           ariaLabelledBy={metadataTitleId}
           aria-describedby={metadataDescriptionId}
+          data-bottom-surface="metadata"
           role="region"
         >
           <div className="map-overlay-metadata__header">

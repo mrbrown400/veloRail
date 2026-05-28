@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   loadBikeSettings,
   saveBikeSettings,
@@ -6,6 +6,7 @@ import {
   type BikeSettings as BikeSettingsType
 } from '@/services/bikeDurationService';
 import { CloseIcon, IconButton } from '@/components/ui';
+import { useUIStore } from '@/stores';
 
 interface BikeSettingsProps {
   onSettingsChange?: (settings: BikeSettingsType) => void;
@@ -14,17 +15,59 @@ interface BikeSettingsProps {
 export function BikeSettings({ onSettingsChange }: BikeSettingsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [settings, setSettings] = useState<BikeSettingsType>(DEFAULT_BIKE_SETTINGS);
+  const {
+    activeBottomSurface,
+    openBikeSettingsSurface,
+    closeBikeSettingsSurface
+  } = useUIStore();
   const toggleRef = useRef<HTMLButtonElement | null>(null);
   const panelId = 'bike-settings-panel';
   const titleId = 'bike-settings-title';
   const speedId = 'bike-settings-speed';
   const weightId = 'bike-settings-weight';
 
+  const openPanel = useCallback(() => {
+    setIsOpen(true);
+    openBikeSettingsSurface();
+  }, [openBikeSettingsSurface]);
+
+  const closePanel = useCallback(() => {
+    setIsOpen(false);
+    closeBikeSettingsSurface();
+    window.requestAnimationFrame(() => {
+      toggleRef.current?.focus();
+    });
+  }, [closeBikeSettingsSurface]);
+
   // Load settings on mount
   useEffect(() => {
     const saved = loadBikeSettings();
     setSettings(saved);
   }, []);
+
+  useEffect(() => {
+    if (isOpen && activeBottomSurface !== 'bike-settings') {
+      setIsOpen(false);
+    }
+  }, [activeBottomSurface, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || activeBottomSurface !== 'bike-settings') return undefined;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      closePanel();
+    };
+
+    window.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [activeBottomSurface, closePanel, isOpen]);
 
   const handleSpeedChange = (value: number) => {
     const newSettings = { ...settings, baseSpeedKmh: value };
@@ -48,23 +91,22 @@ export function BikeSettings({ onSettingsChange }: BikeSettingsProps) {
     return 'Very Fast';
   };
 
-  const closePanel = () => {
-    setIsOpen(false);
-    window.requestAnimationFrame(() => {
-      toggleRef.current?.focus();
-    });
-  };
-
   return (
     <div className="bike-settings">
       <button
         ref={toggleRef}
         type="button"
         className="bike-settings-toggle"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (isOpen) {
+            closePanel();
+          } else {
+            openPanel();
+          }
+        }}
         title="Bike Settings"
         aria-controls={panelId}
-        aria-expanded={isOpen}
+        aria-expanded={isOpen && activeBottomSurface === 'bike-settings'}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="3" />
@@ -79,6 +121,7 @@ export function BikeSettings({ onSettingsChange }: BikeSettingsProps) {
           className="bike-settings-panel"
           role="region"
           aria-labelledby={titleId}
+          data-bottom-surface="bike-settings"
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
               event.preventDefault();
