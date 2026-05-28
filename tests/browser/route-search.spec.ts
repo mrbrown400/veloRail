@@ -410,7 +410,7 @@ test('@MBR-84 @MBR-86 @MBR-88 @MBR-89 @VR-306 @VR-307 route results can switch s
   }).toBe(true);
 
   const sidebarVisible = await page.locator('.results-sidebar.open').isVisible().catch(() => false);
-  test.skip(!sidebarVisible, 'Route API returned no route options in this environment.');
+  test.skip(!sidebarVisible, 'VeloRail did not render route options in this environment.');
   const resultsSheet = page.getByTestId('route-results-sheet');
   await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
 

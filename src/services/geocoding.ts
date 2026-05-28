@@ -7,25 +7,32 @@ import type { Location, PlaceResult } from '@/types';
 // Cache for geocoding results
 const geocodeCache = new Map<string, Location>();
 
-// Google Places services (initialized after map loads)
-let placesAutocomplete: google.maps.places.AutocompleteService | null = null;
-let placesService: google.maps.places.PlacesService | null = null;
+type PlacesAutocompleteDataLibrary = google.maps.PlacesLibrary & {
+  AutocompleteSessionToken: typeof google.maps.places.AutocompleteSessionToken;
+  AutocompleteSuggestion: typeof google.maps.places.AutocompleteSuggestion;
+  Place: typeof google.maps.places.Place;
+};
+
+// Google Places Autocomplete Data API state.
+let placesLibraryPromise: Promise<PlacesAutocompleteDataLibrary | null> | null = null;
+let placesLibrary: PlacesAutocompleteDataLibrary | null = null;
+let autocompleteSessionToken: google.maps.places.AutocompleteSessionToken | null = null;
+const googlePlaceCache = new Map<string, google.maps.places.Place>();
 let googleMapsLoaded = false;
 
 /**
  * Initialize Google Places services
  */
-export function initGooglePlaces(map: google.maps.Map): boolean {
-  if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+export function initGooglePlaces(_map?: google.maps.Map): boolean {
+  if (typeof google === 'undefined' || !google.maps) {
     console.warn('Google Places API not available');
     return false;
   }
 
   try {
-    placesAutocomplete = new google.maps.places.AutocompleteService();
-    placesService = new google.maps.places.PlacesService(map);
     googleMapsLoaded = true;
-    console.log('Google Places initialized');
+    void loadPlacesLibrary();
+    console.log('Google Places Autocomplete Data API initialized');
     return true;
   } catch (error) {
     console.error('Failed to initialize Google Places:', error);
@@ -77,12 +84,63 @@ export function debounce<T>(
 // Google Places Provider
 // ============================================
 
+async function loadPlacesLibrary(): Promise<PlacesAutocompleteDataLibrary | null> {
+  if (placesLibrary) {
+    return placesLibrary;
+  }
+
+  if (typeof google === 'undefined' || !google.maps) {
+    return null;
+  }
+
+  if (!placesLibraryPromise) {
+    placesLibraryPromise = (async () => {
+      if (google.maps.importLibrary) {
+        const loadedLibrary = await google.maps.importLibrary('places') as PlacesAutocompleteDataLibrary;
+        placesLibrary = loadedLibrary;
+        return loadedLibrary;
+      }
+
+      const placesNamespace = google.maps.places;
+      if (
+        placesNamespace?.AutocompleteSuggestion
+        && placesNamespace.AutocompleteSessionToken
+        && placesNamespace.Place
+      ) {
+        placesLibrary = placesNamespace as unknown as PlacesAutocompleteDataLibrary;
+        return placesLibrary;
+      }
+
+      return null;
+    })().catch((error) => {
+      placesLibraryPromise = null;
+      console.warn('Google Places library failed to load:', error);
+      return null;
+    });
+  }
+
+  return placesLibraryPromise;
+}
+
+function getAutocompleteSessionToken(
+  library: PlacesAutocompleteDataLibrary
+): google.maps.places.AutocompleteSessionToken {
+  autocompleteSessionToken ||= new library.AutocompleteSessionToken();
+  return autocompleteSessionToken;
+}
+
+function resetAutocompleteSession(): void {
+  autocompleteSessionToken = null;
+  googlePlaceCache.clear();
+}
+
 async function googlePlacesSearch(
   query: string,
   options: { limit?: number } = {},
   signal?: AbortSignal
 ): Promise<PlaceResult[]> {
-  if (!googleMapsLoaded || !placesAutocomplete) {
+  const library = await loadPlacesLibrary();
+  if (!googleMapsLoaded || !library) {
     console.warn('Google Places not ready, falling back to Photon');
     return photonSearch(query, options, signal);
   }
@@ -90,37 +148,31 @@ async function googlePlacesSearch(
   const limit = options.limit || 5;
 
   try {
-    const center = new google.maps.LatLng(LA_CENTER.lat, LA_CENTER.lng);
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
 
-    const predictions = await new Promise<google.maps.places.AutocompletePrediction[]>((resolve, reject) => {
-      if (signal?.aborted) {
-        reject(new DOMException('Aborted', 'AbortError'));
-        return;
-      }
-
-      placesAutocomplete!.getPlacePredictions({
-        input: query,
-        locationBias: new google.maps.Circle({
-          center: center,
-          radius: 50000
-        }),
-        types: ['establishment', 'geocode']
-      }, (results, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          resolve(results.slice(0, limit));
-        } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-          resolve([]);
-        } else {
-          reject(new Error(`Places API error: ${status}`));
-        }
-      });
-
-      signal?.addEventListener('abort', () => {
-        reject(new DOMException('Aborted', 'AbortError'));
-      });
+    const response = await library.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+      input: query,
+      includedRegionCodes: ['us'],
+      locationBias: {
+        center: { lat: LA_CENTER.lat, lng: LA_CENTER.lng },
+        radius: 50000
+      },
+      origin: { lat: LA_CENTER.lat, lng: LA_CENTER.lng },
+      region: 'us',
+      sessionToken: getAutocompleteSessionToken(library)
     });
 
-    return predictions.map(normalizeGoogleResult);
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    return response.suggestions
+      .map((suggestion) => suggestion.placePrediction)
+      .filter((prediction): prediction is google.maps.places.PlacePrediction => Boolean(prediction))
+      .slice(0, limit)
+      .map(normalizeGoogleResult);
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw error;
@@ -130,17 +182,22 @@ async function googlePlacesSearch(
   }
 }
 
-function normalizeGoogleResult(prediction: google.maps.places.AutocompletePrediction): PlaceResult {
-    return {
-      id: prediction.place_id,
-      name: prediction.structured_formatting?.main_text || prediction.description.split(',')[0],
-      address: prediction.structured_formatting?.secondary_text || prediction.description,
-      type: prediction.types?.[0] || 'place',
-      lat: null,
-      lon: null,
-      placeId: prediction.place_id,
-      provider: 'google'
-    };
+function normalizeGoogleResult(prediction: google.maps.places.PlacePrediction): PlaceResult {
+  const placeId = prediction.placeId;
+  if (placeId) {
+    googlePlaceCache.set(placeId, prediction.toPlace());
+  }
+
+  return {
+    id: placeId,
+    name: prediction.mainText?.text || prediction.text?.text.split(',')[0] || 'Unknown place',
+    address: prediction.secondaryText?.text || prediction.text?.text || '',
+    type: prediction.types?.[0] || 'place',
+    lat: null,
+    lon: null,
+    placeId,
+    provider: 'google'
+  };
 }
 
 /**
@@ -152,27 +209,34 @@ export async function getGooglePlaceDetails(placeId: string): Promise<{
   name: string;
   address: string;
 }> {
-  if (!placesService) {
-    throw new Error('Places service not initialized');
+  const library = await loadPlacesLibrary();
+  if (!library) {
+    throw new Error('Places library not initialized');
   }
 
-  return new Promise((resolve, reject) => {
-    placesService!.getDetails({
-      placeId: placeId,
-      fields: ['geometry', 'name', 'formatted_address']
-    }, (place, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry) {
-        resolve({
-          lat: place.geometry.location!.lat(),
-          lon: place.geometry.location!.lng(),
-          name: place.name || '',
-          address: place.formatted_address || ''
-        });
-      } else {
-        reject(new Error(`Place details error: ${status}`));
-      }
-    });
+  const place = googlePlaceCache.get(placeId) || new library.Place({
+    id: placeId,
+    requestedRegion: 'us'
   });
+
+  try {
+    const response = await place.fetchFields({
+      fields: ['displayName', 'formattedAddress', 'location']
+    });
+    const details = response.place;
+    if (!details.location) {
+      throw new Error('Place details missing location');
+    }
+
+    return {
+      lat: details.location.lat(),
+      lon: details.location.lng(),
+      name: details.displayName || '',
+      address: details.formattedAddress || ''
+    };
+  } finally {
+    resetAutocompleteSession();
+  }
 }
 
 // ============================================

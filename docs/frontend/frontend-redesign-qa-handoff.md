@@ -2,8 +2,8 @@
 
 Issues: MBR-64, MBR-89, MBR-90, MBR-91
 Branch: `feature/velorail-frontend-redesign-google-maps-parity`
-Date: 2026-05-26
-Scope: final frontend redesign QA, browser regression coverage, gate triage, and launch-readiness documentation. No application code, route data, Figma artifact, map provider, routing algorithm, or architecture file was changed.
+Date: 2026-05-26; follow-up updated 2026-05-27
+Scope: final frontend redesign QA, browser regression coverage, gate triage, launch-readiness documentation, and the 2026-05-27 Places Autocomplete Data API/session-token follow-up. No route data, Figma artifact, map provider, routing algorithm, or architecture file was changed.
 
 ## Acceptance Basis
 
@@ -53,14 +53,17 @@ No changes were made to `docs/agentic/codex-cloud-setup.md`.
 | Command | Result | Notes |
 | --- | --- | --- |
 | `git status --short --branch` | Pass | Confirmed branch `feature/velorail-frontend-redesign-google-maps-parity` and no local modifications before edits. |
-| `npm run quality` | Pass | 73 unit tests passed, style lint passed, TypeScript passed, production build passed. Vite emitted the existing chunk-size warning for a 529.84 kB JS chunk. |
+| `npm run quality` | Pass | 74 unit tests passed, style lint passed, TypeScript passed, production build passed. Vite emitted the existing chunk-size warning for a 530.21 kB JS chunk. |
 | `npm run test:browser:required` | Pass with skip | 18 passed, 1 skipped on Chromium. The skipped route-results sheet test depends on live route options being returned in the environment. |
 | `npm run test:browser:required -- --grep @MBR-89` | Pass with skip | 17 passed, 1 skipped. MBR-89 now has a direct targeted browser grep covering search, route repair, overlays, metadata, mobile, and route reopen when route options are available. |
+| `npm run test:browser:required -- --grep @MBR-83` | Pass | 2 passed after the Places Autocomplete Data API/session-token migration. |
+| `PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 npm run test:browser:required -- --grep "route results can switch"` | Pass with skip | Re-ran the close/reopen route-results test after clarifying its skip reason; it still skipped because no route options rendered in the live environment. |
 | `npm run task:gate -- MBR-64 --explain` | Blocked | `Task MBR-64 was not found in .linear/migration.json.` |
 | `npm run task:gate -- MBR-89 --explain` | Blocked | `Task MBR-89 was not found in .linear/migration.json.` |
 | `npm run task:gate -- MBR-90 --explain` | Blocked | `Task MBR-90 was not found in .linear/migration.json.` |
 | `npm run task:gate -- MBR-91 --explain` | Blocked | `Task MBR-91 was not found in .linear/migration.json.` |
-| Browser plugin spot check at `http://127.0.0.1:4174/` | Pass with warnings | App loaded a nonblank Google Maps-first surface, Route search and Layers were visible, Legend interaction worked, and no map-load error appeared. Console warnings reported legacy Google Places APIs. |
+| Browser plugin spot check at `http://127.0.0.1:4174/` | Historical pass with warnings | Original handoff app check loaded a nonblank Google Maps-first surface. Console warnings reported legacy Google Places APIs before the 2026-05-27 Places migration. |
+| Headless dev-server spot check at `http://127.0.0.1:5173/` | Pass | Google Maps loaded without the app's map-error state and no legacy `AutocompleteService` or `PlacesService` warnings were reported. |
 
 ## Browser Flows Tested
 
@@ -87,7 +90,7 @@ Passing browser coverage on the Playwright-managed preview:
 
 Skipped browser coverage:
 
-- Route results can switch sheet states, select a route, close, and reopen when options are available. The test is intentionally skipped when the route API returns no route options in the environment.
+- Route results can switch sheet states, select a route, close, and reopen when options are available. The test is intentionally skipped when VeloRail does not render route options in the environment; deterministic coverage is tracked in MBR-96.
 
 ## Pass/Fail Summary
 
@@ -97,24 +100,25 @@ Skipped browser coverage:
 | Quality gate | Pass | `npm run quality` completed. |
 | Strict browser gate | Pass with one accepted skip | `npm run test:browser:required` completed with 18 passed, 1 skipped. |
 | MBR-89 targeted browser gate | Pass with one accepted skip | `npm run test:browser:required -- --grep @MBR-89` completed with 17 passed, 1 skipped. |
+| Places API migration | Pass | `npm run test:browser:required -- --grep @MBR-83` completed with 2 passed, and the dev-server spot check reported no legacy Places warnings. |
 | Task gates | Blocked | MBR-64, MBR-89, MBR-90, and MBR-91 are not mapped in `.linear/migration.json`. |
 | Figma review | Not applicable | Figma unavailable and not required for this launch handoff. |
 
 ## Known Blockers And Follow-Ups
 
 - Add MBR-64, MBR-89, MBR-90, and MBR-91 to `.linear/migration.json` if local `task:gate` closeout must resolve these issues directly.
-- Make the route-results sheet test deterministic with a fixture or mocked route response if launch signoff requires the close/reopen route-options path to be non-skipped in every environment.
-- Decide whether the current legacy Places implementation is acceptable for merge. The specs call for moving toward Places New/session-token behavior, while the running app still emits Google warnings for `AutocompleteService` and `PlacesService`.
-- Decide whether partial mobile bottom-surface coordination is acceptable for merge. `uiStore` defines `activeBottomSurface`, but layer and metadata state remain local to `MapContainer`.
-- Add 768 px and 1440 by 900 explicit browser assertions, plus Google controls/attribution overlap assertions, if owner requires the full viewport matrix to be automated before merge.
-- Carry the Vite chunk-size warning as a performance follow-up if bundle size becomes a launch criterion; it did not fail the current quality gate.
+- Track deterministic route-results close/reopen browser coverage in MBR-96 so this path no longer depends on live route options being available in every environment.
+- Places search internals now use the Places Autocomplete Data API, session tokens, and `Place.fetchFields()` behind the existing custom `PlaceAutocomplete` UI. Targeted browser and headless console checks passed; any further search refinements should be scoped separately.
+- Track partial mobile bottom-surface coordination in MBR-95. Current mobile layers, metadata, and route sheets are acceptable for this launch, while follow-up cleanup can decide whether more layer and metadata state should move out of `MapContainer`.
+- Track 768 px and 1440 by 900 browser assertions, Google controls/attribution overlap assertions, and expanded accessibility/manual-device checks in MBR-93 if owner requires the full viewport matrix to be automated before merge.
+- Track the Vite chunk-size warning in MBR-94 if bundle size becomes a launch criterion; it did not fail the current quality gate.
 - Have the owner confirm whether final launch requires additional WebKit, screen-reader, axe, or manual device checks beyond current Chromium Playwright and mobile viewport coverage.
 
 ## Launch Recommendation
 
 Recommendation: ready with owner-reviewed follow-ups.
 
-The quality gate, strict Chromium browser evidence, targeted MBR-89 regression coverage, and Browser spot check are strong enough for a launch-readiness handoff. The remaining issues should be explicitly accepted or assigned before merge: unmapped local task gates, one route-options sheet skip when live route options are unavailable, legacy Places/session-token work, partial bottom-surface coordination, optional viewport/accessibility matrix expansion, and bundle-size follow-up.
+The quality gate, strict Chromium browser evidence, targeted MBR-89 regression coverage, targeted MBR-83 search coverage after the Places migration, and Browser spot check are strong enough for a launch-readiness handoff. The remaining issues should be explicitly accepted or assigned before merge: unmapped local task gates, deterministic route-options coverage in MBR-96, partial bottom-surface coordination in MBR-95, optional viewport/accessibility matrix expansion, and bundle-size follow-up.
 
 ## PR And Merge Recommendation
 
