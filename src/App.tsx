@@ -6,10 +6,13 @@ import { ResultsSidebar } from './components/Results/ResultsSidebar';
 import { useUIStore } from './stores';
 import { CONFIG } from './services/config';
 import { initGooglePlaces } from './services/geocoding';
+import { useRouteResultsBrowserTestSeam } from './testSeams/useRouteResultsBrowserTestSeam';
 
 const libraries: ('places' | 'geometry' | 'routes')[] = ['places', 'geometry', 'routes'];
 
 function App() {
+  useRouteResultsBrowserTestSeam();
+
   const { sidebarOpen } = useUIStore();
 
   const { isLoaded, loadError } = useLoadScript({

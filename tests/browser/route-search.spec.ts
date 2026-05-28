@@ -1,4 +1,8 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import {
+  MBR96_ROUTE_RESULTS_FIXTURE,
+  dispatchRouteResultsFixture
+} from './helpers/routeResultsFixture';
 
 const strictMaps = process.env.PLAYWRIGHT_STRICT_MAPS === '1';
 
@@ -549,49 +553,65 @@ test('@MBR-95 mobile route sheet yields to layers and metadata without losing ro
   await expect(resultsSheet).toContainText('Route options');
 });
 
-test('@MBR-84 @MBR-86 @MBR-88 @VR-306 @VR-307 route results can switch sheet states, close, and reopen when options are available', async ({ page }) => {
+test('@MBR-84 @MBR-86 @MBR-88 @MBR-89 @MBR-96 @VR-306 @VR-307 route results can switch sheet states, select a route, close, and reopen deterministically', async ({ page }) => {
   await page.setViewportSize({ width: 430, height: 932 });
   await ensureMapsAvailable(page);
+  await dispatchRouteResultsFixture(page);
 
-  await page.locator('.location-status').click();
-  await expect(page.getByPlaceholder('Your Location')).toBeVisible();
-
-  await page.getByPlaceholder('Your Location').fill('Union Station Los Angeles');
-  await page.getByPlaceholder('Where to?').fill('Hollywood/Vine Station');
-  await page.getByRole('button', { name: 'Find Route' }).click();
-
-  await expect.poll(async () => {
-    const feedbackVisible = await page.locator('.search-feedback').isVisible().catch(() => false);
-    const sidebarVisible = await page.locator('.results-sidebar.open').isVisible().catch(() => false);
-    return feedbackVisible || sidebarVisible;
-  }, {
-    message: 'route search should show progress, an error, or results after clicking Find Route',
-    timeout: 15_000
-  }).toBe(true);
-
-  const sidebarVisible = await page.locator('.results-sidebar.open').isVisible().catch(() => false);
-  test.skip(!sidebarVisible, 'Route API returned no route options in this environment.');
   const resultsSheet = page.getByTestId('route-results-sheet');
-  await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
+  const routeOptions = page.locator('.route-option');
+  const optionsControl = resultsSheet.getByRole('button', { name: 'Options', exact: true });
+  const itineraryControl = resultsSheet.getByRole('button', { name: 'Itinerary', exact: true });
+  const secondRoute = MBR96_ROUTE_RESULTS_FIXTURE.routes[1];
+  const routeLabels = MBR96_ROUTE_RESULTS_FIXTURE.routes.map((route) => route.label);
 
-  await page.getByRole('button', { name: 'Itinerary' }).click();
+  await expect(resultsSheet).toBeVisible({ timeout: 20_000 });
+  await expect(resultsSheet).toHaveAttribute('aria-hidden', 'false');
+  await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
+  await expect(resultsSheet.locator('.route-options')).toBeVisible();
+  await expect(resultsSheet.locator('.route-option-label')).toContainText(routeLabels);
+
+  await expect(routeOptions).toHaveCount(MBR96_ROUTE_RESULTS_FIXTURE.routes.length);
+  const firstOption = routeOptions.first();
+  const alternateOption = routeOptions.nth(1);
+  await expect(firstOption).toHaveAttribute('aria-pressed', 'true');
+  await expect(alternateOption).toHaveAttribute('aria-pressed', 'false');
+
+  await alternateOption.click();
+  await expect(firstOption).toHaveAttribute('aria-pressed', 'false');
+  await expect(alternateOption).toHaveAttribute('aria-pressed', 'true');
+
+  await itineraryControl.click();
   await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'full');
-  await expect(page.locator('.route-details h3')).toBeFocused();
-  const selectedDetailHeading = await page.locator('.route-details h3').innerText();
+  await expect(itineraryControl).toHaveAttribute('aria-pressed', 'true');
+  await expect(optionsControl).toHaveAttribute('aria-pressed', 'false');
+  const selectedDetailHeading = `Selected itinerary: ${secondRoute.label}`;
+  await expect(page.getByRole('heading', { name: selectedDetailHeading })).toBeFocused();
+  await expect(page.locator('.route-details')).toContainText(secondRoute.summary);
 
   await page.getByRole('button', { name: 'Show route options' }).click();
   await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
+  await expect(optionsControl).toHaveAttribute('aria-pressed', 'true');
+  await expect(resultsSheet.locator('.route-options')).toBeVisible();
 
   await page.getByRole('button', { name: 'Close route results' }).click();
+  await expect(resultsSheet).toHaveAttribute('aria-hidden', 'true');
   await expect(page.locator('.results-sidebar.open')).toBeHidden();
 
-  const reopenButton = page.getByRole('button', { name: /show \d+ routes?/i });
+  const reopenButton = page.getByRole('button', { name: `Show ${MBR96_ROUTE_RESULTS_FIXTURE.routes.length} routes` });
   await expect(reopenButton).toBeVisible();
   await expect(reopenButton).toBeFocused();
+  await expect(reopenButton).toHaveAttribute('aria-controls', 'route-results-panel');
+  await expect(reopenButton).toHaveAttribute('aria-expanded', 'false');
+
   await reopenButton.click();
-  await expect(page.locator('.results-sidebar.open')).toBeVisible();
-  await page.getByRole('button', { name: 'Itinerary' }).click();
-  await expect(page.locator('.route-details h3')).toHaveText(selectedDetailHeading);
+  await expect(resultsSheet).toBeVisible();
+  await expect(resultsSheet).toHaveAttribute('aria-hidden', 'false');
+  await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
+  await expect(page.getByRole('heading', { name: 'Route results' })).toBeFocused();
+
+  await itineraryControl.click();
+  await expect(page.getByRole('heading', { name: selectedDetailHeading })).toBeFocused();
 });
 
 function parseDurationMinutes(duration: string): number {
