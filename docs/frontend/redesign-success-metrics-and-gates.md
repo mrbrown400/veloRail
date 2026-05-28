@@ -29,9 +29,23 @@ This document defines how the VeloRail frontend redesign will be judged. The goa
 | Metric | Verification method | Command or evidence |
 | --- | --- | --- |
 | Production build passes with the redesigned frontend. | Repo quality gate. | `npm run quality`. |
+| Initial JavaScript stays within the accepted redesign bundle budget, and no individual production chunk crosses Vite's warning limit. | Production build asset review. | `npm run build`; see [Bundle Budget](#bundle-budget). |
 | Route search does not silently stall and reaches feedback or results within browser-test timeout. | Strict browser test with route-search assertions. | `npm run test:browser:required -- --grep @smoke` or targeted route issue grep. |
 | Dense overlay scenarios are bounded, default-off where needed, and do not add unreviewed rendering work. | Design/spec review, code review, targeted browser check. | `npm run quality`; overlay grep when UI changes. |
 | Google Maps API loading failures are visible and documented as environment blockers, not hidden product states. | Browser error-state check and QA notes. | Browser manual/plugin evidence; exact failed command if strict Maps gate fails. |
+
+### Bundle Budget
+
+MBR-94 keeps the current Google Maps-first boot path intact and uses stable Vite manual chunks for cacheability and warning visibility. React, Google Maps bindings, state libraries, routing services, and VeloRail planning data remain statically imported and modulepreloaded for the initial app shell; the split does not defer SearchCard, MapContainer, route search, overlays, or metadata behavior.
+
+| Build point | Initial JS assets | Warning status | Verification |
+| --- | --- | --- | --- |
+| Baseline before MBR-94 | `dist/assets/index-CEsXVEps.js` at 530.21 kB minified / 142.44 kB gzip. | Vite warned because the single JS chunk exceeded 500 kB minified. | `npm run build` |
+| MBR-94 manual chunks | `maps-vendor` 145.17 kB / 31.31 kB gzip; `react-vendor` 141.98 kB / 45.63 kB gzip; `planning-data` 101.99 kB / 24.40 kB gzip; app shell `index` 72.56 kB / 20.59 kB gzip; `routing-services` 42.13 kB / 13.98 kB gzip; `state-vendor` 24.83 kB / 7.54 kB gzip. Total initial JS: 528.66 kB minified / 143.45 kB gzip. | No Vite chunk-size warning; largest chunk is 145.17 kB minified. | `npm run build` |
+
+Current accepted budget for the redesign is no individual production JS chunk above Vite's 500 kB warning limit and total modulepreloaded initial JS at or below 575 kB minified / 155 kB gzip. Open follow-up work if any production build warning returns, if total initial JS crosses either threshold, or if new overlay/routing data materially grows `planning-data` without a loading or cacheability review.
+
+The main contributors to track are React/ReactDOM, `@react-google-maps/api` plus `@googlemaps/js-api-loader`, VeloRail static planning data under `src/data`, and route/geocoding services under `src/services`. Analyzer tooling is optional; keep it dev-only and justify it against this table before adding a dependency.
 
 ### Accessibility
 
