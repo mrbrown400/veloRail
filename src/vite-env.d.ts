@@ -8,6 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_SWIFTLY_VEHICLE_POSITIONS_URL: string;
   readonly VITE_METROLINK_API_KEY: string;
   readonly VITE_METROLINK_VEHICLE_POSITIONS_URL: string;
+  readonly VITE_BROWSER_TEST_SEAMS: string;
 }
 
 interface ImportMeta {
