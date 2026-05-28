@@ -88,6 +88,16 @@ Managed surfaces:
 - Metadata sheet.
 - Bike settings popover or sheet.
 
+Implementation note for MBR-95:
+
+- `src/stores/uiStore.ts` is the source of truth for the active mobile bottom surface through `activeBottomSurface`.
+- Route sheet visibility and `collapsed` / `half` / `full` state are store-owned; route results, selected route, endpoints, and route clearing remain in `routeStore` or explicit route actions.
+- Search surface dominance is store-owned through `searchMode` plus `activeBottomSurface`; typed values, resolving state, field errors, degraded-provider messaging, and focus refs remain local to `SearchCard`.
+- Layer sheet open/close state is store-owned so it can yield to metadata, bike settings, search, or route surfaces without clearing overlay visibility or comparison mode from `mapOverlayStore`.
+- Metadata dominance is store-owned, while the selected overlay metadata payload, trigger refs, Google Maps instance, and map viewport refs remain local to `MapContainer`.
+- Bike settings reports `bike-settings` as the active surface while open, but speed/weight values and persistence stay local/service-owned in `BikeSettings` and `bikeDurationService`.
+- Legend open state remains local to `MapContainer` because it is nested inside the layer surface and closes before the layer sheet.
+
 Required sheet states:
 
 | State | Use | Map behavior |

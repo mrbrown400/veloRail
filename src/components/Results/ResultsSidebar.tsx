@@ -11,6 +11,7 @@ const ROUTE_RESULTS_TITLE_ID = 'route-results-title';
 export function ResultsSidebar() {
   const { routes, selectedRoute, selectRoute, isLoading, error } = useRouteStore();
   const {
+    activeBottomSurface,
     sidebarOpen,
     routeSheetState,
     setRouteSheetState,
@@ -29,6 +30,9 @@ export function ResultsSidebar() {
   const handleClose = useCallback(() => {
     if (routeSheetState === 'full') {
       setRouteSheetState('half');
+      window.requestAnimationFrame(() => {
+        headingRef.current?.focus();
+      });
       return;
     }
 
@@ -73,7 +77,7 @@ export function ResultsSidebar() {
 
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      if (document.getElementById('map-overlay-metadata-panel')) return;
+      if (activeBottomSurface !== 'route') return;
       if (!panelRef.current?.contains(document.activeElement)) return;
 
       event.preventDefault();
@@ -85,7 +89,7 @@ export function ResultsSidebar() {
     return () => {
       window.removeEventListener('keydown', closeOnEscape);
     };
-  }, [handleClose, sidebarOpen]);
+  }, [activeBottomSurface, handleClose, sidebarOpen]);
 
   return (
     <>
@@ -93,9 +97,11 @@ export function ResultsSidebar() {
         as="aside"
         id={ROUTE_RESULTS_PANEL_ID}
         ref={panelRef}
-        className={`results-sidebar ${sidebarOpen ? 'open' : ''}`}
+        className={`results-sidebar ${sidebarOpen ? 'open' : ''} ${sidebarOpen && activeBottomSurface !== 'route' ? 'results-sidebar--surface-backgrounded' : ''}`}
         ariaLabelledBy={ROUTE_RESULTS_TITLE_ID}
         isHidden={!sidebarOpen}
+        data-bottom-surface="route"
+        data-active-bottom-surface={activeBottomSurface}
         data-testid="route-results-sheet"
         data-route-sheet-state={routeSheetState}
       >
