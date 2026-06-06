@@ -6,16 +6,16 @@ export {
   PROPOSAL_CLASSIFICATIONS,
   PROPOSAL_STATUSES,
   PROPOSAL_UNCERTAINTY_LEVELS,
-  TRANSIT_PROPOSAL_SCHEMA_VERSION
-} from './proposals';
+  TRANSIT_PROPOSAL_SCHEMA_VERSION,
+} from "./proposals";
 
 export type {
   MapOverlayDefinition,
   MapOverlayHandle,
   MapOverlayId,
   MapOverlayScenario,
-  MapOverlayVisibility
-} from './mapOverlays';
+  MapOverlayVisibility,
+} from "./mapOverlays";
 
 export type {
   FreightConversionScenario,
@@ -51,11 +51,11 @@ export type {
   ProposalValidationResult,
   TransitProposal,
   TransitProposalDataset,
-  TransitProposalSchemaVersion
-} from './proposals';
+  TransitProposalSchemaVersion,
+} from "./proposals";
 
 export interface LineString {
-  type: 'LineString';
+  type: "LineString";
   coordinates: [number, number][];
 }
 
@@ -97,19 +97,64 @@ export interface Station {
   expectedOpening?: string | null;
 }
 
+export type TransitServiceDay = "weekday" | "saturday" | "sunday";
+export type TransitPeakWindowName = "am_peak" | "pm_peak";
+export type TransitDirection = "forward" | "reverse" | "both";
+
+export interface TransitTimeRange {
+  start: string;
+  end: string;
+}
+
+export type TransitDayOperatingHours =
+  | TransitTimeRange
+  | Partial<Record<TransitPeakWindowName, TransitTimeRange>>
+  | null;
+
+export interface CommuterExpressDirectionalService {
+  window: TransitPeakWindowName;
+  direction: TransitDirection;
+  label: string;
+}
+
+export interface TransitLineSource {
+  name: string;
+  url?: string;
+  reviewedAt?: string;
+  confidence?: "high" | "medium" | "low";
+  notes?: string;
+}
+
 export interface TransitLine {
   color: string;
   stations: Station[];
   gtfsRouteId?: string;
-  status?: 'operating' | 'under_construction' | 'planned' | 'testing';
+  status?: "operating" | "under_construction" | "planned" | "testing";
   expectedOpening?: string;
   schedule?: {
-    type: 'rail' | 'heavy_rail' | 'light_rail' | 'brt' | 'commuter_rail' |
-          'intercity_rail' | 'people_mover' | 'airport_shuttle' | 'commuter_express' | 'shuttle';
+    type:
+      | "rail"
+      | "heavy_rail"
+      | "light_rail"
+      | "brt"
+      | "commuter_rail"
+      | "intercity_rail"
+      | "people_mover"
+      | "airport_shuttle"
+      | "commuter_express"
+      | "shuttle";
     weekdayHours?: { start: number; end: number };
     weekendHours?: { start: number; end: number };
     frequency?: number;
+    frequencyPeak?: number | null;
+    frequencyOffpeak?: number | null;
+    operatingHours?: Partial<
+      Record<TransitServiceDay, TransitDayOperatingHours>
+    >;
+    directionalService?: CommuterExpressDirectionalService[];
+    scheduleNotes?: string;
   };
+  source?: TransitLineSource;
 }
 
 export type TransitLines = Record<string, TransitLine>;
@@ -118,9 +163,14 @@ export type TransitLines = Record<string, TransitLine>;
 // Route Types
 // ============================================
 
-export type TravelMode = 'bike' | 'walk' | 'transit' | 'transit_bus' | 'driving';
-export type SafetyPreference = 'balanced' | 'safe' | 'fast';
-export type ModeFilter = 'all' | 'bike' | 'walk' | 'driving';
+export type TravelMode =
+  | "bike"
+  | "walk"
+  | "transit"
+  | "transit_bus"
+  | "driving";
+export type SafetyPreference = "balanced" | "safe" | "fast";
+export type ModeFilter = "all" | "bike" | "walk" | "driving";
 
 export interface RouteLeg {
   mode: TravelMode;
@@ -141,8 +191,10 @@ export interface RouteLeg {
   isRealtimeSchedule?: boolean;
   isRealtime?: boolean;
   delayText?: string;
-  delayStatus?: 'ontime' | 'late' | 'early';
+  delayStatus?: "ontime" | "late" | "early";
   isTransfer?: boolean;
+  serviceNotes?: string;
+  sourceConfidence?: "high" | "medium" | "low";
   tripId?: string;
   boardingStopSequence?: number;
 }
@@ -195,7 +247,7 @@ export interface VehiclePosition {
   longitude: number;
   bearing?: number;
   label?: string;
-  currentStatus?: 'STOPPED_AT' | 'INCOMING_AT' | 'IN_TRANSIT_TO';
+  currentStatus?: "STOPPED_AT" | "INCOMING_AT" | "IN_TRANSIT_TO";
   currentStopSequence?: number;
   timestamp?: number;
 }
@@ -209,8 +261,8 @@ export interface TrackedVehicle {
 // UI State Types
 // ============================================
 
-export type SearchMode = 'collapsed' | 'expanded';
-export type LocationStatus = 'pending' | 'granted' | 'denied' | 'unavailable';
+export type SearchMode = "collapsed" | "expanded";
+export type LocationStatus = "pending" | "granted" | "denied" | "unavailable";
 
 export interface AutocompleteState {
   activeInput: HTMLInputElement | null;
@@ -274,9 +326,9 @@ export interface RealtimeStoreActions {
 
 export interface GoogleRouteResult {
   geometry: LineString;
-  distance: number;  // km
-  duration: number;  // seconds
-  source: 'google' | 'fallback';
+  distance: number; // km
+  duration: number; // seconds
+  source: "google" | "fallback";
   // Transit-specific fields
   transitDetails?: GoogleTransitDetails;
 }
@@ -287,7 +339,7 @@ export interface GoogleTransitDetails {
     shortName: string;
     color: string;
     vehicle: {
-      type: string;  // 'SUBWAY', 'TRAM', 'BUS', etc.
+      type: string; // 'SUBWAY', 'TRAM', 'BUS', etc.
     };
   };
   departureStop: {
@@ -326,8 +378,14 @@ export interface GoogleDirectionsStep {
       color: string;
       vehicle: { type: string };
     };
-    departure_stop: { name: string; location: { lat: () => number; lng: () => number } };
-    arrival_stop: { name: string; location: { lat: () => number; lng: () => number } };
+    departure_stop: {
+      name: string;
+      location: { lat: () => number; lng: () => number };
+    };
+    arrival_stop: {
+      name: string;
+      location: { lat: () => number; lng: () => number };
+    };
     departure_time: { value: Date };
     arrival_time: { value: Date };
     num_stops: number;

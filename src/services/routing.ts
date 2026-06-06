@@ -1,18 +1,15 @@
 // Core routing engine for VeloRail
 // Multi-modal routing with transit, bike, walk support
 
-import { geocode } from './geocoding';
-import { TRANSIT_LINES } from '@/data/transitLines';
-import { CONFIG, isGoogleRoutesEnabled } from './config';
+import { geocode } from "./geocoding";
+import { TRANSIT_LINES } from "@/data/transitLines";
+import { CONFIG, isGoogleRoutesEnabled } from "./config";
 import {
   calculateBikeRailRoute,
   calculateWalkRailRoute,
-  calculateGoogleDrivingRoute
-} from './multimodalRouter';
-import {
-  calculateBikeDuration,
-  loadBikeSettings
-} from './bikeDurationService';
+  calculateGoogleDrivingRoute,
+} from "./multimodalRouter";
+import { calculateBikeDuration, loadBikeSettings } from "./bikeDurationService";
 import type {
   Location,
   Station,
@@ -22,21 +19,32 @@ import type {
   SafetyPreference,
   ModeFilter,
   DepartureInfo,
-  OSRMRoute
-} from '@/types';
+  OSRMRoute,
+  TransitDayOperatingHours,
+  TransitPeakWindowName,
+  TransitDirection,
+  TransitLine,
+} from "@/types";
 
 // ============================================
 // Utility Functions
 // ============================================
 
-function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function getDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
   const R = 6371;
   const dLat = deg2rad(lat2 - lat1);
   const dLon = deg2rad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -56,35 +64,38 @@ export function formatDuration(seconds: number): string {
 export const ROUTING_SPEEDS_KMH = {
   bike: 20,
   walk: 5,
-  transit_bus: 15
+  transit_bus: 15,
 } as const;
 
 async function estimateSurfaceDurationSeconds(
   travelMode: TravelMode,
   distanceKm: number,
-  geometry?: RouteLeg['geometry']
+  geometry?: RouteLeg["geometry"],
 ): Promise<number> {
-  if (travelMode === 'bike') {
+  if (travelMode === "bike") {
     const bikeSettings = loadBikeSettings();
-    if (geometry && typeof google !== 'undefined' && google.maps) {
-      const estimate = await calculateBikeDuration(geometry, distanceKm, bikeSettings);
+    if (geometry && typeof google !== "undefined" && google.maps) {
+      const estimate = await calculateBikeDuration(
+        geometry,
+        distanceKm,
+        bikeSettings,
+      );
       return estimate.totalDuration;
     }
 
     return (distanceKm / bikeSettings.baseSpeedKmh) * 3600;
   }
 
-  if (travelMode === 'walk') {
+  if (travelMode === "walk") {
     return (distanceKm / ROUTING_SPEEDS_KMH.walk) * 3600;
   }
 
-  if (travelMode === 'transit_bus') {
+  if (travelMode === "transit_bus") {
     return (distanceKm / ROUTING_SPEEDS_KMH.transit_bus) * 3600;
   }
 
   return 0;
 }
-
 
 interface StationWithLine extends Station {
   line: string;
@@ -100,6 +111,8 @@ interface TransitRoute {
   segment: Station[];
   lineStatus: string;
   expectedOpening: string | null;
+  serviceNotes?: string;
+  sourceConfidence?: "high" | "medium" | "low";
 }
 
 interface TransferResult {
@@ -108,11 +121,11 @@ interface TransferResult {
   leg1: TransitRoute;
   leg2: TransitRoute;
   walkDistance?: number;
-  type: 'same-station' | 'walk-transfer';
+  type: "same-station" | "walk-transfer";
 }
 
 interface TransitPlan {
-  type: 'direct' | 'transfer';
+  type: "direct" | "transfer";
   line?: TransitRoute;
   hub?: Station;
   leg1?: TransitRoute;
@@ -123,31 +136,183 @@ interface TransitPlan {
 // Schedule Helpers (simplified)
 // ============================================
 
-function isLineOperating(lineName: string, _time: Date, _options?: { includeFuture?: boolean }): boolean {
+const LOS_ANGELES_TIME_ZONE = "America/Los_Angeles";
+
+function getLosAngelesDateParts(time: Date): {
+  weekday: string;
+  hour: string;
+  minute: string;
+} {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: LOS_ANGELES_TIME_ZONE,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(time);
+
+  return {
+    weekday: parts.find((part) => part.type === "weekday")?.value || "Mon",
+    hour: parts.find((part) => part.type === "hour")?.value || "00",
+    minute: parts.find((part) => part.type === "minute")?.value || "00",
+  };
+}
+
+function getDayType(time: Date): "weekday" | "saturday" | "sunday" {
+  const weekday = getLosAngelesDateParts(time).weekday;
+  if (weekday === "Sun") return "sunday";
+  if (weekday === "Sat") return "saturday";
+  return "weekday";
+}
+
+function formatLocalTime(time: Date): string {
+  const { hour, minute } = getLosAngelesDateParts(time);
+  return `${hour === "24" ? "00" : hour}:${minute}`;
+}
+
+function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function isTimeInRange(time: string, start: string, end: string): boolean {
+  const currentMinutes = timeToMinutes(time);
+  const startMinutes = timeToMinutes(start);
+  const endMinutes = timeToMinutes(end);
+
+  if (endMinutes < startMinutes) {
+    return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+  }
+
+  return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+}
+
+function hasFixedOperatingHours(
+  hours: TransitDayOperatingHours,
+): hours is { start: string; end: string } {
+  return Boolean(hours && "start" in hours && "end" in hours);
+}
+
+function getActivePeakWindow(
+  line: TransitLine,
+  time: Date,
+): TransitPeakWindowName | null {
+  const hours = line.schedule?.operatingHours?.[getDayType(time)];
+  if (!hours || hasFixedOperatingHours(hours)) return null;
+
+  const localTime = formatLocalTime(time);
+  for (const windowName of ["am_peak", "pm_peak"] as TransitPeakWindowName[]) {
+    const range = hours[windowName];
+    if (range && isTimeInRange(localTime, range.start, range.end)) {
+      return windowName;
+    }
+  }
+
+  return null;
+}
+
+function isLineOperating(
+  lineName: string,
+  time: Date,
+  options?: { includeFuture?: boolean },
+): boolean {
   const line = TRANSIT_LINES[lineName];
   if (!line) return false;
-  // Simplified: assume operating if status is 'operating' or not set
-  return !line.status || line.status === 'operating';
+
+  if (line.status && line.status !== "operating") {
+    return Boolean(options?.includeFuture);
+  }
+
+  const hours = line.schedule?.operatingHours?.[getDayType(time)];
+  if (hours === undefined) return true;
+  if (hours === null) return false;
+
+  const localTime = formatLocalTime(time);
+
+  if (hasFixedOperatingHours(hours)) {
+    return isTimeInRange(localTime, hours.start, hours.end);
+  }
+
+  return getActivePeakWindow(line, time) !== null;
+}
+
+function getLineDirection(
+  idx1: number,
+  idx2: number,
+): Exclude<TransitDirection, "both"> {
+  return idx1 <= idx2 ? "forward" : "reverse";
+}
+
+function isDirectionAllowed(
+  line: TransitLine,
+  time: Date,
+  direction: Exclude<TransitDirection, "both">,
+): boolean {
+  if (
+    line.schedule?.type !== "commuter_express" ||
+    !line.schedule.directionalService?.length
+  ) {
+    return true;
+  }
+
+  const activeWindow = getActivePeakWindow(line, time);
+  if (!activeWindow) {
+    return true;
+  }
+
+  return line.schedule.directionalService.some(
+    (service) =>
+      service.window === activeWindow &&
+      (service.direction === "both" || service.direction === direction),
+  );
+}
+
+function getDirectionalServiceLabel(
+  line: TransitLine,
+  time: Date,
+  direction: Exclude<TransitDirection, "both">,
+): string | null {
+  const activeWindow = getActivePeakWindow(line, time);
+  if (!activeWindow) return null;
+
+  const service = line.schedule?.directionalService?.find(
+    (candidate) =>
+      candidate.window === activeWindow &&
+      (candidate.direction === "both" || candidate.direction === direction),
+  );
+
+  return service?.label || null;
 }
 
 function estimateWaitTime(lineName: string): number {
   const line = TRANSIT_LINES[lineName];
-  if (!line?.schedule?.frequency) return 600; // Default 10 min
-  return line.schedule.frequency * 60;
+  const minutes =
+    line?.schedule?.frequency ?? line?.schedule?.frequencyPeak ?? 10;
+  return minutes * 60;
 }
 
 async function getNextDeparture(
   lineName: string,
-  _arrivalTime: Date,
-  _stationName: string
+  arrivalTime: Date,
+  stationName: string,
 ): Promise<DepartureInfo> {
-  // Simplified: return estimated wait time
+  // Static routing uses coarse scheduled windows. Do not claim realtime departures.
   const waitSeconds = estimateWaitTime(lineName);
+  const line = TRANSIT_LINES[lineName];
+  const stations = line?.stations || [];
+  const stationIndex = stations.findIndex(
+    (station) => station.name === stationName,
+  );
+  const nextStation =
+    stationIndex >= 0
+      ? stations[stationIndex + 1] || stations[stationIndex - 1]
+      : null;
+
   return {
     waitSeconds,
-    departureTime: null,
-    headsign: null,
-    isEstimate: true
+    departureTime: new Date(arrivalTime.getTime() + waitSeconds * 1000),
+    headsign: nextStation?.name || null,
+    isEstimate: true,
   };
 }
 
@@ -155,21 +320,29 @@ async function getNextDeparture(
 // Station Finding Functions
 // ============================================
 
-function getAllStations(departureTime: Date | null = null, includeFuture = false): StationWithLine[] {
+function getAllStations(
+  departureTime: Date | null = null,
+  includeFuture = false,
+): StationWithLine[] {
   const all: StationWithLine[] = [];
   for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
-    if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture })) {
+    if (
+      departureTime &&
+      !isLineOperating(lineName, departureTime, { includeFuture })
+    ) {
       continue;
     }
-    data.stations.filter(s => !s.waypoint).forEach(s => {
-      all.push({
-        ...s,
-        line: lineName,
-        color: data.color,
-        lineStatus: data.status || 'operating',
-        expectedOpening: s.expectedOpening || data.expectedOpening || null
+    data.stations
+      .filter((s) => !s.waypoint)
+      .forEach((s) => {
+        all.push({
+          ...s,
+          line: lineName,
+          color: data.color,
+          lineStatus: data.status || "operating",
+          expectedOpening: s.expectedOpening || data.expectedOpening || null,
+        });
       });
-    });
   }
   return all;
 }
@@ -178,7 +351,7 @@ function findNearestStation(
   lat: number,
   lon: number,
   departureTime: Date | null = null,
-  includeFuture = false
+  includeFuture = false,
 ): StationWithLine | null {
   let nearest: StationWithLine | null = null;
   let minDist = Infinity;
@@ -203,19 +376,30 @@ function getCommonLines(
   s1: Station,
   s2: Station,
   departureTime: Date | null = null,
-  includeFuture = false
+  includeFuture = false,
 ): TransitRoute[] {
   const routes: TransitRoute[] = [];
 
   for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
-    if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture })) {
+    if (
+      departureTime &&
+      !isLineOperating(lineName, departureTime, { includeFuture })
+    ) {
       continue;
     }
 
-    const idx1 = data.stations.findIndex(s => s.name === s1.name);
-    const idx2 = data.stations.findIndex(s => s.name === s2.name);
+    const idx1 = data.stations.findIndex((s) => s.name === s1.name);
+    const idx2 = data.stations.findIndex((s) => s.name === s2.name);
 
     if (idx1 !== -1 && idx2 !== -1) {
+      const direction = getLineDirection(idx1, idx2);
+      if (
+        departureTime &&
+        !isDirectionAllowed(data, departureTime, direction)
+      ) {
+        continue;
+      }
+
       const start = Math.min(idx1, idx2);
       const end = Math.max(idx1, idx2);
       const segment = data.stations.slice(start, end + 1);
@@ -226,8 +410,17 @@ function getCommonLines(
         color: data.color,
         gtfsRouteId: data.gtfsRouteId || null,
         segment: segment,
-        lineStatus: data.status || 'operating',
-        expectedOpening: data.expectedOpening || null
+        lineStatus: data.status || "operating",
+        expectedOpening: data.expectedOpening || null,
+        serviceNotes: [
+          data.schedule?.scheduleNotes,
+          departureTime
+            ? getDirectionalServiceLabel(data, departureTime, direction)
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
+        sourceConfidence: data.source?.confidence,
       });
     }
   }
@@ -237,16 +430,21 @@ function getCommonLines(
 function getLinesForStation(
   stationName: string,
   departureTime: Date | null = null,
-  includeFuture = false
+  includeFuture = false,
 ): string[] {
   const lines: string[] = [];
 
   for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
-    if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture })) {
+    if (
+      departureTime &&
+      !isLineOperating(lineName, departureTime, { includeFuture })
+    ) {
       continue;
     }
 
-    const hasStation = data.stations.some(s => !s.waypoint && s.name === stationName);
+    const hasStation = data.stations.some(
+      (s) => !s.waypoint && s.name === stationName,
+    );
     if (hasStation) {
       lines.push(lineName);
     }
@@ -259,18 +457,18 @@ function findSharedStations(
   line1Name: string,
   line2Name: string,
   _departureTime: Date | null = null,
-  _includeFuture = false
+  _includeFuture = false,
 ): Station[] {
   const line1 = TRANSIT_LINES[line1Name];
   const line2 = TRANSIT_LINES[line2Name];
 
   if (!line1 || !line2) return [];
 
-  const line1Stations = line1.stations.filter(s => !s.waypoint);
-  const line2Stations = line2.stations.filter(s => !s.waypoint);
+  const line1Stations = line1.stations.filter((s) => !s.waypoint);
+  const line2Stations = line2.stations.filter((s) => !s.waypoint);
 
   const sharedStations: Station[] = [];
-  const line1StationNames = new Set(line1Stations.map(s => s.name));
+  const line1StationNames = new Set(line1Stations.map((s) => s.name));
 
   for (const station of line2Stations) {
     if (line1StationNames.has(station.name)) {
@@ -286,17 +484,21 @@ function findNearbyStationPairs(
   line2Name: string,
   maxDistanceKm: number,
   _departureTime: Date | null = null,
-  _includeFuture = false
+  _includeFuture = false,
 ): { station1: Station; station2: Station; distance: number }[] {
   const line1 = TRANSIT_LINES[line1Name];
   const line2 = TRANSIT_LINES[line2Name];
 
   if (!line1 || !line2) return [];
 
-  const line1Stations = line1.stations.filter(s => !s.waypoint);
-  const line2Stations = line2.stations.filter(s => !s.waypoint);
+  const line1Stations = line1.stations.filter((s) => !s.waypoint);
+  const line2Stations = line2.stations.filter((s) => !s.waypoint);
 
-  const nearbyPairs: { station1: Station; station2: Station; distance: number }[] = [];
+  const nearbyPairs: {
+    station1: Station;
+    station2: Station;
+    distance: number;
+  }[] = [];
 
   for (const s1 of line1Stations) {
     for (const s2 of line2Stations) {
@@ -317,12 +519,20 @@ function findBestTransfer(
   entryStation: Station,
   exitStation: Station,
   departureTime: Date | null = null,
-  includeFuture = false
+  includeFuture = false,
 ): TransferResult | null {
   const MAX_WALK_TRANSFER_KM = 0.8;
 
-  const entryLines = getLinesForStation(entryStation.name, departureTime, includeFuture);
-  const exitLines = getLinesForStation(exitStation.name, departureTime, includeFuture);
+  const entryLines = getLinesForStation(
+    entryStation.name,
+    departureTime,
+    includeFuture,
+  );
+  const exitLines = getLinesForStation(
+    exitStation.name,
+    departureTime,
+    includeFuture,
+  );
 
   if (entryLines.length === 0 || exitLines.length === 0) {
     return null;
@@ -335,19 +545,38 @@ function findBestTransfer(
     for (const exitLine of exitLines) {
       if (entryLine === exitLine) continue;
 
-      const sharedStations = findSharedStations(entryLine, exitLine, departureTime, includeFuture);
+      const sharedStations = findSharedStations(
+        entryLine,
+        exitLine,
+        departureTime,
+        includeFuture,
+      );
 
       for (const transferStation of sharedStations) {
-        const leg1Routes = getCommonLines(entryStation, transferStation, departureTime, includeFuture);
-        const leg2Routes = getCommonLines(transferStation, exitStation, departureTime, includeFuture);
+        const leg1Routes = getCommonLines(
+          entryStation,
+          transferStation,
+          departureTime,
+          includeFuture,
+        );
+        const leg2Routes = getCommonLines(
+          transferStation,
+          exitStation,
+          departureTime,
+          includeFuture,
+        );
 
         if (leg1Routes.length > 0 && leg2Routes.length > 0) {
           let leg1 = leg1Routes[0];
           let leg2 = leg2Routes[0];
 
           if (includeFuture) {
-            const futureLeg1 = leg1Routes.find(r => r.lineStatus && r.lineStatus !== 'operating');
-            const futureLeg2 = leg2Routes.find(r => r.lineStatus && r.lineStatus !== 'operating');
+            const futureLeg1 = leg1Routes.find(
+              (r) => r.lineStatus && r.lineStatus !== "operating",
+            );
+            const futureLeg2 = leg2Routes.find(
+              (r) => r.lineStatus && r.lineStatus !== "operating",
+            );
             if (futureLeg1) leg1 = futureLeg1;
             if (futureLeg2) leg2 = futureLeg2;
           }
@@ -360,25 +589,45 @@ function findBestTransfer(
               transferStation,
               leg1,
               leg2,
-              type: 'same-station'
+              type: "same-station",
             };
           }
         }
       }
 
-      const nearbyTransfers = findNearbyStationPairs(entryLine, exitLine, MAX_WALK_TRANSFER_KM, departureTime, includeFuture);
+      const nearbyTransfers = findNearbyStationPairs(
+        entryLine,
+        exitLine,
+        MAX_WALK_TRANSFER_KM,
+        departureTime,
+        includeFuture,
+      );
 
       for (const { station1, station2, distance } of nearbyTransfers) {
-        const leg1Routes = getCommonLines(entryStation, station1, departureTime, includeFuture);
-        const leg2Routes = getCommonLines(station2, exitStation, departureTime, includeFuture);
+        const leg1Routes = getCommonLines(
+          entryStation,
+          station1,
+          departureTime,
+          includeFuture,
+        );
+        const leg2Routes = getCommonLines(
+          station2,
+          exitStation,
+          departureTime,
+          includeFuture,
+        );
 
         if (leg1Routes.length > 0 && leg2Routes.length > 0) {
           let leg1 = leg1Routes[0];
           let leg2 = leg2Routes[0];
 
           if (includeFuture) {
-            const futureLeg1 = leg1Routes.find(r => r.lineStatus && r.lineStatus !== 'operating');
-            const futureLeg2 = leg2Routes.find(r => r.lineStatus && r.lineStatus !== 'operating');
+            const futureLeg1 = leg1Routes.find(
+              (r) => r.lineStatus && r.lineStatus !== "operating",
+            );
+            const futureLeg2 = leg2Routes.find(
+              (r) => r.lineStatus && r.lineStatus !== "operating",
+            );
             if (futureLeg1) leg1 = futureLeg1;
             if (futureLeg2) leg2 = futureLeg2;
           }
@@ -394,7 +643,7 @@ function findBestTransfer(
               leg1,
               leg2,
               walkDistance: distance,
-              type: 'walk-transfer'
+              type: "walk-transfer",
             };
           }
         }
@@ -411,16 +660,16 @@ function findBestTransfer(
 
 async function getOSRMRoute(
   waypoints: { lat: number; lon: number }[],
-  profile: 'cycling' | 'walking' | 'driving' = 'cycling'
+  profile: "cycling" | "walking" | "driving" = "cycling",
 ): Promise<OSRMRoute | null> {
-  const coords = waypoints.map(wp => `${wp.lon},${wp.lat}`).join(';');
+  const coords = waypoints.map((wp) => `${wp.lon},${wp.lat}`).join(";");
   const url = `https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson`;
 
   try {
     const response = await fetch(url);
     const data = await response.json();
 
-    if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+    if (data.code !== "Ok" || !data.routes || data.routes.length === 0) {
       return null;
     }
 
@@ -428,10 +677,10 @@ async function getOSRMRoute(
     return {
       distance: route.distance / 1000, // Convert to km
       duration: route.duration,
-      geometry: route.geometry
+      geometry: route.geometry,
     };
   } catch (error) {
-    console.error('OSRM routing error:', error);
+    console.error("OSRM routing error:", error);
     return null;
   }
 }
@@ -443,40 +692,59 @@ async function getOSRMRoute(
 export async function calculateRoute(
   startAddr: string | Location,
   endAddr: string | Location,
-  travelMode: TravelMode = 'bike',
-  _safetyPreference: SafetyPreference = 'balanced',
+  travelMode: TravelMode = "bike",
+  _safetyPreference: SafetyPreference = "balanced",
   departureTime: Date | null = null,
-  includeFuture = false
+  includeFuture = false,
 ): Promise<Route> {
   // Note: _safetyPreference is available for future ORS integration
   const queryTime = departureTime || new Date();
-  console.log(`Calculating route (${travelMode}${includeFuture ? ', future' : ''}) for departure at ${queryTime.toLocaleTimeString()}...`);
+  console.log(
+    `Calculating route (${travelMode}${includeFuture ? ", future" : ""}) for departure at ${queryTime.toLocaleTimeString()}...`,
+  );
 
-  const startLoc = (typeof startAddr === 'string') ? await geocode(startAddr) : startAddr;
+  const startLoc =
+    typeof startAddr === "string" ? await geocode(startAddr) : startAddr;
   if (!startLoc) throw new Error(`Could not find location: ${startAddr}`);
 
-  const endLoc = (typeof endAddr === 'string') ? await geocode(endAddr) : endAddr;
+  const endLoc = typeof endAddr === "string" ? await geocode(endAddr) : endAddr;
   if (!endLoc) throw new Error(`Could not find location: ${endAddr}`);
 
-  const directDist = getDistance(startLoc.lat, startLoc.lon, endLoc.lat, endLoc.lon);
+  const directDist = getDistance(
+    startLoc.lat,
+    startLoc.lon,
+    endLoc.lat,
+    endLoc.lon,
+  );
 
-  const isWalking = travelMode === 'walk';
-  const isBus = travelMode === 'transit_bus';
+  const isWalking = travelMode === "walk";
+  const isBus = travelMode === "transit_bus";
 
-  let profile: 'cycling' | 'walking' | 'driving' = 'cycling';
-  if (isWalking) profile = 'walking';
-  if (isBus) profile = 'driving';
+  let profile: "cycling" | "walking" | "driving" = "cycling";
+  if (isWalking) profile = "walking";
+  if (isBus) profile = "driving";
 
   const busPenaltySeconds = isBus ? 600 : 0;
 
-  const entryStation = findNearestStation(startLoc.lat, startLoc.lon, queryTime, includeFuture);
-  const exitStation = findNearestStation(endLoc.lat, endLoc.lon, queryTime, includeFuture);
+  const entryStation = findNearestStation(
+    startLoc.lat,
+    startLoc.lon,
+    queryTime,
+    includeFuture,
+  );
+  const exitStation = findNearestStation(
+    endLoc.lat,
+    endLoc.lon,
+    queryTime,
+    includeFuture,
+  );
 
   const legs: RouteLeg[] = [];
 
-  const commonRoutes = entryStation && exitStation
-    ? getCommonLines(entryStation, exitStation, queryTime, includeFuture)
-    : [];
+  const commonRoutes =
+    entryStation && exitStation
+      ? getCommonLines(entryStation, exitStation, queryTime, includeFuture)
+      : [];
 
   let transitPlan: TransitPlan | null = null;
   let usedFutureLine = false;
@@ -485,32 +753,49 @@ export async function calculateRoute(
   if (commonRoutes.length > 0) {
     let selectedRoute = commonRoutes[0];
     if (includeFuture) {
-      const futureRoute = commonRoutes.find(r => r.lineStatus && r.lineStatus !== 'operating');
+      const futureRoute = commonRoutes.find(
+        (r) => r.lineStatus && r.lineStatus !== "operating",
+      );
       if (futureRoute) {
         selectedRoute = futureRoute;
         usedFutureLine = true;
         futureLineOpening = futureRoute.expectedOpening;
       }
     }
-    transitPlan = { type: 'direct', line: selectedRoute };
+    transitPlan = { type: "direct", line: selectedRoute };
   } else if (entryStation && exitStation) {
-    const transferResult = findBestTransfer(entryStation, exitStation, queryTime, includeFuture);
+    const transferResult = findBestTransfer(
+      entryStation,
+      exitStation,
+      queryTime,
+      includeFuture,
+    );
 
     if (transferResult) {
       transitPlan = {
-        type: 'transfer',
+        type: "transfer",
         hub: transferResult.transferStation,
         leg1: transferResult.leg1,
-        leg2: transferResult.leg2
+        leg2: transferResult.leg2,
       };
 
-      if (transferResult.leg1.lineStatus && transferResult.leg1.lineStatus !== 'operating') {
+      if (
+        transferResult.leg1.lineStatus &&
+        transferResult.leg1.lineStatus !== "operating"
+      ) {
         usedFutureLine = true;
         futureLineOpening = transferResult.leg1.expectedOpening;
       }
-      if (transferResult.leg2.lineStatus && transferResult.leg2.lineStatus !== 'operating') {
+      if (
+        transferResult.leg2.lineStatus &&
+        transferResult.leg2.lineStatus !== "operating"
+      ) {
         usedFutureLine = true;
-        if (!futureLineOpening || (transferResult.leg2.expectedOpening && transferResult.leg2.expectedOpening > futureLineOpening)) {
+        if (
+          !futureLineOpening ||
+          (transferResult.leg2.expectedOpening &&
+            transferResult.leg2.expectedOpening > futureLineOpening)
+        ) {
           futureLineOpening = transferResult.leg2.expectedOpening;
         }
       }
@@ -520,19 +805,35 @@ export async function calculateRoute(
   const canTakeTransit = transitPlan !== null;
 
   // Direct route conditions
-  if (directDist < (isWalking ? 1.5 : 5) || !canTakeTransit || !entryStation || !exitStation || entryStation.name === exitStation.name) {
+  if (
+    directDist < (isWalking ? 1.5 : 5) ||
+    !canTakeTransit ||
+    !entryStation ||
+    !exitStation ||
+    entryStation.name === exitStation.name
+  ) {
     console.log(`Using direct ${travelMode} route`);
-    const route = await getOSRMRoute([
-      { lat: startLoc.lat, lon: startLoc.lon },
-      { lat: endLoc.lat, lon: endLoc.lon }
-    ], profile);
+    const route = await getOSRMRoute(
+      [
+        { lat: startLoc.lat, lon: startLoc.lon },
+        { lat: endLoc.lat, lon: endLoc.lon },
+      ],
+      profile,
+    );
 
     const distKm = route ? route.distance : directDist;
     const geometry = route?.geometry || {
       type: "LineString" as const,
-      coordinates: [[startLoc.lon, startLoc.lat], [endLoc.lon, endLoc.lat]] as [number, number][]
+      coordinates: [
+        [startLoc.lon, startLoc.lat],
+        [endLoc.lon, endLoc.lat],
+      ] as [number, number][],
     };
-    const duration = await estimateSurfaceDurationSeconds(travelMode, distKm, geometry);
+    const duration = await estimateSurfaceDurationSeconds(
+      travelMode,
+      distKm,
+      geometry,
+    );
 
     legs.push({
       mode: travelMode,
@@ -540,23 +841,40 @@ export async function calculateRoute(
       to: endLoc,
       geometry,
       distance: distKm,
-      duration: duration + busPenaltySeconds
+      duration: duration + busPenaltySeconds,
     });
   } else {
-    console.log('Using Multimodal route');
+    console.log("Using Multimodal route");
 
     // Leg 1: Access -> Entry
-    const l1 = await getOSRMRoute([
-      { lat: startLoc.lat, lon: startLoc.lon },
-      { lat: entryStation.lat, lon: entryStation.lon }
-    ], profile);
+    const l1 = await getOSRMRoute(
+      [
+        { lat: startLoc.lat, lon: startLoc.lon },
+        { lat: entryStation.lat, lon: entryStation.lon },
+      ],
+      profile,
+    );
 
-    const d1 = l1 ? l1.distance : getDistance(startLoc.lat, startLoc.lon, entryStation.lat, entryStation.lon);
+    const d1 = l1
+      ? l1.distance
+      : getDistance(
+          startLoc.lat,
+          startLoc.lon,
+          entryStation.lat,
+          entryStation.lon,
+        );
     const geometry1 = l1?.geometry || {
       type: "LineString" as const,
-      coordinates: [[startLoc.lon, startLoc.lat], [entryStation.lon, entryStation.lat]] as [number, number][]
+      coordinates: [
+        [startLoc.lon, startLoc.lat],
+        [entryStation.lon, entryStation.lat],
+      ] as [number, number][],
     };
-    const dur1 = await estimateSurfaceDurationSeconds(travelMode, d1, geometry1);
+    const dur1 = await estimateSurfaceDurationSeconds(
+      travelMode,
+      d1,
+      geometry1,
+    );
 
     legs.push({
       mode: travelMode,
@@ -564,30 +882,44 @@ export async function calculateRoute(
       to: entryStation,
       geometry: geometry1,
       distance: d1,
-      duration: dur1 + busPenaltySeconds
+      duration: dur1 + busPenaltySeconds,
     });
 
     // Transit legs
-    if (transitPlan!.type === 'direct' && transitPlan!.line) {
+    if (transitPlan!.type === "direct" && transitPlan!.line) {
       const bestTransit = transitPlan!.line;
       const waypoints = bestTransit.segment;
-      const transitCoordinates = waypoints.map(s => [s.lon, s.lat] as [number, number]);
+      const transitCoordinates = waypoints.map(
+        (s) => [s.lon, s.lat] as [number, number],
+      );
 
       let transitDistance = 0;
       for (let i = 0; i < waypoints.length - 1; i++) {
-        transitDistance += getDistance(waypoints[i].lat, waypoints[i].lon, waypoints[i + 1].lat, waypoints[i + 1].lon);
+        transitDistance += getDistance(
+          waypoints[i].lat,
+          waypoints[i].lon,
+          waypoints[i + 1].lat,
+          waypoints[i + 1].lon,
+        );
       }
 
       const avgSpeedKmh = 35;
       const accessTimeSeconds = legs[0].duration;
-      const arrivalAtStation = new Date(queryTime.getTime() + accessTimeSeconds * 1000);
+      const arrivalAtStation = new Date(
+        queryTime.getTime() + accessTimeSeconds * 1000,
+      );
 
-      const departureInfo = await getNextDeparture(bestTransit.line, arrivalAtStation, entryStation.name);
+      const departureInfo = await getNextDeparture(
+        bestTransit.line,
+        arrivalAtStation,
+        entryStation.name,
+      );
       const waitTimeSeconds = departureInfo.waitSeconds;
-      const transitDuration = (transitDistance / avgSpeedKmh) * 3600 + waitTimeSeconds;
+      const transitDuration =
+        (transitDistance / avgSpeedKmh) * 3600 + waitTimeSeconds;
 
       legs.push({
-        mode: 'transit',
+        mode: "transit",
         line: bestTransit.line,
         routeId: bestTransit.gtfsRouteId || null,
         color: bestTransit.color,
@@ -600,28 +932,43 @@ export async function calculateRoute(
         departureTime: departureInfo.departureTime,
         headsign: departureInfo.headsign,
         isRealtimeSchedule: !departureInfo.isEstimate,
-        stations: bestTransit.segment
+        stations: bestTransit.segment,
+        serviceNotes: bestTransit.serviceNotes,
+        sourceConfidence: bestTransit.sourceConfidence,
       });
-    } else if (transitPlan!.type === 'transfer') {
+    } else if (transitPlan!.type === "transfer") {
       const hub = transitPlan!.hub!;
       const leg1 = transitPlan!.leg1!;
       const leg2 = transitPlan!.leg2!;
       const avgSpeedKmh = 35;
 
       const accessTimeSeconds = legs[0].duration;
-      const arrivalAtEntry = new Date(queryTime.getTime() + accessTimeSeconds * 1000);
+      const arrivalAtEntry = new Date(
+        queryTime.getTime() + accessTimeSeconds * 1000,
+      );
 
-      const departureInfo1 = await getNextDeparture(leg1.line, arrivalAtEntry, entryStation.name);
+      const departureInfo1 = await getNextDeparture(
+        leg1.line,
+        arrivalAtEntry,
+        entryStation.name,
+      );
 
       let leg1Distance = 0;
       for (let i = 0; i < leg1.segment.length - 1; i++) {
-        leg1Distance += getDistance(leg1.segment[i].lat, leg1.segment[i].lon, leg1.segment[i + 1].lat, leg1.segment[i + 1].lon);
+        leg1Distance += getDistance(
+          leg1.segment[i].lat,
+          leg1.segment[i].lon,
+          leg1.segment[i + 1].lat,
+          leg1.segment[i + 1].lon,
+        );
       }
       const leg1TravelTime = (leg1Distance / avgSpeedKmh) * 3600;
-      const leg1Coordinates = leg1.segment.map(s => [s.lon, s.lat] as [number, number]);
+      const leg1Coordinates = leg1.segment.map(
+        (s) => [s.lon, s.lat] as [number, number],
+      );
 
       legs.push({
-        mode: 'transit',
+        mode: "transit",
         line: leg1.line,
         routeId: leg1.gtfsRouteId || null,
         color: leg1.color,
@@ -634,21 +981,37 @@ export async function calculateRoute(
         departureTime: departureInfo1.departureTime,
         headsign: departureInfo1.headsign,
         isRealtimeSchedule: !departureInfo1.isEstimate,
-        stations: leg1.segment
+        stations: leg1.segment,
+        serviceNotes: leg1.serviceNotes,
+        sourceConfidence: leg1.sourceConfidence,
       });
 
-      const arrivalAtHub = new Date(arrivalAtEntry.getTime() + (departureInfo1.waitSeconds + leg1TravelTime) * 1000);
-      const departureInfo2 = await getNextDeparture(leg2.line, arrivalAtHub, hub.name);
+      const arrivalAtHub = new Date(
+        arrivalAtEntry.getTime() +
+          (departureInfo1.waitSeconds + leg1TravelTime) * 1000,
+      );
+      const departureInfo2 = await getNextDeparture(
+        leg2.line,
+        arrivalAtHub,
+        hub.name,
+      );
 
       let leg2Distance = 0;
       for (let i = 0; i < leg2.segment.length - 1; i++) {
-        leg2Distance += getDistance(leg2.segment[i].lat, leg2.segment[i].lon, leg2.segment[i + 1].lat, leg2.segment[i + 1].lon);
+        leg2Distance += getDistance(
+          leg2.segment[i].lat,
+          leg2.segment[i].lon,
+          leg2.segment[i + 1].lat,
+          leg2.segment[i + 1].lon,
+        );
       }
       const leg2TravelTime = (leg2Distance / avgSpeedKmh) * 3600;
-      const leg2Coordinates = leg2.segment.map(s => [s.lon, s.lat] as [number, number]);
+      const leg2Coordinates = leg2.segment.map(
+        (s) => [s.lon, s.lat] as [number, number],
+      );
 
       legs.push({
-        mode: 'transit',
+        mode: "transit",
         line: leg2.line,
         routeId: leg2.gtfsRouteId || null,
         color: leg2.color,
@@ -662,22 +1025,36 @@ export async function calculateRoute(
         headsign: departureInfo2.headsign,
         isRealtimeSchedule: !departureInfo2.isEstimate,
         stations: leg2.segment,
-        isTransfer: true
+        serviceNotes: leg2.serviceNotes,
+        sourceConfidence: leg2.sourceConfidence,
+        isTransfer: true,
       });
     }
 
     // Leg 3: Egress -> Destination
-    const l3 = await getOSRMRoute([
-      { lat: exitStation.lat, lon: exitStation.lon },
-      { lat: endLoc.lat, lon: endLoc.lon }
-    ], profile);
+    const l3 = await getOSRMRoute(
+      [
+        { lat: exitStation.lat, lon: exitStation.lon },
+        { lat: endLoc.lat, lon: endLoc.lon },
+      ],
+      profile,
+    );
 
-    const d3 = l3 ? l3.distance : getDistance(exitStation.lat, exitStation.lon, endLoc.lat, endLoc.lon);
+    const d3 = l3
+      ? l3.distance
+      : getDistance(exitStation.lat, exitStation.lon, endLoc.lat, endLoc.lon);
     const geometry3 = l3?.geometry || {
       type: "LineString" as const,
-      coordinates: [[exitStation.lon, exitStation.lat], [endLoc.lon, endLoc.lat]] as [number, number][]
+      coordinates: [
+        [exitStation.lon, exitStation.lat],
+        [endLoc.lon, endLoc.lat],
+      ] as [number, number][],
     };
-    const dur3 = await estimateSurfaceDurationSeconds(travelMode, d3, geometry3);
+    const dur3 = await estimateSurfaceDurationSeconds(
+      travelMode,
+      d3,
+      geometry3,
+    );
 
     legs.push({
       mode: travelMode,
@@ -685,7 +1062,7 @@ export async function calculateRoute(
       to: endLoc,
       geometry: geometry3,
       distance: d3,
-      duration: dur3 + busPenaltySeconds
+      duration: dur3 + busPenaltySeconds,
     });
   }
 
@@ -694,20 +1071,36 @@ export async function calculateRoute(
 
   const buildSummary = (): string => {
     if (legs.length === 1) {
-      return `Direct ${travelMode === 'bike' ? 'Bike' : 'Walk'} (${legs[0].distance.toFixed(1)} km)`;
+      return `Direct ${travelMode === "bike" ? "Bike" : "Walk"} (${legs[0].distance.toFixed(1)} km)`;
     }
-    if (transitPlan?.type === 'direct' && transitPlan.line) {
-      return `${isBus ? 'Bus' : (travelMode === 'bike' ? 'Bike' : 'Walk')} to ${entryStation?.name}, Take ${transitPlan.line.line} Line`;
+    if (transitPlan?.type === "direct" && transitPlan.line) {
+      if (
+        TRANSIT_LINES[transitPlan.line.line]?.schedule?.type ===
+        "commuter_express"
+      ) {
+        return `Peak-period LADOT Commuter Express ${transitPlan.line.line.replace("LADOT CE ", "CE ")} with estimated wait`;
+      }
+      return `${isBus ? "Bus" : travelMode === "bike" ? "Bike" : "Walk"} to ${entryStation?.name}, Take ${transitPlan.line.line} Line`;
     }
-    if (transitPlan?.type === 'transfer' && transitPlan.leg1 && transitPlan.leg2 && transitPlan.hub) {
-      return `${isBus ? 'Bus' : (travelMode === 'bike' ? 'Bike' : 'Walk')} to ${entryStation?.name}, Take ${transitPlan.leg1.line}/${transitPlan.leg2.line} (Transfer at ${transitPlan.hub.name})`;
+    if (
+      transitPlan?.type === "transfer" &&
+      transitPlan.leg1 &&
+      transitPlan.leg2 &&
+      transitPlan.hub
+    ) {
+      return `${isBus ? "Bus" : travelMode === "bike" ? "Bike" : "Walk"} to ${entryStation?.name}, Take ${transitPlan.leg1.line}/${transitPlan.leg2.line} (Transfer at ${transitPlan.hub.name})`;
     }
-    return 'Route calculated';
+    return "Route calculated";
   };
 
   return {
-    type: travelMode === 'bike' ? 'Bike + Metro' : (travelMode === 'transit_bus' ? 'Transit + Bus' : 'Walk + Metro'),
-    label: '',
+    type:
+      travelMode === "bike"
+        ? "Bike + Metro"
+        : travelMode === "transit_bus"
+          ? "Transit + Bus"
+          : "Walk + Metro",
+    label: "",
     start: startLoc,
     end: endLoc,
     legs: legs,
@@ -716,7 +1109,7 @@ export async function calculateRoute(
     formattedDuration: formatDuration(totalDuration),
     summary: buildSummary(),
     isFuture: usedFutureLine,
-    expectedOpening: futureLineOpening
+    expectedOpening: futureLineOpening,
   };
 }
 
@@ -727,13 +1120,15 @@ export async function calculateRoute(
 export async function compareRoutes(
   startInput: string | Location,
   endInput: string | Location,
-  safetyPreference: SafetyPreference = 'balanced',
-  modeFilter: ModeFilter = 'all',
+  safetyPreference: SafetyPreference = "balanced",
+  modeFilter: ModeFilter = "all",
   departureTime: Date | null = null,
-  includeFuture = false
+  includeFuture = false,
 ): Promise<Route[]> {
-  const startLoc = (typeof startInput === 'string') ? await geocode(startInput) : startInput;
-  const endLoc = (typeof endInput === 'string') ? await geocode(endInput) : endInput;
+  const startLoc =
+    typeof startInput === "string" ? await geocode(startInput) : startInput;
+  const endLoc =
+    typeof endInput === "string" ? await geocode(endInput) : endInput;
 
   if (!startLoc || !endLoc) {
     throw new Error("Could not find start or end location");
@@ -744,154 +1139,215 @@ export async function compareRoutes(
   const routePromises: Promise<Route | null>[] = [];
 
   // Bike + Rail - use Google Routes if enabled, fallback to OSRM
-  if (modeFilter === 'all' || modeFilter === 'bike') {
+  if (modeFilter === "all" || modeFilter === "bike") {
     if (isGoogleRoutesEnabled()) {
       // Use Google Routes API for bike+rail
       routePromises.push(
         calculateBikeRailRoute(startLoc, endLoc, queryTime)
-          .then(route => {
+          .then((route) => {
             if (route) {
               return { ...route, label: "Bike + Rail" };
             }
             // Fallback to OSRM-based routing if Google fails
             if (CONFIG.GOOGLE_ROUTES_FALLBACK_TO_OSRM) {
-              console.log('Google Routes failed, falling back to OSRM');
-              return calculateRoute(startLoc, endLoc, 'bike', safetyPreference, queryTime)
-                .then(r => ({ ...r, label: "Bike + Rail" }));
+              console.log("Google Routes failed, falling back to OSRM");
+              return calculateRoute(
+                startLoc,
+                endLoc,
+                "bike",
+                safetyPreference,
+                queryTime,
+              ).then((r) => ({ ...r, label: "Bike + Rail" }));
             }
             return null;
           })
-          .catch(e => {
+          .catch((e) => {
             console.error("Google bike+rail route failed", e);
             // Fallback to OSRM
             if (CONFIG.GOOGLE_ROUTES_FALLBACK_TO_OSRM) {
-              return calculateRoute(startLoc, endLoc, 'bike', safetyPreference, queryTime)
-                .then(r => ({ ...r, label: "Bike + Rail" }))
+              return calculateRoute(
+                startLoc,
+                endLoc,
+                "bike",
+                safetyPreference,
+                queryTime,
+              )
+                .then((r) => ({ ...r, label: "Bike + Rail" }))
                 .catch(() => null);
             }
             return null;
-          })
+          }),
       );
     } else {
       // Use OSRM-based routing
       routePromises.push(
-        calculateRoute(startLoc, endLoc, 'bike', safetyPreference, queryTime)
-          .then(route => ({ ...route, label: "Bike + Rail" }))
-          .catch(e => { console.error("Bike route failed", e); return null; })
+        calculateRoute(startLoc, endLoc, "bike", safetyPreference, queryTime)
+          .then((route) => ({ ...route, label: "Bike + Rail" }))
+          .catch((e) => {
+            console.error("Bike route failed", e);
+            return null;
+          }),
       );
     }
   }
 
   // Driving - use Google if enabled
-  if (modeFilter === 'all' || modeFilter === 'driving') {
+  if (modeFilter === "all" || modeFilter === "driving") {
     if (isGoogleRoutesEnabled()) {
       routePromises.push(
         calculateGoogleDrivingRoute(startLoc, endLoc)
-          .then(route => {
+          .then((route) => {
             if (route) return { ...route, label: "Driving" };
             // Fallback to OSRM
             if (CONFIG.GOOGLE_ROUTES_FALLBACK_TO_OSRM) {
-              return getOSRMRoute([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: endLoc.lat, lon: endLoc.lon }], 'driving')
-                .then(drivingRoute => {
-                  if (!drivingRoute) return null;
-                  return {
-                    type: 'Driving',
-                    label: "Driving",
-                    start: startLoc,
-                    end: endLoc,
-                    legs: [{
-                      mode: 'driving' as TravelMode,
+              return getOSRMRoute(
+                [
+                  { lat: startLoc.lat, lon: startLoc.lon },
+                  { lat: endLoc.lat, lon: endLoc.lon },
+                ],
+                "driving",
+              ).then((drivingRoute) => {
+                if (!drivingRoute) return null;
+                return {
+                  type: "Driving",
+                  label: "Driving",
+                  start: startLoc,
+                  end: endLoc,
+                  legs: [
+                    {
+                      mode: "driving" as TravelMode,
                       from: startLoc,
                       to: endLoc,
                       geometry: drivingRoute.geometry,
                       distance: drivingRoute.distance,
-                      duration: drivingRoute.duration * 1.5
-                    }],
-                    totalDistance: drivingRoute.distance,
-                    totalDuration: drivingRoute.duration * 1.5,
-                    formattedDuration: formatDuration(drivingRoute.duration * 1.5),
-                    summary: `Direct Drive (${drivingRoute.distance.toFixed(1)} km)`
-                  } as Route;
-                });
+                      duration: drivingRoute.duration * 1.5,
+                    },
+                  ],
+                  totalDistance: drivingRoute.distance,
+                  totalDuration: drivingRoute.duration * 1.5,
+                  formattedDuration: formatDuration(
+                    drivingRoute.duration * 1.5,
+                  ),
+                  summary: `Direct Drive (${drivingRoute.distance.toFixed(1)} km)`,
+                } as Route;
+              });
             }
             return null;
           })
-          .catch(e => { console.error("Google driving route failed", e); return null; })
+          .catch((e) => {
+            console.error("Google driving route failed", e);
+            return null;
+          }),
       );
     } else {
       routePromises.push(
-        getOSRMRoute([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: endLoc.lat, lon: endLoc.lon }], 'driving')
-          .then(drivingRoute => {
+        getOSRMRoute(
+          [
+            { lat: startLoc.lat, lon: startLoc.lon },
+            { lat: endLoc.lat, lon: endLoc.lon },
+          ],
+          "driving",
+        )
+          .then((drivingRoute) => {
             if (!drivingRoute) return null;
             return {
-              type: 'Driving',
+              type: "Driving",
               label: "Driving",
               start: startLoc,
               end: endLoc,
-              legs: [{
-                mode: 'driving' as TravelMode,
-                from: startLoc,
-                to: endLoc,
-                geometry: drivingRoute.geometry,
-                distance: drivingRoute.distance,
-                duration: drivingRoute.duration * 1.5
-              }],
+              legs: [
+                {
+                  mode: "driving" as TravelMode,
+                  from: startLoc,
+                  to: endLoc,
+                  geometry: drivingRoute.geometry,
+                  distance: drivingRoute.distance,
+                  duration: drivingRoute.duration * 1.5,
+                },
+              ],
               totalDistance: drivingRoute.distance,
               totalDuration: drivingRoute.duration * 1.5,
               formattedDuration: formatDuration(drivingRoute.duration * 1.5),
-              summary: `Direct Drive (${drivingRoute.distance.toFixed(1)} km)`
+              summary: `Direct Drive (${drivingRoute.distance.toFixed(1)} km)`,
             } as Route;
           })
-          .catch(e => { console.error("Driving route failed", e); return null; })
+          .catch((e) => {
+            console.error("Driving route failed", e);
+            return null;
+          }),
       );
     }
   }
 
   // Walk + Rail - use Google Transit if enabled (includes bus connections)
-  if (modeFilter === 'all' || modeFilter === 'walk') {
+  if (modeFilter === "all" || modeFilter === "walk") {
     if (isGoogleRoutesEnabled()) {
       routePromises.push(
         calculateWalkRailRoute(startLoc, endLoc, queryTime)
-          .then(route => {
+          .then((route) => {
             if (route) return { ...route, label: "Walk + Rail" };
             // Fallback to OSRM-based
             if (CONFIG.GOOGLE_ROUTES_FALLBACK_TO_OSRM) {
-              return calculateRoute(startLoc, endLoc, 'walk', 'balanced', queryTime)
-                .then(r => ({ ...r, label: "Walk + Rail" }));
+              return calculateRoute(
+                startLoc,
+                endLoc,
+                "walk",
+                "balanced",
+                queryTime,
+              ).then((r) => ({ ...r, label: "Walk + Rail" }));
             }
             return null;
           })
-          .catch(e => {
+          .catch((e) => {
             console.error("Google walk+rail route failed", e);
             if (CONFIG.GOOGLE_ROUTES_FALLBACK_TO_OSRM) {
-              return calculateRoute(startLoc, endLoc, 'walk', 'balanced', queryTime)
-                .then(r => ({ ...r, label: "Walk + Rail" }))
+              return calculateRoute(
+                startLoc,
+                endLoc,
+                "walk",
+                "balanced",
+                queryTime,
+              )
+                .then((r) => ({ ...r, label: "Walk + Rail" }))
                 .catch(() => null);
             }
             return null;
-          })
+          }),
       );
     } else {
       routePromises.push(
-        calculateRoute(startLoc, endLoc, 'walk', 'balanced', queryTime)
-          .then(route => ({ ...route, label: "Walk + Rail" }))
-          .catch(e => { console.error("Walk route failed", e); return null; })
+        calculateRoute(startLoc, endLoc, "walk", "balanced", queryTime)
+          .then((route) => ({ ...route, label: "Walk + Rail" }))
+          .catch((e) => {
+            console.error("Walk route failed", e);
+            return null;
+          }),
       );
     }
   }
 
   const results = await Promise.all(routePromises);
-  const filteredResults = results.filter((route): route is Route => route !== null);
+  const filteredResults = results.filter(
+    (route): route is Route => route !== null,
+  );
 
   // Add Future Route option if enabled
   if (includeFuture) {
     try {
-      const futureRoute = await calculateRoute(startLoc, endLoc, 'bike', safetyPreference, queryTime, true);
+      const futureRoute = await calculateRoute(
+        startLoc,
+        endLoc,
+        "bike",
+        safetyPreference,
+        queryTime,
+        true,
+      );
 
       if (futureRoute && futureRoute.isFuture) {
-        const bestCurrentTime = filteredResults.length > 0
-          ? Math.min(...filteredResults.map(r => r.totalDuration))
-          : Infinity;
+        const bestCurrentTime =
+          filteredResults.length > 0
+            ? Math.min(...filteredResults.map((r) => r.totalDuration))
+            : Infinity;
 
         const timeSavings = bestCurrentTime - futureRoute.totalDuration;
 
@@ -900,7 +1356,7 @@ export async function compareRoutes(
           label: "Future Route",
           isFuture: true,
           expectedOpening: futureRoute.expectedOpening,
-          timeSavings: timeSavings > 0 ? Math.round(timeSavings / 60) : null
+          timeSavings: timeSavings > 0 ? Math.round(timeSavings / 60) : null,
         });
       }
     } catch (e) {
