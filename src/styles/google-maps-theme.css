@@ -2181,6 +2181,7 @@ body {
     pointer-events: auto;
     transform: translateY(0);
     visibility: visible;
+    z-index: var(--vr-z-bottom-sheet);
   }
 
   .map-layer-panel--metadata-open {

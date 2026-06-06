@@ -511,13 +511,54 @@ test('@MBR-103 LADOT Commuter Express appears during selected weekday peak windo
   const mapErrorVisible = await page.getByText('Error Loading Google Maps').isVisible().catch(() => false);
   test.skip(mapErrorVisible, 'MBR-103 browser route search requires a working Google Maps API key; unit tests cover CE filtering deterministically.');
   await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
+  await page.evaluate(() => {
+    const maps = google.maps as unknown as {
+      Geocoder: new () => {
+        geocode: (
+          request: { address?: string },
+          callback: (results: Array<{
+            formatted_address: string;
+            geometry: { location: { lat: () => number; lng: () => number } };
+          }>, status: string) => void
+        ) => void;
+      };
+    };
+
+    maps.Geocoder = class {
+      geocode(
+        request: { address?: string },
+        callback: (results: Array<{
+          formatted_address: string;
+          geometry: { location: { lat: () => number; lng: () => number } };
+        }>, status: string) => void
+      ) {
+        const address = request.address?.toLowerCase() ?? '';
+        const isSeventh = address.includes('7th') || address.includes('metro');
+        const lat = isSeventh ? 34.0487 : 33.9860;
+        const lng = isSeventh ? -118.2587 : -118.4730;
+
+        callback([{
+          formatted_address: isSeventh ? '7th St/Metro Center' : 'Venice near CE 437',
+          geometry: {
+            location: {
+              lat: () => lat,
+              lng: () => lng
+            }
+          }
+        }], 'OK');
+      }
+    };
+  });
 
   await page.locator('.location-status').click();
   await page.getByLabel('Route mode').selectOption('all');
+  await page.getByText('Schedule').click();
   await page.getByText('Depart at').click();
-  await page.getByLabel('Departure time').fill('2026-06-02T14:30');
+  await page.getByLabel('Departure time').fill('2026-06-02T07:30');
   await page.getByPlaceholder('Your Location').fill('Venice near CE 437');
+  await page.getByPlaceholder('Your Location').press('Escape');
   await page.getByPlaceholder('Where to?').fill('7th St/Metro Center');
+  await page.getByPlaceholder('Where to?').press('Escape');
   await page.getByRole('button', { name: 'Find Route' }).click();
 
   const commuterExpress = page.locator('.route-option', { hasText: 'LADOT Commuter Express' }).first();
