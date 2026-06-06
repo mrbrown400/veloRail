@@ -17,7 +17,7 @@ function getModeLabel(mode: TravelMode): string {
     case 'transit':
       return 'Rail';
     case 'transit_bus':
-      return 'Bus';
+      return 'Commuter Express';
     case 'driving':
       return 'Drive';
   }
@@ -39,7 +39,7 @@ function getModeIcon(mode: TravelMode): ReactNode {
 }
 
 function getTransferCount(legs: RouteLeg[]): number {
-  return Math.max(0, legs.filter((leg) => leg.mode === 'transit').length - 1);
+  return Math.max(0, legs.filter((leg) => leg.mode === 'transit' || leg.mode === 'transit_bus').length - 1);
 }
 
 function getBikeSafetyScore(legs: RouteLeg[]): number | null {

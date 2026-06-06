@@ -166,5 +166,81 @@ export const TRANSIT_LINES: TransitLines = {
       { name: "Westchester/Veterans", lat: 33.9589, lon: -118.3765 },
       { name: "Aviation/Century", lat: 33.9465, lon: -118.3809 }
     ]
+  },
+  // Bounded LADOT Commuter Express first-pass dataset for active routing.
+  // Source boundary: migrated from legacy VeloRail static records and checked against LADOT route pages
+  // that describe these Commuter Express services as Monday-Friday routes. Times are peak-window estimates,
+  // not realtime GTFS departures.
+  "LADOT CE 431": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequencyPeak: 20,
+      frequencyOffpeak: null,
+      operatingWindows: {
+        weekday: [{ start: "06:00", end: "09:00" }, { start: "16:00", end: "19:00" }]
+      },
+      scheduleNotes: "Weekday peak-only Commuter Express window; static estimate, not realtime.",
+      sourceConfidence: "medium"
+    },
+    stations: [
+      { name: "Westwood (Weyburn/Westwood)", lat: 34.0620, lon: -118.4455 },
+      { name: "Union Station", lat: 34.0561, lon: -118.2375 }
+    ]
+  },
+  "LADOT CE 437": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequencyPeak: 20,
+      frequencyOffpeak: null,
+      operatingWindows: {
+        weekday: [{ start: "06:00", end: "09:00" }, { start: "16:00", end: "19:00" }]
+      },
+      scheduleNotes: "Weekday peak-only Commuter Express window; static estimate, not realtime.",
+      sourceConfidence: "medium"
+    },
+    stations: [
+      { name: "Venice (Pacific/Washington)", lat: 33.9859, lon: -118.4731 },
+      { name: "Culver City", lat: 34.0284, lon: -118.3887 },
+      { name: "7th St/Metro Center", lat: 34.0487, lon: -118.2587 }
+    ]
+  },
+  "LADOT CE 438": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequencyPeak: 20,
+      frequencyOffpeak: null,
+      operatingWindows: {
+        weekday: [{ start: "05:30", end: "09:00" }, { start: "15:30", end: "19:00" }]
+      },
+      scheduleNotes: "Weekday peak-only Commuter Express window; static estimate, not realtime.",
+      sourceConfidence: "medium"
+    },
+    stations: [
+      { name: "Redondo Beach Pier", lat: 33.8397, lon: -118.3927 },
+      { name: "Harbor Gateway", lat: 33.8693, lon: -118.2874 },
+      { name: "Union Station", lat: 34.0561, lon: -118.2359 }
+    ]
+  },
+  "LADOT CE 448": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequencyPeak: 30,
+      frequencyOffpeak: null,
+      operatingWindows: {
+        weekday: [{ start: "05:30", end: "08:30" }, { start: "16:00", end: "19:00" }]
+      },
+      scheduleNotes: "Weekday peak-only Commuter Express window; static estimate, not realtime.",
+      sourceConfidence: "medium"
+    },
+    stations: [
+      { name: "Rancho Palos Verdes (Hawthorne/Crest)", lat: 33.7612, lon: -118.4061 },
+      { name: "Harbor Freeway", lat: 33.9287, lon: -118.2891 },
+      { name: "Union Station", lat: 34.0561, lon: -118.2375 }
+    ]
   }
+
 };

@@ -97,19 +97,37 @@ export interface Station {
   expectedOpening?: string | null;
 }
 
+export type TransitScheduleType = 'rail' | 'heavy_rail' | 'light_rail' | 'brt' | 'commuter_rail' |
+  'intercity_rail' | 'people_mover' | 'airport_shuttle' | 'commuter_express' | 'shuttle';
+
+export interface OperatingWindow {
+  start: string;
+  end: string;
+}
+
+export interface TransitSchedule {
+  type: TransitScheduleType;
+  weekdayHours?: { start: number; end: number };
+  weekendHours?: { start: number; end: number };
+  frequency?: number;
+  frequencyPeak?: number;
+  frequencyOffpeak?: number | null;
+  operatingWindows?: {
+    weekday?: OperatingWindow[];
+    saturday?: OperatingWindow[];
+    sunday?: OperatingWindow[];
+  };
+  scheduleNotes?: string;
+  sourceConfidence?: 'high' | 'medium' | 'low';
+}
+
 export interface TransitLine {
   color: string;
   stations: Station[];
   gtfsRouteId?: string;
   status?: 'operating' | 'under_construction' | 'planned' | 'testing';
   expectedOpening?: string;
-  schedule?: {
-    type: 'rail' | 'heavy_rail' | 'light_rail' | 'brt' | 'commuter_rail' |
-          'intercity_rail' | 'people_mover' | 'airport_shuttle' | 'commuter_express' | 'shuttle';
-    weekdayHours?: { start: number; end: number };
-    weekendHours?: { start: number; end: number };
-    frequency?: number;
-  };
+  schedule?: TransitSchedule;
 }
 
 export type TransitLines = Record<string, TransitLine>;

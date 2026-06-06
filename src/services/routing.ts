@@ -22,7 +22,9 @@ import type {
   SafetyPreference,
   ModeFilter,
   DepartureInfo,
-  OSRMRoute
+  OSRMRoute,
+  TransitLine,
+  TransitScheduleType
 } from '@/types';
 
 // ============================================
@@ -120,31 +122,134 @@ interface TransitPlan {
 }
 
 // ============================================
-// Schedule Helpers (simplified)
+// Schedule Helpers
 // ============================================
 
-function isLineOperating(lineName: string, _time: Date, _options?: { includeFuture?: boolean }): boolean {
-  const line = TRANSIT_LINES[lineName];
-  if (!line) return false;
-  // Simplified: assume operating if status is 'operating' or not set
-  return !line.status || line.status === 'operating';
+type DayType = 'weekday' | 'saturday' | 'sunday';
+type ScheduleTypeFilter = ReadonlySet<TransitScheduleType> | null;
+
+const LA_TIME_ZONE = 'America/Los_Angeles';
+const DEFAULT_ACTIVE_SCHEDULE_TYPES = new Set<TransitScheduleType>([
+  'rail',
+  'heavy_rail',
+  'light_rail',
+  'brt',
+  'commuter_rail',
+  'intercity_rail',
+  'people_mover',
+  'airport_shuttle',
+  'shuttle'
+]);
+const COMMUTER_EXPRESS_SCHEDULE_TYPES = new Set<TransitScheduleType>(['commuter_express']);
+
+interface LocalTimeParts {
+  weekday: string;
+  minutes: number;
 }
 
-function estimateWaitTime(lineName: string): number {
+function getLocalTimeParts(time: Date): LocalTimeParts {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: LA_TIME_ZONE,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  const parts = formatter.formatToParts(time);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const hour = Number(values.hour === '24' ? '0' : values.hour);
+  const minute = Number(values.minute || '0');
+
+  return {
+    weekday: values.weekday || 'Mon',
+    minutes: hour * 60 + minute
+  };
+}
+
+export function getDayType(time: Date): DayType {
+  const weekday = getLocalTimeParts(time).weekday;
+  if (weekday === 'Sat') return 'saturday';
+  if (weekday === 'Sun') return 'sunday';
+  return 'weekday';
+}
+
+function parseTimeToMinutes(value: string): number {
+  const [hours, minutes] = value.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+export function isWithinTimeRange(time: Date, start: string, end: string): boolean {
+  const currentMinutes = getLocalTimeParts(time).minutes;
+  const startMinutes = parseTimeToMinutes(start);
+  const endMinutes = parseTimeToMinutes(end);
+
+  if (startMinutes <= endMinutes) {
+    return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+  }
+
+  return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+}
+
+function scheduleTypeAllowed(line: TransitLine, scheduleTypeFilter: ScheduleTypeFilter): boolean {
+  if (!scheduleTypeFilter || !line.schedule?.type) return true;
+  return scheduleTypeFilter.has(line.schedule.type);
+}
+
+export function isLineOperating(
+  lineName: string,
+  time: Date,
+  options?: { includeFuture?: boolean; scheduleTypeFilter?: ScheduleTypeFilter }
+): boolean {
   const line = TRANSIT_LINES[lineName];
-  if (!line?.schedule?.frequency) return 600; // Default 10 min
-  return line.schedule.frequency * 60;
+  if (!line || !scheduleTypeAllowed(line, options?.scheduleTypeFilter || null)) return false;
+
+  const isCurrent = !line.status || line.status === 'operating';
+  if (!isCurrent) return Boolean(options?.includeFuture);
+
+  const schedule = line.schedule;
+  if (!schedule) return true;
+
+  const dayType = getDayType(time);
+
+  if (schedule.operatingWindows) {
+    const windows = schedule.operatingWindows[dayType] || [];
+    if (windows.length === 0) return false;
+    return windows.some((window) => isWithinTimeRange(time, window.start, window.end));
+  }
+
+  if (dayType === 'weekday' && schedule.weekdayHours) {
+    return isWithinTimeRange(time, String(schedule.weekdayHours.start).padStart(2, '0') + ':00', String(schedule.weekdayHours.end).padStart(2, '0') + ':00');
+  }
+
+  if ((dayType === 'saturday' || dayType === 'sunday') && schedule.weekendHours) {
+    return isWithinTimeRange(time, String(schedule.weekendHours.start).padStart(2, '0') + ':00', String(schedule.weekendHours.end).padStart(2, '0') + ':00');
+  }
+
+  return true;
+}
+
+export function estimateWaitTime(lineName: string, time: Date = new Date()): number {
+  const line = TRANSIT_LINES[lineName];
+  const schedule = line?.schedule;
+  if (!schedule) return 600;
+
+  if (schedule.operatingWindows) {
+    if (!isLineOperating(lineName, time, { scheduleTypeFilter: null })) return Infinity;
+    return (schedule.frequencyPeak ?? schedule.frequency ?? 20) * 60;
+  }
+
+  return (schedule.frequency ?? schedule.frequencyPeak ?? 10) * 60;
 }
 
 async function getNextDeparture(
   lineName: string,
-  _arrivalTime: Date,
+  arrivalTime: Date,
   _stationName: string
 ): Promise<DepartureInfo> {
-  // Simplified: return estimated wait time
-  const waitSeconds = estimateWaitTime(lineName);
+  // Frequency-based static estimate. Commuter Express is not realtime-backed here.
+  const waitSeconds = estimateWaitTime(lineName, arrivalTime);
   return {
-    waitSeconds,
+    waitSeconds: Number.isFinite(waitSeconds) ? waitSeconds : 0,
     departureTime: null,
     headsign: null,
     isEstimate: true
@@ -155,10 +260,10 @@ async function getNextDeparture(
 // Station Finding Functions
 // ============================================
 
-function getAllStations(departureTime: Date | null = null, includeFuture = false): StationWithLine[] {
+function getAllStations(departureTime: Date | null = null, includeFuture = false, scheduleTypeFilter: ScheduleTypeFilter = DEFAULT_ACTIVE_SCHEDULE_TYPES): StationWithLine[] {
   const all: StationWithLine[] = [];
   for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
-    if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture })) {
+    if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture, scheduleTypeFilter })) {
       continue;
     }
     data.stations.filter(s => !s.waypoint).forEach(s => {
@@ -178,11 +283,12 @@ function findNearestStation(
   lat: number,
   lon: number,
   departureTime: Date | null = null,
-  includeFuture = false
+  includeFuture = false,
+  scheduleTypeFilter: ScheduleTypeFilter = DEFAULT_ACTIVE_SCHEDULE_TYPES
 ): StationWithLine | null {
   let nearest: StationWithLine | null = null;
   let minDist = Infinity;
-  const stations = getAllStations(departureTime, includeFuture);
+  const stations = getAllStations(departureTime, includeFuture, scheduleTypeFilter);
 
   for (const station of stations) {
     const dist = getDistance(lat, lon, station.lat, station.lon);
@@ -203,12 +309,13 @@ function getCommonLines(
   s1: Station,
   s2: Station,
   departureTime: Date | null = null,
-  includeFuture = false
+  includeFuture = false,
+  scheduleTypeFilter: ScheduleTypeFilter = DEFAULT_ACTIVE_SCHEDULE_TYPES
 ): TransitRoute[] {
   const routes: TransitRoute[] = [];
 
   for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
-    if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture })) {
+    if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture, scheduleTypeFilter })) {
       continue;
     }
 
@@ -237,12 +344,13 @@ function getCommonLines(
 function getLinesForStation(
   stationName: string,
   departureTime: Date | null = null,
-  includeFuture = false
+  includeFuture = false,
+  scheduleTypeFilter: ScheduleTypeFilter = DEFAULT_ACTIVE_SCHEDULE_TYPES
 ): string[] {
   const lines: string[] = [];
 
   for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
-    if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture })) {
+    if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture, scheduleTypeFilter })) {
       continue;
     }
 
@@ -317,12 +425,13 @@ function findBestTransfer(
   entryStation: Station,
   exitStation: Station,
   departureTime: Date | null = null,
-  includeFuture = false
+  includeFuture = false,
+  scheduleTypeFilter: ScheduleTypeFilter = DEFAULT_ACTIVE_SCHEDULE_TYPES
 ): TransferResult | null {
   const MAX_WALK_TRANSFER_KM = 0.8;
 
-  const entryLines = getLinesForStation(entryStation.name, departureTime, includeFuture);
-  const exitLines = getLinesForStation(exitStation.name, departureTime, includeFuture);
+  const entryLines = getLinesForStation(entryStation.name, departureTime, includeFuture, scheduleTypeFilter);
+  const exitLines = getLinesForStation(exitStation.name, departureTime, includeFuture, scheduleTypeFilter);
 
   if (entryLines.length === 0 || exitLines.length === 0) {
     return null;
@@ -338,8 +447,8 @@ function findBestTransfer(
       const sharedStations = findSharedStations(entryLine, exitLine, departureTime, includeFuture);
 
       for (const transferStation of sharedStations) {
-        const leg1Routes = getCommonLines(entryStation, transferStation, departureTime, includeFuture);
-        const leg2Routes = getCommonLines(transferStation, exitStation, departureTime, includeFuture);
+        const leg1Routes = getCommonLines(entryStation, transferStation, departureTime, includeFuture, scheduleTypeFilter);
+        const leg2Routes = getCommonLines(transferStation, exitStation, departureTime, includeFuture, scheduleTypeFilter);
 
         if (leg1Routes.length > 0 && leg2Routes.length > 0) {
           let leg1 = leg1Routes[0];
@@ -369,8 +478,8 @@ function findBestTransfer(
       const nearbyTransfers = findNearbyStationPairs(entryLine, exitLine, MAX_WALK_TRANSFER_KM, departureTime, includeFuture);
 
       for (const { station1, station2, distance } of nearbyTransfers) {
-        const leg1Routes = getCommonLines(entryStation, station1, departureTime, includeFuture);
-        const leg2Routes = getCommonLines(station2, exitStation, departureTime, includeFuture);
+        const leg1Routes = getCommonLines(entryStation, station1, departureTime, includeFuture, scheduleTypeFilter);
+        const leg2Routes = getCommonLines(station2, exitStation, departureTime, includeFuture, scheduleTypeFilter);
 
         if (leg1Routes.length > 0 && leg2Routes.length > 0) {
           let leg1 = leg1Routes[0];
@@ -446,7 +555,8 @@ export async function calculateRoute(
   travelMode: TravelMode = 'bike',
   _safetyPreference: SafetyPreference = 'balanced',
   departureTime: Date | null = null,
-  includeFuture = false
+  includeFuture = false,
+  scheduleTypeFilter: ScheduleTypeFilter = DEFAULT_ACTIVE_SCHEDULE_TYPES
 ): Promise<Route> {
   // Note: _safetyPreference is available for future ORS integration
   const queryTime = departureTime || new Date();
@@ -469,13 +579,13 @@ export async function calculateRoute(
 
   const busPenaltySeconds = isBus ? 600 : 0;
 
-  const entryStation = findNearestStation(startLoc.lat, startLoc.lon, queryTime, includeFuture);
-  const exitStation = findNearestStation(endLoc.lat, endLoc.lon, queryTime, includeFuture);
+  const entryStation = findNearestStation(startLoc.lat, startLoc.lon, queryTime, includeFuture, scheduleTypeFilter);
+  const exitStation = findNearestStation(endLoc.lat, endLoc.lon, queryTime, includeFuture, scheduleTypeFilter);
 
   const legs: RouteLeg[] = [];
 
   const commonRoutes = entryStation && exitStation
-    ? getCommonLines(entryStation, exitStation, queryTime, includeFuture)
+    ? getCommonLines(entryStation, exitStation, queryTime, includeFuture, scheduleTypeFilter)
     : [];
 
   let transitPlan: TransitPlan | null = null;
@@ -494,7 +604,7 @@ export async function calculateRoute(
     }
     transitPlan = { type: 'direct', line: selectedRoute };
   } else if (entryStation && exitStation) {
-    const transferResult = findBestTransfer(entryStation, exitStation, queryTime, includeFuture);
+    const transferResult = findBestTransfer(entryStation, exitStation, queryTime, includeFuture, scheduleTypeFilter);
 
     if (transferResult) {
       transitPlan = {
@@ -587,7 +697,7 @@ export async function calculateRoute(
       const transitDuration = (transitDistance / avgSpeedKmh) * 3600 + waitTimeSeconds;
 
       legs.push({
-        mode: 'transit',
+        mode: isBus ? 'transit_bus' : 'transit',
         line: bestTransit.line,
         routeId: bestTransit.gtfsRouteId || null,
         color: bestTransit.color,
@@ -621,7 +731,7 @@ export async function calculateRoute(
       const leg1Coordinates = leg1.segment.map(s => [s.lon, s.lat] as [number, number]);
 
       legs.push({
-        mode: 'transit',
+        mode: isBus ? 'transit_bus' : 'transit',
         line: leg1.line,
         routeId: leg1.gtfsRouteId || null,
         color: leg1.color,
@@ -648,7 +758,7 @@ export async function calculateRoute(
       const leg2Coordinates = leg2.segment.map(s => [s.lon, s.lat] as [number, number]);
 
       legs.push({
-        mode: 'transit',
+        mode: isBus ? 'transit_bus' : 'transit',
         line: leg2.line,
         routeId: leg2.gtfsRouteId || null,
         color: leg2.color,
@@ -697,16 +807,16 @@ export async function calculateRoute(
       return `Direct ${travelMode === 'bike' ? 'Bike' : 'Walk'} (${legs[0].distance.toFixed(1)} km)`;
     }
     if (transitPlan?.type === 'direct' && transitPlan.line) {
-      return `${isBus ? 'Bus' : (travelMode === 'bike' ? 'Bike' : 'Walk')} to ${entryStation?.name}, Take ${transitPlan.line.line} Line`;
+      return `${isBus ? 'Commuter Express bus' : (travelMode === 'bike' ? 'Bike' : 'Walk')} to ${entryStation?.name}, Take ${isBus ? transitPlan.line.line : `${transitPlan.line.line} Line`}`;
     }
     if (transitPlan?.type === 'transfer' && transitPlan.leg1 && transitPlan.leg2 && transitPlan.hub) {
-      return `${isBus ? 'Bus' : (travelMode === 'bike' ? 'Bike' : 'Walk')} to ${entryStation?.name}, Take ${transitPlan.leg1.line}/${transitPlan.leg2.line} (Transfer at ${transitPlan.hub.name})`;
+      return `${isBus ? 'Commuter Express bus' : (travelMode === 'bike' ? 'Bike' : 'Walk')} to ${entryStation?.name}, Take ${transitPlan.leg1.line}/${transitPlan.leg2.line} (Transfer at ${transitPlan.hub.name})`;
     }
     return 'Route calculated';
   };
 
   return {
-    type: travelMode === 'bike' ? 'Bike + Metro' : (travelMode === 'transit_bus' ? 'Transit + Bus' : 'Walk + Metro'),
+    type: travelMode === 'bike' ? 'Bike + Metro' : (travelMode === 'transit_bus' ? 'Commuter Express Bus' : 'Walk + Metro'),
     label: '',
     start: startLoc,
     end: endLoc,
@@ -845,6 +955,18 @@ export async function compareRoutes(
           .catch(e => { console.error("Driving route failed", e); return null; })
       );
     }
+  }
+
+
+  // LADOT Commuter Express - VeloRail-owned static routing, only in all-mode during active windows.
+  if (modeFilter === 'all') {
+    routePromises.push(
+      calculateRoute(startLoc, endLoc, 'transit_bus', 'balanced', queryTime, false, COMMUTER_EXPRESS_SCHEDULE_TYPES)
+        .then(route => route.legs.some((leg) => leg.mode === 'transit_bus' && leg.line?.startsWith('LADOT CE'))
+          ? ({ ...route, label: 'LADOT Commuter Express' })
+          : null)
+        .catch(e => { console.error('Commuter Express route failed', e); return null; })
+    );
   }
 
   // Walk + Rail - use Google Transit if enabled (includes bus connections)
