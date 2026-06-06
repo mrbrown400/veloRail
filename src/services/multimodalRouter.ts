@@ -19,7 +19,8 @@ import type {
   Location,
   Station,
   Route,
-  RouteLeg
+  RouteLeg,
+  TimeMode
 } from '@/types';
 
 // ============================================
@@ -67,7 +68,8 @@ const MAX_BIKE_DISTANCE_KM = 8;
 export async function calculateBikeRailRoute(
   origin: Location,
   destination: Location,
-  departureTime: Date
+  queryTime: Date,
+  timeMode: TimeMode = 'departAt'
 ): Promise<Route | null> {
   if (!isGoogleMapsConfigured()) {
     console.warn('Google Maps not configured, cannot use bike+rail routing');
@@ -129,7 +131,8 @@ export async function calculateBikeRailRoute(
       exitStation,
       origin,
       destination,
-      departureTime,
+      queryTime,
+      timeMode,
       MAX_BIKE_DISTANCE_KM,
       destinationIsStation
     );
@@ -154,7 +157,8 @@ async function buildRouteFromStations(
   exitStation: Station,
   origin: Location,
   destination: Location,
-  departureTime: Date,
+  queryTime: Date,
+  timeMode: TimeMode,
   maxBikeDistanceKm: number,
   destinationIsStation: boolean = false
 ): Promise<Route | null> {
@@ -184,8 +188,8 @@ async function buildRouteFromStations(
   );
 
   // Step 3: Calculate arrival time at station using custom bike duration
-  const arrivalAtStation = new Date(
-    departureTime.getTime() + bikeToStationDuration.totalDuration * 1000
+  const departureArrivalAtStation = new Date(
+    queryTime.getTime() + bikeToStationDuration.totalDuration * 1000
   );
 
   // Step 4: Get transit route from entry station to exit point
@@ -195,10 +199,29 @@ async function buildRouteFromStations(
     ? { lat: destination.lat, lon: destination.lon }
     : { lat: exitStation.lat, lon: exitStation.lon };
 
+  let estimatedEgressDurationSeconds = 0;
+  if (timeMode === 'arriveBy' && !destinationIsStation) {
+    const estimatedBikeFromStation = await getBikeRoute({ lat: exitStation.lat, lon: exitStation.lon }, destination);
+    if (estimatedBikeFromStation) {
+      const estimatedBikeSettings = loadBikeSettings();
+      const estimatedBikeDuration = await calculateBikeDuration(
+        estimatedBikeFromStation.geometry,
+        estimatedBikeFromStation.distance,
+        estimatedBikeSettings
+      );
+      estimatedEgressDurationSeconds = estimatedBikeDuration.totalDuration;
+    }
+  }
+
+  const transitQueryTime = timeMode === 'arriveBy'
+    ? new Date(queryTime.getTime() - estimatedEgressDurationSeconds * 1000)
+    : departureArrivalAtStation;
+
   const transitResult = await getFullTransitRoute(
     { lat: entryStation.lat, lon: entryStation.lon },
     transitDestination,
-    arrivalAtStation
+    transitQueryTime,
+    timeMode
   );
 
   if (!transitResult || transitResult.legs.length === 0) {
@@ -268,8 +291,8 @@ async function buildRouteFromStations(
       const ti = transitLeg.transitInfo;
 
       // Wait time based on custom bike arrival time
-      const waitTime = legs.length === 1
-        ? Math.max(0, (ti.departureTime.getTime() - arrivalAtStation.getTime()) / 1000)
+      const waitTime = legs.length === 1 && timeMode === 'departAt'
+        ? Math.max(0, (ti.departureTime.getTime() - departureArrivalAtStation.getTime()) / 1000)
         : 0;
 
       const fromStation: Station = {
@@ -331,7 +354,11 @@ async function buildRouteFromStations(
   }
 
   // Step 8: Build the final route
-  return stitchRoute(legs, origin, destination);
+  return {
+    ...stitchRoute(legs, origin, destination),
+    timeMode,
+    requestedTime: queryTime
+  };
 }
 
 // ============================================
@@ -437,11 +464,12 @@ export async function calculateDirectBikeRoute(
 export async function calculateBestBikeRoute(
   origin: Location,
   destination: Location,
-  departureTime: Date
+  departureTime: Date,
+  timeMode: TimeMode = 'departAt'
 ): Promise<Route | null> {
   // Try both in parallel
   const [bikeRailRoute, directBikeRoute] = await Promise.all([
-    calculateBikeRailRoute(origin, destination, departureTime).catch(() => null),
+    calculateBikeRailRoute(origin, destination, departureTime, timeMode).catch(() => null),
     calculateDirectBikeRoute(origin, destination).catch(() => null)
   ]);
 
@@ -468,7 +496,8 @@ export async function calculateBestBikeRoute(
 export async function calculateWalkRailRoute(
   origin: Location,
   destination: Location,
-  departureTime: Date
+  queryTime: Date,
+  timeMode: TimeMode = 'departAt'
 ): Promise<Route | null> {
   if (!isGoogleMapsConfigured()) {
     console.warn('Google Maps not configured, cannot use walk+rail routing');
@@ -476,7 +505,7 @@ export async function calculateWalkRailRoute(
   }
 
   try {
-    const transitResult = await getFullTransitRoute(origin, destination, departureTime);
+    const transitResult = await getFullTransitRoute(origin, destination, queryTime, timeMode);
 
     if (!transitResult || transitResult.legs.length === 0) {
       console.log('No transit route found for walk+rail');
@@ -574,7 +603,9 @@ export async function calculateWalkRailRoute(
       totalDistance,
       totalDuration,
       formattedDuration: formatDuration(totalDuration),
-      summary
+      summary,
+      timeMode,
+      requestedTime: queryTime
     };
   } catch (error) {
     console.error('Walk+rail routing error:', error);

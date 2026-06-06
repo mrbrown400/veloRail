@@ -20,6 +20,7 @@ import type {
   RouteLeg,
   TravelMode,
   SafetyPreference,
+  TimeMode,
   ModeFilter,
   DepartureInfo,
   OSRMRoute,
@@ -840,7 +841,8 @@ export async function compareRoutes(
   safetyPreference: SafetyPreference = 'balanced',
   modeFilter: ModeFilter = 'all',
   departureTime: Date | null = null,
-  includeFuture = false
+  includeFuture = false,
+  timeMode: TimeMode = 'departAt'
 ): Promise<Route[]> {
   const startLoc = (typeof startInput === 'string') ? await geocode(startInput) : startInput;
   const endLoc = (typeof endInput === 'string') ? await geocode(endInput) : endInput;
@@ -851,6 +853,17 @@ export async function compareRoutes(
 
   const queryTime = departureTime || new Date();
 
+  const withTimeMetadata = (route: Route, notice: string | null = null): Route => ({
+    ...route,
+    timeMode,
+    requestedTime: queryTime,
+    timeModeNotice: notice
+  });
+
+  const fallbackNotice = timeMode === 'arriveBy'
+    ? 'This fallback route provider does not support true Arrive by scheduling, so durations are estimated while preserving the requested arrival mode in metadata.'
+    : null;
+
   const routePromises: Promise<Route | null>[] = [];
 
   // Bike + Rail - use Google Routes if enabled, fallback to OSRM
@@ -858,16 +871,16 @@ export async function compareRoutes(
     if (isGoogleRoutesEnabled()) {
       // Use Google Routes API for bike+rail
       routePromises.push(
-        calculateBikeRailRoute(startLoc, endLoc, queryTime)
+        calculateBikeRailRoute(startLoc, endLoc, queryTime, timeMode)
           .then(route => {
             if (route) {
-              return { ...route, label: "Bike + Rail" };
+              return withTimeMetadata({ ...route, label: "Bike + Rail" });
             }
             // Fallback to OSRM-based routing if Google fails
             if (CONFIG.GOOGLE_ROUTES_FALLBACK_TO_OSRM) {
               console.log('Google Routes failed, falling back to OSRM');
               return calculateRoute(startLoc, endLoc, 'bike', safetyPreference, queryTime)
-                .then(r => ({ ...r, label: "Bike + Rail" }));
+                .then(r => withTimeMetadata({ ...r, label: "Bike + Rail" }, fallbackNotice));
             }
             return null;
           })
@@ -876,7 +889,7 @@ export async function compareRoutes(
             // Fallback to OSRM
             if (CONFIG.GOOGLE_ROUTES_FALLBACK_TO_OSRM) {
               return calculateRoute(startLoc, endLoc, 'bike', safetyPreference, queryTime)
-                .then(r => ({ ...r, label: "Bike + Rail" }))
+                .then(r => withTimeMetadata({ ...r, label: "Bike + Rail" }, fallbackNotice))
                 .catch(() => null);
             }
             return null;
@@ -886,7 +899,7 @@ export async function compareRoutes(
       // Use OSRM-based routing
       routePromises.push(
         calculateRoute(startLoc, endLoc, 'bike', safetyPreference, queryTime)
-          .then(route => ({ ...route, label: "Bike + Rail" }))
+          .then(route => withTimeMetadata({ ...route, label: "Bike + Rail" }, fallbackNotice))
           .catch(e => { console.error("Bike route failed", e); return null; })
       );
     }
@@ -898,13 +911,13 @@ export async function compareRoutes(
       routePromises.push(
         calculateGoogleDrivingRoute(startLoc, endLoc)
           .then(route => {
-            if (route) return { ...route, label: "Driving" };
+            if (route) return withTimeMetadata({ ...route, label: "Driving" }, fallbackNotice);
             // Fallback to OSRM
             if (CONFIG.GOOGLE_ROUTES_FALLBACK_TO_OSRM) {
               return getOSRMRoute([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: endLoc.lat, lon: endLoc.lon }], 'driving')
                 .then(drivingRoute => {
                   if (!drivingRoute) return null;
-                  return {
+                  const route = {
                     type: 'Driving',
                     label: "Driving",
                     start: startLoc,
@@ -922,6 +935,7 @@ export async function compareRoutes(
                     formattedDuration: formatDuration(drivingRoute.duration * 1.5),
                     summary: `Direct Drive (${drivingRoute.distance.toFixed(1)} km)`
                   } as Route;
+                  return withTimeMetadata(route, fallbackNotice);
                 });
             }
             return null;
@@ -933,7 +947,7 @@ export async function compareRoutes(
         getOSRMRoute([{ lat: startLoc.lat, lon: startLoc.lon }, { lat: endLoc.lat, lon: endLoc.lon }], 'driving')
           .then(drivingRoute => {
             if (!drivingRoute) return null;
-            return {
+            const route = {
               type: 'Driving',
               label: "Driving",
               start: startLoc,
@@ -951,6 +965,7 @@ export async function compareRoutes(
               formattedDuration: formatDuration(drivingRoute.duration * 1.5),
               summary: `Direct Drive (${drivingRoute.distance.toFixed(1)} km)`
             } as Route;
+            return withTimeMetadata(route, fallbackNotice);
           })
           .catch(e => { console.error("Driving route failed", e); return null; })
       );
@@ -973,13 +988,13 @@ export async function compareRoutes(
   if (modeFilter === 'all' || modeFilter === 'walk') {
     if (isGoogleRoutesEnabled()) {
       routePromises.push(
-        calculateWalkRailRoute(startLoc, endLoc, queryTime)
+        calculateWalkRailRoute(startLoc, endLoc, queryTime, timeMode)
           .then(route => {
-            if (route) return { ...route, label: "Walk + Rail" };
+            if (route) return withTimeMetadata({ ...route, label: "Walk + Rail" });
             // Fallback to OSRM-based
             if (CONFIG.GOOGLE_ROUTES_FALLBACK_TO_OSRM) {
               return calculateRoute(startLoc, endLoc, 'walk', 'balanced', queryTime)
-                .then(r => ({ ...r, label: "Walk + Rail" }));
+                .then(r => withTimeMetadata({ ...r, label: "Walk + Rail" }, fallbackNotice));
             }
             return null;
           })
@@ -987,7 +1002,7 @@ export async function compareRoutes(
             console.error("Google walk+rail route failed", e);
             if (CONFIG.GOOGLE_ROUTES_FALLBACK_TO_OSRM) {
               return calculateRoute(startLoc, endLoc, 'walk', 'balanced', queryTime)
-                .then(r => ({ ...r, label: "Walk + Rail" }))
+                .then(r => withTimeMetadata({ ...r, label: "Walk + Rail" }, fallbackNotice))
                 .catch(() => null);
             }
             return null;
@@ -996,7 +1011,7 @@ export async function compareRoutes(
     } else {
       routePromises.push(
         calculateRoute(startLoc, endLoc, 'walk', 'balanced', queryTime)
-          .then(route => ({ ...route, label: "Walk + Rail" }))
+          .then(route => withTimeMetadata({ ...route, label: "Walk + Rail" }, fallbackNotice))
           .catch(e => { console.error("Walk route failed", e); return null; })
       );
     }
@@ -1017,13 +1032,13 @@ export async function compareRoutes(
 
         const timeSavings = bestCurrentTime - futureRoute.totalDuration;
 
-        filteredResults.push({
+        filteredResults.push(withTimeMetadata({
           ...futureRoute,
           label: "Future Route",
           isFuture: true,
           expectedOpening: futureRoute.expectedOpening,
           timeSavings: timeSavings > 0 ? Math.round(timeSavings / 60) : null
-        });
+        }, fallbackNotice));
       }
     } catch (e) {
       console.error("Future route calculation failed", e);

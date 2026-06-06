@@ -1133,9 +1133,31 @@ body {
 .time-selector {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--gm-spacing-sm);
   padding: var(--gm-spacing-md);
   border-top: 1px solid var(--gm-border);
+}
+
+.time-selector-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gm-spacing-sm);
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.time-selector-group--time-mode {
+  gap: var(--gm-spacing-xs);
+}
+
+.time-mode-legend {
+  font-size: var(--gm-font-size-xs);
+  color: var(--gm-text-tertiary);
+  margin-right: var(--gm-spacing-xs);
 }
 
 .time-option {
@@ -1149,6 +1171,19 @@ body {
 
 .time-option input[type="radio"] {
   accent-color: var(--gm-blue);
+}
+
+.time-option--pill {
+  padding: 4px 8px;
+  border: 1px solid var(--gm-border);
+  border-radius: 999px;
+  background: var(--gm-surface);
+}
+
+.time-option--pill:has(input[type="radio"]:checked) {
+  border-color: var(--gm-blue);
+  background: var(--gm-background-selected);
+  color: var(--gm-blue);
 }
 
 .custom-time-input {

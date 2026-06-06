@@ -12,6 +12,7 @@ import type {
   RouteLeg,
   SafetyPreference,
   Station,
+  TimeMode,
   TravelMode
 } from '@/types';
 
@@ -28,6 +29,7 @@ export interface RoutingComparisonQuery {
   origin: Location;
   destination: Location;
   departureTime: Date;
+  timeMode: TimeMode;
   scenario: RoutingComparisonScenario;
   includeFuture: boolean;
   safetyPreference: SafetyPreference;
@@ -39,6 +41,7 @@ export interface RoutingComparisonRequest {
   origin: Location;
   destination: Location;
   departureTime?: Date;
+  timeMode?: TimeMode;
   scenario?: RoutingComparisonScenario;
   includeFuture?: boolean;
   safetyPreference?: SafetyPreference;
@@ -222,7 +225,8 @@ export async function getGoogleMapsBaselineRoutes(
     return buildGoogleTransitBaseline(
       query.origin,
       query.destination,
-      query.departureTime
+      query.departureTime,
+      query.timeMode
     );
   });
 
@@ -235,6 +239,7 @@ function normalizeQuery(request: RoutingComparisonRequest): RoutingComparisonQue
     origin: request.origin,
     destination: request.destination,
     departureTime: request.departureTime || new Date(),
+    timeMode: request.timeMode || 'departAt',
     scenario: request.scenario || 'current',
     includeFuture: request.includeFuture || false,
     safetyPreference: request.safetyPreference || 'balanced',
@@ -252,7 +257,8 @@ async function defaultVeloRailRouteProvider(
     query.safetyPreference,
     query.modeFilter,
     query.departureTime,
-    query.includeFuture
+    query.includeFuture,
+    query.timeMode
   );
 }
 
@@ -467,9 +473,10 @@ async function buildGoogleDrivingBaseline(
 async function buildGoogleTransitBaseline(
   origin: Location,
   destination: Location,
-  departureTime: Date
+  departureTime: Date,
+  timeMode: TimeMode = 'departAt'
 ): Promise<Route | null> {
-  const result = await getFullTransitRoute(origin, destination, departureTime);
+  const result = await getFullTransitRoute(origin, destination, departureTime, timeMode);
   if (!result || result.legs.length === 0) return null;
 
   const legs = result.legs.map((leg, index): RouteLeg => {

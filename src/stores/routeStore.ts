@@ -23,6 +23,7 @@ const initialSearchParams: SearchParams = {
   mode: 'all' as ModeFilter,
   safety: 'balanced' as SafetyPreference,
   departureTime: new Date(),
+  timeMode: 'departAt',
 };
 
 export const useRouteStore = create<RouteState>((set) => ({

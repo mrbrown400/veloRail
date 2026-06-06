@@ -143,6 +143,7 @@ export type TransitLines = Record<string, TransitLine>;
 export type TravelMode = 'bike' | 'walk' | 'transit' | 'transit_bus' | 'driving';
 export type SafetyPreference = 'balanced' | 'safe' | 'fast';
 export type ModeFilter = 'all' | 'bike' | 'walk' | 'driving';
+export type TimeMode = 'departAt' | 'arriveBy';
 
 export interface RouteLeg {
   mode: TravelMode;
@@ -182,6 +183,9 @@ export interface Route {
   isFuture?: boolean;
   expectedOpening?: string | null;
   timeSavings?: number | null;
+  timeMode?: TimeMode;
+  requestedTime?: Date;
+  timeModeNotice?: string | null;
 }
 
 export interface SafetyInfo {
@@ -203,6 +207,7 @@ export interface SearchParams {
   mode: ModeFilter;
   safety: SafetyPreference;
   departureTime: Date;
+  timeMode: TimeMode;
 }
 
 // ============================================

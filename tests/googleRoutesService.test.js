@@ -157,6 +157,7 @@ test('full transit routes convert walking and rail steps from Routes API', async
 
   assert.equal(lastComputeRequest.travelMode, 'TRANSIT');
   assert.equal(lastComputeRequest.departureTime, departureTime);
+  assert.equal(lastComputeRequest.arrivalTime, undefined);
   assert.deepEqual(lastComputeRequest.transitPreference.allowedTransitModes, ['RAIL', 'SUBWAY', 'TRAIN', 'LIGHT_RAIL']);
   assert.equal(lastComputeRequest.transitPreference.routingPreference, 'LESS_WALKING');
   assert.equal(result.totalDistance, 10.5);
@@ -170,4 +171,32 @@ test('full transit routes convert walking and rail steps from Routes API', async
   assert.equal(result.legs[1].transitInfo.departureStopName, '7th St/Metro Center');
   assert.equal(result.legs[1].transitInfo.arrivalStopLng, -118.4340);
   assert.equal(result.legs[1].transitInfo.departureTime.toISOString(), '2026-05-20T15:05:00.000Z');
+});
+
+test('full transit routes can request Arrive by with Google Routes arrivalTime', async () => {
+  const arrivalTime = new Date('2026-05-20T16:00:00.000Z');
+  installRoutesMock({
+    routes: [{
+      distanceMeters: 1000,
+      durationMillis: 600000,
+      path: [
+        { lat: 34.05, lng: -118.25 },
+        { lat: 34.06, lng: -118.26 }
+      ],
+      legs: [{ steps: [] }]
+    }]
+  });
+
+  const { getFullTransitRoute } = await loadAppModule('/src/services/googleRoutesService.ts');
+
+  await getFullTransitRoute(
+    { lat: 34.05, lon: -118.25 },
+    { lat: 34.06, lon: -118.26 },
+    arrivalTime,
+    'arriveBy'
+  );
+
+  assert.equal(lastComputeRequest.travelMode, 'TRANSIT');
+  assert.equal(lastComputeRequest.departureTime, undefined);
+  assert.equal(lastComputeRequest.arrivalTime, arrivalTime);
 });
