@@ -264,3 +264,52 @@ test('@MBR-85 @MBR-88 @MBR-89 layer feature list opens metadata without a map cl
   await expect(firstFeature).toBeFocused();
   expect(firstFeatureText.length).toBeGreaterThan(0);
 });
+
+test('@MBR-101 future detail entries hover, focus, and click-highlight their rendered proposal line', async ({ page }) => {
+  await ensureMapsAvailable(page);
+
+  await page.evaluate(() => {
+    (window as unknown as { __veloRailHighlightEvents: Array<Record<string, unknown>> }).__veloRailHighlightEvents = [];
+    window.addEventListener('velorail:map-overlay-feature-highlighted', (event) => {
+      const customEvent = event as CustomEvent<Record<string, unknown>>;
+      (window as unknown as { __veloRailHighlightEvents: Array<Record<string, unknown>> }).__veloRailHighlightEvents.push(customEvent.detail);
+    });
+  });
+
+  await page.getByRole('button', { name: /Present \+ Future/i }).click();
+
+  const dLineDetail = page.getByRole('button', {
+    name: /D Line Westwood Extension.*Hover or focus to highlight this line/i
+  });
+
+  await expect(dLineDetail).toBeVisible();
+  await dLineDetail.hover();
+  await expect(dLineDetail).toHaveClass(/map-layer-feature-list__item--hovered/);
+  await expect.poll(async () => page.evaluate(() => {
+    const events = (window as unknown as { __veloRailHighlightEvents: Array<Record<string, unknown>> }).__veloRailHighlightEvents;
+
+    return events.some((event) => (
+      event.featureId === 'metro-d-line-extension-westwood-line'
+      && event.state === 'hovered'
+      && event.strokeWeight === 6
+    ));
+  })).toBe(true);
+
+  await dLineDetail.click();
+  await expect(dLineDetail).toHaveClass(/map-layer-feature-list__item--selected/);
+  const metadataPanel = page.getByRole('region', { name: /D Line Westwood Extension/i });
+  await expect(metadataPanel).toBeVisible();
+  await expect(metadataPanel).toContainText('D Line Westwood Extension');
+  await expect.poll(async () => page.evaluate(() => {
+    const events = (window as unknown as { __veloRailHighlightEvents: Array<Record<string, unknown>> }).__veloRailHighlightEvents;
+
+    return events.some((event) => (
+      event.featureId === 'metro-d-line-extension-westwood-line'
+      && event.state === 'selected'
+      && event.strokeWeight === 8
+    ));
+  })).toBe(true);
+
+  await metadataPanel.getByRole('button', { name: 'Close metadata' }).click();
+  await expect(dLineDetail).not.toHaveClass(/map-layer-feature-list__item--selected/);
+});

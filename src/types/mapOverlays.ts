@@ -9,8 +9,21 @@ export type MapOverlayScenario =
   | 'nationalized'
   | 'context';
 
+export type MapOverlayFeatureHighlightState = 'idle' | 'hovered' | 'selected';
+
+export interface MapOverlayFeatureIdentity {
+  overlayId: MapOverlayId;
+  featureId: string;
+}
+
+export interface MapOverlayFeatureHighlight {
+  featureId: string;
+  state: MapOverlayFeatureHighlightState;
+}
+
 export interface MapOverlayHandle {
   setVisible: (visible: boolean) => void;
+  setFeatureHighlight?: (highlight: MapOverlayFeatureHighlight | null) => void;
   dispose: () => void;
 }
 

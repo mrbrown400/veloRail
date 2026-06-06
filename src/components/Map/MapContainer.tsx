@@ -14,6 +14,8 @@ import {
   getMapOverlayGroupDefinitions,
   getMapOverlayLegendItems,
   getOrderedMapOverlayDefinitions,
+  getOverlayFeatureIdentityKey,
+  type MapOverlayFeatureListItem,
   type MapOverlayMetadata
 } from './mapOverlayRegistry';
 import {
@@ -55,7 +57,6 @@ const overlayControlById = new Map(
 );
 const overlayGroups = getMapOverlayGroupDefinitions();
 const overlayLegendItems = getMapOverlayLegendItems();
-const overlayFeatureListItems = getMapOverlayFeatureListItems();
 const comparisonModes = getMapOverlayComparisonModes();
 
 interface RouteViewportPaddingInput {
@@ -133,6 +134,11 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
   const comparisonMode = useMapOverlayStore((state) => state.comparisonMode);
   const setComparisonMode = useMapOverlayStore((state) => state.setComparisonMode);
   const toggleOverlay = useMapOverlayStore((state) => state.toggleOverlay);
+  const hoveredFeature = useMapOverlayStore((state) => state.hoveredFeature);
+  const selectedFeature = useMapOverlayStore((state) => state.selectedFeature);
+  const setHoveredFeature = useMapOverlayStore((state) => state.setHoveredFeature);
+  const setSelectedFeature = useMapOverlayStore((state) => state.setSelectedFeature);
+  const clearOverlayFeatureSelection = useMapOverlayStore((state) => state.clearOverlayFeatureSelection);
   const comparisonModeDefinition = getMapOverlayComparisonModeDefinition(comparisonMode);
   const activeOverlayCount = overlayControls.filter(
     (overlay) => overlayVisibility[overlay.id] ?? false
@@ -140,9 +146,9 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
   const visibleLegendItems = overlayLegendItems.filter(
     (item) => overlayVisibility[item.overlayId] ?? false
   );
-  const visibleFeatureListItems = overlayFeatureListItems.filter(
-    (item) => overlayVisibility[item.overlayId] ?? false
-  );
+  const visibleFeatureListItems = getMapOverlayFeatureListItems(overlayVisibility);
+  const hoveredFeatureKey = hoveredFeature ? getOverlayFeatureIdentityKey(hoveredFeature) : null;
+  const selectedFeatureKey = selectedFeature ? getOverlayFeatureIdentityKey(selectedFeature) : null;
   const isVisionaryOverlayVisible = overlayVisibility['visionary-concepts'] ?? false;
   const isNationalizedOverlayVisible = overlayVisibility['nationalized-rail'] ?? false;
 
@@ -165,6 +171,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
       const customEvent = event as CustomEvent<MapOverlayMetadata>;
       metadataTriggerRef.current = null;
       setSelectedOverlayMetadata(customEvent.detail);
+      setSelectedFeature(customEvent.detail.featureIdentity ?? null);
     };
 
     window.addEventListener(MAP_OVERLAY_METADATA_EVENT, handleMetadataSelected);
@@ -172,7 +179,7 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
     return () => {
       window.removeEventListener(MAP_OVERLAY_METADATA_EVENT, handleMetadataSelected);
     };
-  }, []);
+  }, [setSelectedFeature]);
 
   useEffect(() => {
     if (selectedOverlayMetadata) {
@@ -225,17 +232,28 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
 
   const closeMetadata = useCallback(() => {
     setSelectedOverlayMetadata(null);
+    clearOverlayFeatureSelection();
     window.requestAnimationFrame(() => {
       const fallbackFocusTarget = metadataTriggerRef.current
         ?? (isLayerPanelOpen ? layerHeadingRef.current : layerTriggerRef.current);
       fallbackFocusTarget?.focus();
     });
-  }, [isLayerPanelOpen]);
+  }, [clearOverlayFeatureSelection, isLayerPanelOpen]);
 
-  const openFeatureMetadata = useCallback((metadata: MapOverlayMetadata, trigger: HTMLElement) => {
+  const openFeatureMetadata = useCallback((item: MapOverlayFeatureListItem, trigger: HTMLElement) => {
     metadataTriggerRef.current = trigger;
-    setSelectedOverlayMetadata(metadata);
-  }, []);
+    setSelectedFeature(item.highlightAvailable ? item.identity : null);
+    setSelectedOverlayMetadata(item.metadata);
+  }, [setSelectedFeature]);
+
+  useEffect(() => {
+    const selectedFeatureIdentity = selectedOverlayMetadata?.featureIdentity;
+
+    if (selectedFeatureIdentity && !(overlayVisibility[selectedFeatureIdentity.overlayId] ?? false)) {
+      setSelectedOverlayMetadata(null);
+      clearOverlayFeatureSelection();
+    }
+  }, [clearOverlayFeatureSelection, overlayVisibility, selectedOverlayMetadata]);
 
   // Fit bounds when route changes
   useEffect(() => {
@@ -430,17 +448,31 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
           </p>
           {visibleFeatureListItems.length > 0 ? (
             <div className="map-layer-feature-list__items">
-              {visibleFeatureListItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`map-layer-feature-list__item map-layer-feature-list__item--${item.scenario}`}
-                  onClick={(event) => openFeatureMetadata(item.metadata, event.currentTarget)}
-                >
-                  <span className="map-layer-feature-list__label">{item.label}</span>
-                  <span className="map-layer-feature-list__description">{item.description}</span>
-                </button>
-              ))}
+              {visibleFeatureListItems.map((item) => {
+                const featureKey = getOverlayFeatureIdentityKey(item.identity);
+                const isHovered = hoveredFeatureKey === featureKey;
+                const isSelected = selectedFeatureKey === featureKey;
+
+                return (
+                  <button
+                    key={featureKey}
+                    type="button"
+                    className={`map-layer-feature-list__item map-layer-feature-list__item--${item.scenario} ${isHovered ? 'map-layer-feature-list__item--hovered' : ''} ${isSelected ? 'map-layer-feature-list__item--selected' : ''} ${item.highlightAvailable ? '' : 'map-layer-feature-list__item--metadata-only'}`}
+                    aria-pressed={isSelected}
+                    aria-label={`${item.label}. ${item.description}. ${item.highlightAvailable ? 'Hover or focus to highlight this line; activate to open metadata and keep it selected.' : item.highlightUnavailableReason}`}
+                    title={item.highlightUnavailableReason ?? item.description}
+                    onMouseEnter={() => item.highlightAvailable && setHoveredFeature(item.identity)}
+                    onMouseLeave={() => setHoveredFeature(null)}
+                    onFocus={() => item.highlightAvailable && setHoveredFeature(item.identity)}
+                    onBlur={() => setHoveredFeature(null)}
+                    onClick={(event) => openFeatureMetadata(item, event.currentTarget)}
+                  >
+                    <span className="map-layer-feature-list__label">{item.label}</span>
+                    <span className="map-layer-feature-list__description">{item.description}</span>
+                    <span className="map-layer-feature-list__badge">{item.badgeLabel}</span>
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <p className="map-layer-feature-list__empty">
