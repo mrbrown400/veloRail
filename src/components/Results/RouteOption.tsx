@@ -42,6 +42,10 @@ function getTransferCount(legs: RouteLeg[]): number {
   return Math.max(0, legs.filter((leg) => leg.mode === 'transit' || leg.mode === 'transit_bus').length - 1);
 }
 
+function hasCommuterExpressLeg(legs: RouteLeg[]): boolean {
+  return legs.some((leg) => leg.line?.startsWith('LADOT CE '));
+}
+
 function getBikeSafetyScore(legs: RouteLeg[]): number | null {
   const scores = legs
     .filter((leg) => leg.mode === 'bike' && leg.safety)
@@ -57,6 +61,7 @@ export function RouteOption({ route, isSelected, onClick }: RouteOptionProps) {
     || route.legs.every((leg) => leg.mode === 'driving');
   const transferCount = getTransferCount(route.legs);
   const safetyScore = getBikeSafetyScore(route.legs);
+  const hasCommuterExpress = hasCommuterExpressLeg(route.legs);
   const segmentLabels = route.legs.map((leg) => getModeLabel(leg.mode));
 
   return (
@@ -79,6 +84,11 @@ export function RouteOption({ route, isSelected, onClick }: RouteOptionProps) {
           <div className="route-option-title">
             <span className="route-option-label">{route.label}</span>
             <span className="route-option-type">{route.type}</span>
+            {hasCommuterExpress && (
+              <Chip tone="neutral" className="commuter-express-badge">
+                LADOT Commuter Express · peak estimate
+              </Chip>
+            )}
           </div>
           <span className="route-option-duration">
             {route.formattedDuration}

@@ -2,6 +2,19 @@
 // Re-exported from original transit_data.js with TypeScript types
 
 import type { TransitLines } from '@/types';
+import {
+  LADOT_COMMUTER_EXPRESS_PATTERNS,
+  LADOT_COMMUTER_EXPRESS_STATIONS,
+} from '@/data/ladotCommuterExpressStops';
+
+const LADOT_COMMUTER_EXPRESS_SOURCE = {
+  name: "LADOT GTFS static feed and LADOT Transit route pages",
+  url: "https://ladotbus.com/gtfs",
+  reviewedAt: "2026-06-06",
+  confidence: "medium",
+  notes:
+    "Explicit stop patterns from official LADOT GTFS; schedule windows remain coarse route-page estimates.",
+} as const;
 
 export const TRANSIT_LINES: TransitLines = {
   "Red": {
@@ -167,80 +180,472 @@ export const TRANSIT_LINES: TransitLines = {
       { name: "Aviation/Century", lat: 33.9465, lon: -118.3809 }
     ]
   },
-  // Bounded LADOT Commuter Express first-pass dataset for active routing.
-  // Source boundary: migrated from legacy VeloRail static records and checked against LADOT route pages
-  // that describe these Commuter Express services as Monday-Friday routes. Times are peak-window estimates,
-  // not realtime GTFS departures.
+  // Bounded LADOT Commuter Express active routing dataset.
+  // Stop locations and patterns come from the official LADOT GTFS static feed.
+  // Times are coarse schedule windows for routing, not realtime GTFS departures.
+  "LADOT CE 142": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequency: 30,
+      frequencyPeak: 30,
+      frequencyOffpeak: 30,
+      operatingHours: {
+        weekday: { start: "05:30", end: "23:30" },
+        saturday: { start: "06:00", end: "23:30" },
+        sunday: { start: "06:00", end: "23:30" },
+      },
+      scheduleNotes:
+        "LADOT Commuter Express static schedule window; estimated waits only, not realtime departures.",
+    },
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 142"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 142"],
+  },
+  "LADOT CE 409": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequency: 20,
+      frequencyPeak: 20,
+      frequencyOffpeak: null,
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "05:30", end: "09:00" },
+          pm_peak: { start: "15:30", end: "19:30" },
+        },
+        saturday: null,
+        sunday: null,
+      },
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "forward",
+          label: "AM toward Downtown Los Angeles / Union Station",
+        },
+        {
+          window: "pm_peak",
+          direction: "reverse",
+          label: "PM toward Glendale College",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express window; estimated waits only, not realtime departures.",
+    },
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 409"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 409"],
+  },
+  "LADOT CE 419": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequency: 30,
+      frequencyPeak: 30,
+      frequencyOffpeak: null,
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "05:00", end: "09:00" },
+          pm_peak: { start: "15:00", end: "19:30" },
+        },
+        saturday: null,
+        sunday: null,
+      },
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "forward",
+          label: "AM toward Downtown Los Angeles",
+        },
+        {
+          window: "pm_peak",
+          direction: "reverse",
+          label: "PM toward Chatsworth",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express window; estimated waits only, not realtime departures.",
+    },
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 419"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 419"],
+  },
+  "LADOT CE 422": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequency: 30,
+      frequencyPeak: 30,
+      frequencyOffpeak: null,
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "05:30", end: "09:00" },
+          pm_peak: { start: "15:30", end: "19:30" },
+        },
+        saturday: null,
+        sunday: null,
+      },
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "reverse",
+          label:
+            "AM toward Hollywood / San Fernando Valley / Agoura Hills / Thousand Oaks",
+        },
+        {
+          window: "pm_peak",
+          direction: "forward",
+          label: "PM toward San Fernando Valley / Hollywood / Downtown",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express window; estimated waits only, not realtime departures. Direction labels are uncertainty-safe from source audit summary.",
+    },
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 422"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 422"],
+  },
+  "LADOT CE 423": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequency: 30,
+      frequencyPeak: 30,
+      frequencyOffpeak: null,
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "05:30", end: "09:00" },
+          pm_peak: { start: "15:30", end: "19:30" },
+        },
+        saturday: null,
+        sunday: null,
+      },
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "forward",
+          label: "AM toward Downtown / USC",
+        },
+        {
+          window: "pm_peak",
+          direction: "reverse",
+          label: "PM toward Encino / Calabasas / Agoura Hills / Thousand Oaks",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express window; estimated waits only, not realtime departures.",
+    },
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 423"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 423"],
+  },
   "LADOT CE 431": {
     color: "#0047BB",
     schedule: {
       type: "commuter_express",
+      frequency: 20,
       frequencyPeak: 20,
       frequencyOffpeak: null,
-      operatingWindows: {
-        weekday: [{ start: "06:00", end: "09:00" }, { start: "16:00", end: "19:00" }]
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "06:00", end: "09:00" },
+          pm_peak: { start: "16:00", end: "19:00" },
+        },
+        saturday: null,
+        sunday: null,
       },
-      scheduleNotes: "Weekday peak-only Commuter Express window; static estimate, not realtime.",
-      sourceConfidence: "medium"
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "forward",
+          label: "AM toward Downtown",
+        },
+        {
+          window: "pm_peak",
+          direction: "reverse",
+          label: "PM toward Westwood",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express window; estimated waits only, not realtime departures.",
     },
-    stations: [
-      { name: "Westwood (Weyburn/Westwood)", lat: 34.0620, lon: -118.4455 },
-      { name: "Union Station", lat: 34.0561, lon: -118.2375 }
-    ]
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 431"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 431"],
   },
   "LADOT CE 437": {
     color: "#0047BB",
     schedule: {
       type: "commuter_express",
+      frequency: 20,
       frequencyPeak: 20,
       frequencyOffpeak: null,
-      operatingWindows: {
-        weekday: [{ start: "06:00", end: "09:00" }, { start: "16:00", end: "19:00" }]
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "06:00", end: "09:00" },
+          pm_peak: { start: "16:00", end: "19:00" },
+        },
+        saturday: null,
+        sunday: null,
       },
-      scheduleNotes: "Weekday peak-only Commuter Express window; static estimate, not realtime.",
-      sourceConfidence: "medium"
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "forward",
+          label: "AM toward Downtown",
+        },
+        {
+          window: "pm_peak",
+          direction: "reverse",
+          label: "PM toward Culver City / Marina del Rey / Venice",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express window; estimated waits only, not realtime departures.",
     },
-    stations: [
-      { name: "Venice (Pacific/Washington)", lat: 33.9859, lon: -118.4731 },
-      { name: "Culver City", lat: 34.0284, lon: -118.3887 },
-      { name: "7th St/Metro Center", lat: 34.0487, lon: -118.2587 }
-    ]
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 437"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 437"],
   },
   "LADOT CE 438": {
     color: "#0047BB",
     schedule: {
       type: "commuter_express",
+      frequency: 20,
       frequencyPeak: 20,
       frequencyOffpeak: null,
-      operatingWindows: {
-        weekday: [{ start: "05:30", end: "09:00" }, { start: "15:30", end: "19:00" }]
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "05:30", end: "09:00" },
+          pm_peak: { start: "15:30", end: "19:00" },
+        },
+        saturday: null,
+        sunday: null,
       },
-      scheduleNotes: "Weekday peak-only Commuter Express window; static estimate, not realtime.",
-      sourceConfidence: "medium"
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "forward",
+          label: "AM toward Downtown",
+        },
+        {
+          window: "pm_peak",
+          direction: "reverse",
+          label: "PM toward Redondo Beach",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express window; estimated waits only, not realtime departures.",
     },
-    stations: [
-      { name: "Redondo Beach Pier", lat: 33.8397, lon: -118.3927 },
-      { name: "Harbor Gateway", lat: 33.8693, lon: -118.2874 },
-      { name: "Union Station", lat: 34.0561, lon: -118.2359 }
-    ]
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 438"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 438"],
+  },
+  "LADOT CE 439": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequency: 20,
+      frequencyPeak: 20,
+      frequencyOffpeak: null,
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "06:00", end: "09:00" },
+          pm_peak: { start: "16:00", end: "19:00" },
+        },
+        saturday: null,
+        sunday: null,
+      },
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "reverse",
+          label: "AM toward El Segundo / Douglas",
+        },
+        {
+          window: "pm_peak",
+          direction: "forward",
+          label: "PM toward Downtown / Union Station",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express 439 reverse-commute window; estimated waits only, not realtime departures.",
+    },
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 439"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 439"],
   },
   "LADOT CE 448": {
     color: "#0047BB",
     schedule: {
       type: "commuter_express",
+      frequency: 30,
       frequencyPeak: 30,
       frequencyOffpeak: null,
-      operatingWindows: {
-        weekday: [{ start: "05:30", end: "08:30" }, { start: "16:00", end: "19:00" }]
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "05:30", end: "08:30" },
+          pm_peak: { start: "16:00", end: "19:00" },
+        },
+        saturday: null,
+        sunday: null,
       },
-      scheduleNotes: "Weekday peak-only Commuter Express window; static estimate, not realtime.",
-      sourceConfidence: "medium"
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "forward",
+          label: "AM toward Downtown",
+        },
+        {
+          window: "pm_peak",
+          direction: "reverse",
+          label: "PM toward Rancho Palos Verdes",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express window; estimated waits only, not realtime departures.",
     },
-    stations: [
-      { name: "Rancho Palos Verdes (Hawthorne/Crest)", lat: 33.7612, lon: -118.4061 },
-      { name: "Harbor Freeway", lat: 33.9287, lon: -118.2891 },
-      { name: "Union Station", lat: 34.0561, lon: -118.2375 }
-    ]
-  }
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 448"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 448"],
+  },
+  "LADOT CE 534": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequency: 20,
+      frequencyPeak: 20,
+      frequencyOffpeak: null,
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "06:00", end: "09:00" },
+          pm_peak: { start: "16:00", end: "19:00" },
+        },
+        saturday: null,
+        sunday: null,
+      },
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "reverse",
+          label: "AM toward West Los Angeles",
+        },
+        {
+          window: "pm_peak",
+          direction: "forward",
+          label: "PM toward Downtown / Union Station",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express window; estimated waits only, not realtime departures.",
+    },
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 534"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 534"],
+  },
+  "LADOT CE 549": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequency: 30,
+      frequencyPeak: 30,
+      frequencyOffpeak: null,
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "06:00", end: "09:00" },
+          pm_peak: { start: "16:00", end: "19:00" },
+        },
+        saturday: null,
+        sunday: null,
+      },
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "both",
+          label:
+            "Peak direction varies between Pasadena / Glendale / Encino anchors",
+        },
+        {
+          window: "pm_peak",
+          direction: "both",
+          label:
+            "Peak direction varies between Pasadena / Glendale / Encino anchors",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express window; estimated waits only, not realtime departures. Direction kept permissive because the bounded audit only supplies coarse eastbound/westbound anchors.",
+    },
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 549"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 549"],
+  },
+  "LADOT CE 573": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequency: 20,
+      frequencyPeak: 20,
+      frequencyOffpeak: null,
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "06:30", end: "09:00" },
+          pm_peak: { start: "16:00", end: "18:30" },
+        },
+        saturday: null,
+        sunday: null,
+      },
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "forward",
+          label: "AM southbound toward Westwood / Century City",
+        },
+        {
+          window: "pm_peak",
+          direction: "reverse",
+          label: "PM northbound toward Encino / Mission Hills",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express window; estimated waits only, not realtime departures.",
+    },
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 573"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 573"],
+  },
+  "LADOT CE 574": {
+    color: "#0047BB",
+    schedule: {
+      type: "commuter_express",
+      frequency: 30,
+      frequencyPeak: 30,
+      frequencyOffpeak: null,
+      operatingHours: {
+        weekday: {
+          am_peak: { start: "05:30", end: "08:30" },
+          pm_peak: { start: "16:30", end: "19:30" },
+        },
+        saturday: null,
+        sunday: null,
+      },
+      directionalService: [
+        {
+          window: "am_peak",
+          direction: "forward",
+          label: "AM toward LAX City Bus Center",
+        },
+        {
+          window: "pm_peak",
+          direction: "reverse",
+          label: "PM toward Encino / Granada Hills",
+        },
+      ],
+      scheduleNotes:
+        "Peak-period LADOT Commuter Express window; estimated waits only, not realtime departures.",
+    },
+    source: LADOT_COMMUTER_EXPRESS_SOURCE,
+    stations: LADOT_COMMUTER_EXPRESS_STATIONS["LADOT CE 574"],
+    patterns: LADOT_COMMUTER_EXPRESS_PATTERNS["LADOT CE 574"],
+  },
 
 };

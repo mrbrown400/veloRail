@@ -912,6 +912,25 @@
       ],
       "priority": 2,
       "url": "https://linear.app/velorail/issue/MBR-79"
+    },
+    {
+      "id": "MBR-114",
+      "legacyId": "MBR-114",
+      "linearIdentifier": "MBR-114",
+      "browserGateTag": "MBR-114",
+      "title": "Integrate all LADOT Commuter Express routes with direction-aware routing",
+      "type": "bug",
+      "labels": [
+        "Improvement",
+        "Bug",
+        "map",
+        "role/infrastructure",
+        "role/transit-data",
+        "gate/browser",
+        "user-feedback"
+      ],
+      "priority": 1,
+      "url": "https://linear.app/velorail/issue/MBR-114"
     }
   ]
 }

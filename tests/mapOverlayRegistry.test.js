@@ -98,6 +98,7 @@ test('current transit feature-list items expose checked-in routing metadata', as
   );
   const byTitle = new Map(items.map(item => [item.metadata.title, item]));
   const redLine = byTitle.get('Red Line');
+  const ce439 = byTitle.get('LADOT CE 439');
 
   assert.equal(items.length, Object.keys(TRANSIT_LINES).length);
   assert.ok(redLine);
@@ -122,11 +123,25 @@ test('current transit feature-list items expose checked-in routing metadata', as
     ]
   );
   assert.equal(redLine.highlightAvailable, false);
-  assert.match(redLine.highlightUnavailableReason, /TransitLayer does not expose per-line geometry/);
+  assert.match(redLine.highlightUnavailableReason, /route geometry renders only when used by a selected route/);
   assert.match(redLine.metadata.disclaimer, /VeloRail-owned checked-in routing data/);
   assert.match(redLine.metadata.disclaimer, /Google Maps TransitLayer/);
   assert.match(redLine.metadata.disclaimer, /does not expose clickable per-line/);
   assert.equal(redLine.metadata.sources[0].sourceType, 'checked_in_operational_routing_data');
+
+  assert.ok(ce439);
+  assert.equal(ce439.highlightAvailable, false);
+  assert.match(ce439.highlightUnavailableReason, /route geometry renders only when used by a selected route/);
+  assert.equal(ce439.metadata.sources[0].sourceType, 'official_gtfs_static_feed');
+  assert.match(ce439.metadata.disclaimer, /official LADOT GTFS stop and shape geometry/);
+  assert.match(ce439.metadata.disclaimer, /selected-route drawing only/);
+  assert.match(ce439.metadata.disclaimer, /not drawn in the default current-transit overlay/);
+  assert.ok(ce439.metadata.details.some(
+    detail => detail.label === 'Route geometry' && detail.value === 'Official LADOT GTFS shapes when selected'
+  ));
+  assert.ok(ce439.metadata.details.some(
+    detail => detail.label === 'Map highlight' && /Route-only geometry/.test(detail.value)
+  ));
 });
 
 test('map overlay legend items come from current registry and proposal labels', async () => {
@@ -138,6 +153,7 @@ test('map overlay legend items come from current registry and proposal labels', 
   const byLabel = new Map(legendItems.map((item) => [item.label, item]));
 
   assert.equal(byLabel.get('Google transit')?.overlayId, 'current-transit');
+  assert.equal(byLabel.has('LADOT Commuter Express'), false);
   assert.equal(byLabel.get('Google bicycling')?.overlayId, 'bicycling');
   assert.equal(byLabel.get('Future heavy rail')?.scenario, 'future');
   assert.equal(byLabel.get('Visionary concept')?.overlayId, 'visionary-concepts');
@@ -145,6 +161,57 @@ test('map overlay legend items come from current registry and proposal labels', 
   assert.equal(byLabel.get('Freight corridor')?.scenario, 'nationalized');
   assert.equal(byLabel.get('Passenger conversion')?.scenario, 'nationalized');
   assert.ok(legendItems.every((item) => item.color));
+});
+
+test('default current transit overlay does not render custom LADOT CE polylines', async () => {
+  const {
+    CURRENT_TRANSIT_OVERLAY_ID,
+    getOrderedMapOverlayDefinitions
+  } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
+
+  const previousGoogle = globalThis.google;
+  let transitLayerConstructed = 0;
+  let transitLayerSetMapCalls = 0;
+  let polylineConstructed = 0;
+
+  globalThis.google = {
+    maps: {
+      TransitLayer: class TransitLayer {
+        constructor() {
+          transitLayerConstructed += 1;
+        }
+
+        setMap() {
+          transitLayerSetMapCalls += 1;
+        }
+      },
+      Polyline: class Polyline {
+        constructor() {
+          polylineConstructed += 1;
+        }
+      }
+    }
+  };
+
+  try {
+    const currentOverlay = getOrderedMapOverlayDefinitions().find(
+      definition => definition.id === CURRENT_TRANSIT_OVERLAY_ID
+    );
+
+    assert.ok(currentOverlay);
+
+    const handle = currentOverlay.create({});
+    handle.setVisible(true);
+    handle.setVisible(false);
+    handle.dispose();
+
+    assert.equal(transitLayerConstructed, 1);
+    assert.equal(transitLayerSetMapCalls, 3);
+    assert.equal(polylineConstructed, 0);
+    assert.equal(handle.setFeatureHighlight, undefined);
+  } finally {
+    globalThis.google = previousGoogle;
+  }
 });
 
 
@@ -190,7 +257,7 @@ test('map overlay feature list items map visible layer details to stable line id
   assert.equal(converted.identity.overlayId, 'nationalized-rail');
   assert.equal(nativeCurrent.identity.overlayId, CURRENT_TRANSIT_OVERLAY_ID);
   assert.equal(nativeCurrent.highlightAvailable, false);
-  assert.match(nativeCurrent.highlightUnavailableReason, /TransitLayer does not expose per-line geometry/);
+  assert.match(nativeCurrent.highlightUnavailableReason, /route geometry renders only when used by a selected route/);
 });
 
 test('overlay style config drives proposal rendering and native legend metadata', async () => {

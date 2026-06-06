@@ -103,10 +103,44 @@ export interface Station {
 
 export type TransitScheduleType = 'rail' | 'heavy_rail' | 'light_rail' | 'brt' | 'commuter_rail' |
   'intercity_rail' | 'people_mover' | 'airport_shuttle' | 'commuter_express' | 'shuttle';
+export type TransitServiceDay = 'weekday' | 'saturday' | 'sunday';
+export type TransitPeakWindowName = 'am_peak' | 'pm_peak';
+export type TransitDirection = 'forward' | 'reverse' | 'both';
 
 export interface OperatingWindow {
   start: string;
   end: string;
+}
+
+export interface TransitTimeRange {
+  start: string;
+  end: string;
+}
+
+export type TransitDayOperatingHours =
+  | TransitTimeRange
+  | Partial<Record<TransitPeakWindowName, TransitTimeRange>>
+  | null;
+
+export interface CommuterExpressDirectionalService {
+  window: TransitPeakWindowName;
+  direction: TransitDirection;
+  label: string;
+}
+
+export interface TransitLineShape {
+  geometry: LineString;
+  shapeDistances: number[];
+}
+
+export interface TransitLinePattern {
+  id: string;
+  routeId?: string;
+  direction: Exclude<TransitDirection, 'both'>;
+  headsign?: string;
+  stations: Station[];
+  shapeId?: string;
+  stationShapeDistances?: number[];
 }
 
 export interface TransitSchedule {
@@ -121,17 +155,29 @@ export interface TransitSchedule {
     saturday?: OperatingWindow[];
     sunday?: OperatingWindow[];
   };
+  operatingHours?: Partial<Record<TransitServiceDay, TransitDayOperatingHours>>;
+  directionalService?: CommuterExpressDirectionalService[];
   scheduleNotes?: string;
   sourceConfidence?: 'high' | 'medium' | 'low';
+}
+
+export interface TransitLineSource {
+  name: string;
+  url?: string;
+  reviewedAt?: string;
+  confidence?: 'high' | 'medium' | 'low';
+  notes?: string;
 }
 
 export interface TransitLine {
   color: string;
   stations: Station[];
+  patterns?: TransitLinePattern[];
   gtfsRouteId?: string;
   status?: 'operating' | 'under_construction' | 'planned' | 'testing';
   expectedOpening?: string;
   schedule?: TransitSchedule;
+  source?: TransitLineSource;
 }
 
 export type TransitLines = Record<string, TransitLine>;
@@ -166,6 +212,8 @@ export interface RouteLeg {
   delayText?: string;
   delayStatus?: 'ontime' | 'late' | 'early';
   isTransfer?: boolean;
+  serviceNotes?: string;
+  sourceConfidence?: 'high' | 'medium' | 'low';
   tripId?: string;
   boardingStopSequence?: number;
 }

@@ -125,6 +125,10 @@ function getBikeSafetyScore(legs: RouteLeg[]): number | null {
   return Math.round(scores.reduce((total, score) => total + score, 0) / scores.length);
 }
 
+function isCommuterExpressLeg(leg: RouteLeg): boolean {
+  return Boolean(leg.line?.startsWith('LADOT CE '));
+}
+
 function getInstruction(leg: RouteLeg): string {
   const toName = getPointName(leg.to, 'destination');
 
@@ -243,6 +247,12 @@ function LegItem({ leg, index, totalLegs }: LegItemProps) {
           {leg.headsign && (
             <span className="route-leg-headsign">
               toward {leg.headsign}
+            </span>
+          )}
+
+          {isCommuterExpressLeg(leg) && leg.serviceNotes && (
+            <span className="route-leg-service-note">
+              LADOT peak-only static schedule · {leg.serviceNotes}
             </span>
           )}
 

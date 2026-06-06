@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useGoogleMap } from '@react-google-maps/api';
 import { MAP_OVERLAY_Z_INDEX } from './mapOverlayRegistry';
+import { getRouteLegOverlayCoordinates } from './routeOverlayGeometry';
 import type { Route, RouteLeg } from '@/types';
 
 interface RouteOverlayProps {
@@ -68,7 +69,7 @@ export function RouteOverlay({ route }: RouteOverlayProps) {
 
     // Draw each leg
     route.legs.forEach((leg) => {
-      const path = leg.geometry.coordinates.map((coord) => {
+      const path = getRouteLegOverlayCoordinates(leg).map((coord) => {
         const [lon, lat] = coord;
         return { lat, lng: lon };
       });
@@ -97,19 +98,21 @@ function drawLeg(
   const isWalk = leg.mode === 'walk';
   const isBus = leg.mode === 'transit_bus';
   const isDriving = leg.mode === 'driving';
+  const isCommuterExpressLeg = isBus && Boolean(leg.line?.startsWith('LADOT CE'));
+  const isLineTransit = isTransit || isCommuterExpressLeg;
 
   // Get colors based on mode
   const getLineColor = () => {
-    if (isTransit) return leg.color || '#3b82f6';
+    if (isLineTransit) return leg.color || '#3b82f6';
     if (isWalk) return '#9ca3af';
     if (isBus) return '#3b82f6';
     if (isDriving) return '#60A5FA';
     return '#39FF14'; // Bike - neon green
   };
 
-  const isDashed = isWalk || isBus;
-  const lineWeight = isTransit ? 6 : 4;
-  const casingWeight = isTransit ? 12 : 10;
+  const isDashed = isWalk || (isBus && !isCommuterExpressLeg);
+  const lineWeight = isLineTransit ? 6 : 4;
+  const casingWeight = isLineTransit ? 12 : 10;
 
   // White outer casing
   const whiteCasing = new google.maps.Polyline({
@@ -166,7 +169,7 @@ function drawLeg(
   }
 
   // Station markers for transit legs
-  if (isTransit && leg.stations) {
+  if (isLineTransit && leg.stations) {
     leg.stations.forEach((station) => {
       const stationMarker = new google.maps.Marker({
         position: { lat: station.lat, lng: station.lon },

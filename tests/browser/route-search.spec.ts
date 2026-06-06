@@ -67,6 +67,55 @@ async function expectInsideViewport(locator: Locator, page: Page, label: string)
   expect(box!.y + box!.height, `${label} bottom edge`).toBeLessThanOrEqual(viewport!.height + 1);
 }
 
+async function installRoutePolylineRecorder(page: Page) {
+  await page.evaluate(() => {
+    const appWindow = window as unknown as {
+      __velorailRoutePolylineRecorderInstalled?: boolean;
+      __velorailRoutePolylineCalls: Array<{
+        pathLength: number;
+        strokeColor?: string;
+        strokeOpacity?: number;
+        strokeWeight?: number;
+        hasIcons: boolean;
+        first?: { lat: number; lng: number };
+        last?: { lat: number; lng: number };
+      }>;
+    };
+
+    appWindow.__velorailRoutePolylineCalls = [];
+    if (appWindow.__velorailRoutePolylineRecorderInstalled) return;
+
+    const OriginalPolyline = google.maps.Polyline;
+    const recordPolyline = (options?: google.maps.PolylineOptions) => {
+      const path = Array.isArray(options?.path) ? options.path : [];
+      const normalizePoint = (point: google.maps.LatLng | google.maps.LatLngLiteral) => {
+        const candidate = point as google.maps.LatLng & google.maps.LatLngLiteral;
+        const lat = typeof candidate.lat === 'function' ? candidate.lat() : candidate.lat;
+        const lng = typeof candidate.lng === 'function' ? candidate.lng() : candidate.lng;
+        return { lat, lng };
+      };
+
+      appWindow.__velorailRoutePolylineCalls.push({
+        pathLength: path.length,
+        strokeColor: options?.strokeColor,
+        strokeOpacity: options?.strokeOpacity,
+        strokeWeight: options?.strokeWeight,
+        hasIcons: Boolean(options?.icons?.length),
+        first: path[0] ? normalizePoint(path[0]) : undefined,
+        last: path[path.length - 1] ? normalizePoint(path[path.length - 1]) : undefined
+      });
+    };
+
+    google.maps.Polyline = new Proxy(OriginalPolyline, {
+      construct(target, args) {
+        recordPolyline(args[0] as google.maps.PolylineOptions | undefined);
+        return Reflect.construct(target, args);
+      }
+    }) as typeof google.maps.Polyline;
+    appWindow.__velorailRoutePolylineRecorderInstalled = true;
+  });
+}
+
 async function stubFallbackRouteNetwork(page: Page) {
   await page.route('https://nominatim.openstreetmap.org/search?**', async (route) => {
     const requestUrl = new URL(route.request().url());
@@ -678,7 +727,7 @@ function parseDurationMinutes(duration: string): number {
   return (hourMatch ? Number(hourMatch[1]) * 60 : 0) + (minuteMatch ? Number(minuteMatch[1]) : 0);
 }
 
-test('@MBR-103 LADOT Commuter Express appears during selected weekday peak window', async ({ page }) => {
+test('@MBR-103 @MBR-114 LADOT Commuter Express appears during selected weekday peak window', async ({ page }) => {
   await page.route('https://nominatim.openstreetmap.org/search?**', async (route) => {
     const requestUrl = new URL(route.request().url());
     const query = requestUrl.searchParams.get('q')?.toLowerCase() || '';
@@ -719,7 +768,7 @@ test('@MBR-103 LADOT Commuter Express appears during selected weekday peak windo
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
   const mapErrorVisible = await page.getByText('Error Loading Google Maps').isVisible().catch(() => false);
-  test.skip(mapErrorVisible, 'MBR-103 browser route search requires a working Google Maps API key; unit tests cover CE filtering deterministically.');
+  test.skip(mapErrorVisible, 'MBR-103/MBR-114 browser route search requires a working Google Maps API key; unit tests cover CE filtering deterministically.');
   await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
   await page.evaluate(() => {
     const maps = google.maps as unknown as {
@@ -759,7 +808,6 @@ test('@MBR-103 LADOT Commuter Express appears during selected weekday peak windo
       }
     };
   });
-
   await page.locator('.location-status').click();
   await page.getByLabel('Route mode').selectOption('all');
   await page.getByText('Schedule').click();
@@ -774,9 +822,135 @@ test('@MBR-103 LADOT Commuter Express appears during selected weekday peak windo
   const commuterExpress = page.locator('.route-option', { hasText: 'LADOT Commuter Express' }).first();
   await expect(commuterExpress).toBeVisible({ timeout: 20_000 });
   await expect(commuterExpress).toContainText('Commuter Express Bus');
+  await expect(commuterExpress).toContainText('LADOT Commuter Express · peak estimate');
   await expect(commuterExpress).toContainText('LADOT CE 437');
 
   await commuterExpress.click();
   await expect(page.locator('.route-details')).toContainText('Take LADOT CE 437 commuter express bus');
   await expect(page.locator('.route-details')).toContainText('~20 min wait');
+});
+
+test('@MBR-114 LADOT CE 439 appears for DTLA to El Segundo weekday morning', async ({ page }) => {
+  await page.route('https://nominatim.openstreetmap.org/search?**', async (route) => {
+    const requestUrl = new URL(route.request().url());
+    const query = requestUrl.searchParams.get('q')?.toLowerCase() || '';
+    const isElSegundo = query.includes('segundo');
+
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{
+        lat: isElSegundo ? '33.9192' : '34.0487',
+        lon: isElSegundo ? '-118.4165' : '-118.2587',
+        display_name: isElSegundo ? 'El Segundo' : '7th St/Metro Center'
+      }])
+    });
+  });
+
+  await page.route('https://router.project-osrm.org/route/v1/**', async (route) => {
+    const requestUrl = new URL(route.request().url());
+    const [profileAndCoords] = requestUrl.pathname.split('/route/v1/').slice(1);
+    const [, coordinateText] = profileAndCoords.split('/');
+    const coordinates = coordinateText.split(';').map((pair) => pair.split(',').map(Number));
+
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 'Ok',
+        routes: [{
+          distance: 1_000,
+          duration: 60,
+          geometry: {
+            type: 'LineString',
+            coordinates
+          }
+        }]
+      })
+    });
+  });
+
+  await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
+  const mapErrorVisible = await page.getByText('Error Loading Google Maps').isVisible().catch(() => false);
+  test.skip(mapErrorVisible, 'MBR-114 browser route search requires a working Google Maps API key; unit tests cover CE 439 filtering deterministically.');
+  await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
+  await page.evaluate(() => {
+    const maps = google.maps as unknown as {
+      Geocoder: new () => {
+        geocode: (
+          request: { address?: string },
+          callback: (results: Array<{
+            formatted_address: string;
+            geometry: { location: { lat: () => number; lng: () => number } };
+          }>, status: string) => void
+        ) => void;
+      };
+    };
+
+    maps.Geocoder = class {
+      geocode(
+        request: { address?: string },
+        callback: (results: Array<{
+          formatted_address: string;
+          geometry: { location: { lat: () => number; lng: () => number } };
+        }>, status: string) => void
+      ) {
+        const address = request.address?.toLowerCase() ?? '';
+        const isElSegundo = address.includes('segundo');
+        const lat = isElSegundo ? 33.9192 : 34.0487;
+        const lng = isElSegundo ? -118.4165 : -118.2587;
+
+        callback([{
+          formatted_address: isElSegundo ? 'El Segundo' : '7th St/Metro Center',
+          geometry: {
+            location: {
+              lat: () => lat,
+              lng: () => lng
+            }
+          }
+        }], 'OK');
+      }
+    };
+  });
+  await installRoutePolylineRecorder(page);
+
+  await page.locator('.location-status').click();
+  await page.getByLabel('Route mode').selectOption('all');
+  await page.getByText('Schedule').click();
+  await page.getByText('Depart at').click();
+  await page.getByLabel('Departure time').fill('2026-06-01T07:30');
+  await page.getByPlaceholder('Your Location').fill('7th St/Metro Center');
+  await page.getByPlaceholder('Your Location').press('Escape');
+  await page.getByPlaceholder('Where to?').fill('El Segundo');
+  await page.getByPlaceholder('Where to?').press('Escape');
+  await page.getByRole('button', { name: 'Find Route' }).click();
+
+  const commuterExpress = page.locator('.route-option', { hasText: 'LADOT Commuter Express' }).first();
+  await expect(commuterExpress).toBeVisible({ timeout: 20_000 });
+  await expect(commuterExpress).toContainText('Commuter Express Bus');
+  await expect(commuterExpress).toContainText('LADOT Commuter Express · peak estimate');
+  await expect(commuterExpress).toContainText('LADOT CE 439');
+
+  await commuterExpress.click();
+  await expect(page.locator('.route-details')).toContainText('Take LADOT CE 439 commuter express bus');
+  await expect(page.locator('.route-details')).toContainText('Hill St & 8th St');
+  await expect(page.locator('.route-details')).toContainText('El Segundo Blvd & Nash St');
+  await expect.poll(async () => page.evaluate(() => {
+    const calls = (window as unknown as {
+      __velorailRoutePolylineCalls: Array<{
+        pathLength: number;
+        strokeColor?: string;
+        strokeOpacity?: number;
+        strokeWeight?: number;
+        hasIcons: boolean;
+      }>;
+    }).__velorailRoutePolylineCalls ?? [];
+
+    return calls.filter((call) =>
+      call.strokeColor === '#0047BB'
+      && call.strokeOpacity === 1
+      && call.strokeWeight === 6
+      && !call.hasIcons
+      && call.pathLength > 150
+    ).length;
+  })).toBeGreaterThan(0);
 });

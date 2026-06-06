@@ -19,6 +19,7 @@ import type {
   ProposalPolylineInput,
   ProposalRenderingMetadata,
   ProposalStatus,
+  TransitLine,
   TransitProposal
 } from '@/types';
 
@@ -573,68 +574,101 @@ function getCurrentTransitFeatureListItems(): MapOverlayFeatureListItem[] {
   const style = MAP_OVERLAY_STYLE_CONFIG.current;
 
   return Object.entries(TRANSIT_LINES).map(([lineName, line]) => {
-    const stations = line.stations.filter((station) => !station.waypoint);
-    const firstStation = stations[0];
-    const lastStation = stations[stations.length - 1];
-    const mode = line.schedule?.type ? formatToken(line.schedule.type) : 'transit';
-    const frequency = line.schedule?.frequency
-      ? `Every ${line.schedule.frequency} min`
-      : undefined;
-    const status = line.status ? formatToken(line.status) : 'operating';
-    const lineLabel = getCurrentTransitLineLabel(lineName);
-    const identity = createOverlayFeatureIdentity(
-      CURRENT_TRANSIT_OVERLAY_ID,
-      `current-transit-${slugifyLegendLabel(lineName)}`
-    );
-    const metadata: MapOverlayMetadata = {
-      id: identity.featureId,
-      proposalId: identity.featureId,
-      featureIdentity: identity,
-      kind: 'line',
-      title: lineLabel,
-      subtitle: `line · ${mode}${frequency ? ` · ${frequency}` : ''}`,
-      badgeLabel: style.badge.label,
-      badgeClassName: style.badge.className,
-      statusLabel: status,
-      classificationLabel: 'current system',
-      confidenceLabel: 'checked in',
-      uncertaintyLabel: 'owned data boundary',
-      disclaimer: 'Current-system details come from VeloRail-owned checked-in routing data. The map surface remains Google Maps TransitLayer; Google does not expose clickable per-line TransitLayer metadata to this app.',
-      details: [
-        metadataDetail('Line', lineLabel),
-        metadataDetail('Mode', mode),
-        metadataDetail('Frequency', frequency),
-        metadataDetail('Station count', `${stations.length}`),
-        metadataDetail('Endpoints', firstStation && lastStation ? `${firstStation.name} to ${lastStation.name}` : undefined),
-        metadataDetail('Color', line.color),
-        metadataDetail('VeloRail routing', 'Used by VeloRail routing'),
-        metadataDetail('Map highlight', 'No custom current-line highlight until VeloRail current geometry overlay is added'),
-        metadataDetail('GTFS route ID', line.gtfsRouteId),
-        metadataDetail('Status', status)
-      ].filter((detail): detail is MapOverlayMetadataDetail => Boolean(detail)),
-      sources: [{
-        title: 'VeloRail checked-in current transit routing dataset',
-        publisher: 'VeloRail',
-        sourceType: 'checked_in_operational_routing_data',
-        note: 'Derived from src/data/transitLines.ts, not from Google Maps TransitLayer line-click metadata.'
-      }]
-    };
+    const identity = getCurrentTransitLineFeatureIdentity(lineName);
+    const metadata = getCurrentTransitLineMetadata(lineName, line, identity);
 
     return {
       identity,
-      label: lineLabel,
-      description: `${mode}${frequency ? ` · ${frequency}` : ''} · ${stations.length} stations`,
+      label: metadata.title,
+      description: `${metadata.subtitle} · ${line.stations.filter((station) => !station.waypoint).length} stations`,
       badgeLabel: style.badge.label,
       color: line.color,
       scenario: style.legend.scenario,
       metadata,
       highlightAvailable: false,
-      highlightUnavailableReason: 'Google TransitLayer does not expose per-line geometry for VeloRail highlighting.'
+      highlightUnavailableReason: 'Current transit lines are metadata-only in the default overlay; route geometry renders only when used by a selected route.'
     };
   });
 }
 
+function getCurrentTransitLineFeatureIdentity(lineName: string): MapOverlayFeatureIdentity {
+  return createOverlayFeatureIdentity(
+    CURRENT_TRANSIT_OVERLAY_ID,
+    `current-transit-${slugifyLegendLabel(lineName)}`
+  );
+}
+
+function getCurrentTransitLineMetadata(
+  lineName: string,
+  line: TransitLine,
+  identity = getCurrentTransitLineFeatureIdentity(lineName)
+): MapOverlayMetadata {
+  const style = MAP_OVERLAY_STYLE_CONFIG.current;
+  const stations = line.stations.filter((station) => !station.waypoint);
+  const firstStation = stations[0];
+  const lastStation = stations[stations.length - 1];
+  const mode = line.schedule?.type ? formatToken(line.schedule.type) : 'transit';
+  const frequency = line.schedule?.frequency
+    ? `Every ${line.schedule.frequency} min`
+    : undefined;
+  const status = line.status ? formatToken(line.status) : 'operating';
+  const lineLabel = getCurrentTransitLineLabel(lineName);
+  const routeOnlyGeometry = Boolean(line.patterns?.some((pattern) => pattern.shapeId));
+  const source = line.source;
+  const mapHighlight = routeOnlyGeometry
+    ? 'Route-only geometry; shown only when selected routing uses this line'
+    : 'No custom current-line highlight until VeloRail current geometry overlay is added';
+
+  return {
+    id: identity.featureId,
+    proposalId: identity.featureId,
+    featureIdentity: identity,
+    kind: 'line',
+    title: lineLabel,
+    subtitle: `line · ${mode}${frequency ? ` · ${frequency}` : ''}`,
+    badgeLabel: style.badge.label,
+    badgeClassName: style.badge.className,
+    statusLabel: status,
+    classificationLabel: 'current system',
+    confidenceLabel: source?.confidence ?? 'checked in',
+    uncertaintyLabel: routeOnlyGeometry ? 'route-only official GTFS shape' : 'owned data boundary',
+    disclaimer: routeOnlyGeometry
+      ? 'Current-system details include official LADOT GTFS stop and shape geometry for routing and selected-route drawing only. These shapes are not drawn in the default current-transit overlay.'
+      : 'Current-system details come from VeloRail-owned checked-in routing data. The map surface remains Google Maps TransitLayer; Google does not expose clickable per-line TransitLayer metadata to this app.',
+    details: [
+      metadataDetail('Line', lineLabel),
+      metadataDetail('Mode', mode),
+      metadataDetail('Frequency', frequency),
+      metadataDetail('Station count', `${stations.length}`),
+      metadataDetail('Pattern count', line.patterns?.length ? `${line.patterns.length}` : undefined),
+      metadataDetail('Endpoints', firstStation && lastStation ? `${firstStation.name} to ${lastStation.name}` : undefined),
+      metadataDetail('Color', line.color),
+      metadataDetail('VeloRail routing', 'Used by VeloRail routing'),
+      metadataDetail('Map highlight', mapHighlight),
+      metadataDetail('Route geometry', routeOnlyGeometry ? 'Official LADOT GTFS shapes when selected' : undefined),
+      metadataDetail('GTFS route ID', line.gtfsRouteId),
+      metadataDetail('Status', status)
+    ].filter((detail): detail is MapOverlayMetadataDetail => Boolean(detail)),
+    sources: source
+      ? [{
+        title: source.name,
+        publisher: source.name.includes('LADOT') ? 'LADOT' : 'VeloRail',
+        url: source.url,
+        sourceType: routeOnlyGeometry ? 'official_gtfs_static_feed' : 'checked_in_operational_routing_data',
+        accessedAt: source.reviewedAt,
+        note: source.notes
+      }]
+      : [{
+        title: 'VeloRail checked-in current transit routing dataset',
+        publisher: 'VeloRail',
+        sourceType: 'checked_in_operational_routing_data',
+        note: 'Derived from src/data/transitLines.ts, not from Google Maps TransitLayer line-click metadata.'
+      }]
+  };
+}
+
 function getCurrentTransitLineLabel(lineName: string): string {
+  if (lineName.startsWith('LADOT CE ')) return lineName;
   if (/line$/i.test(lineName)) return lineName;
   return `${lineName} Line`;
 }
@@ -1011,6 +1045,10 @@ export function getProposalInfoContent(
   markerInput?: ProposalMarkerInput
 ): string {
   const metadata = getProposalMetadata(proposal, markerInput);
+  return getMetadataInfoContent(metadata);
+}
+
+function getMetadataInfoContent(metadata: MapOverlayMetadata): string {
   const details = metadata.details.map((detail) => metadataRow(detail.label, detail.value)).join('');
   const sources = metadata.sources.slice(0, 3).map((source) => {
     const label = source.publisher ?? source.title;

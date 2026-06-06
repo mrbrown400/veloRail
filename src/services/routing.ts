@@ -2,6 +2,7 @@
 // Multi-modal routing with transit, bike, walk support
 
 import { geocode } from './geocoding';
+import { getLadotCommuterExpressShape } from '@/data/ladotCommuterExpressStops';
 import { TRANSIT_LINES } from '@/data/transitLines';
 import { CONFIG, isGoogleRoutesEnabled } from './config';
 import {
@@ -15,6 +16,7 @@ import {
 } from './bikeDurationService';
 import type {
   Location,
+  LineString,
   Station,
   Route,
   RouteLeg,
@@ -25,6 +27,9 @@ import type {
   DepartureInfo,
   OSRMRoute,
   TransitLine,
+  TransitDayOperatingHours,
+  TransitDirection,
+  TransitPeakWindowName,
   TransitScheduleType
 } from '@/types';
 
@@ -100,9 +105,15 @@ interface TransitRoute {
   line: string;
   color: string;
   gtfsRouteId: string | null;
+  patternId?: string;
+  headsign?: string;
+  shapeId?: string;
+  stationShapeDistances?: number[];
   segment: Station[];
   lineStatus: string;
   expectedOpening: string | null;
+  serviceNotes?: string;
+  sourceConfidence?: 'high' | 'medium' | 'low';
 }
 
 interface TransferResult {
@@ -196,6 +207,167 @@ function scheduleTypeAllowed(line: TransitLine, scheduleTypeFilter: ScheduleType
   return scheduleTypeFilter.has(line.schedule.type);
 }
 
+function hasFixedOperatingHours(hours: TransitDayOperatingHours): hours is { start: string; end: string } {
+  return Boolean(hours && 'start' in hours && 'end' in hours);
+}
+
+function getActivePeakWindow(line: TransitLine, time: Date): TransitPeakWindowName | null {
+  const hours = line.schedule?.operatingHours?.[getDayType(time)];
+  if (!hours || hasFixedOperatingHours(hours)) return null;
+
+  for (const windowName of ['am_peak', 'pm_peak'] as TransitPeakWindowName[]) {
+    const range = hours[windowName];
+    if (range && isWithinTimeRange(time, range.start, range.end)) {
+      return windowName;
+    }
+  }
+
+  return null;
+}
+
+function getLineDirection(idx1: number, idx2: number): Exclude<TransitDirection, 'both'> {
+  return idx1 <= idx2 ? 'forward' : 'reverse';
+}
+
+function hasCommuterExpressOnlyFilter(scheduleTypeFilter: ScheduleTypeFilter): boolean {
+  return Boolean(
+    scheduleTypeFilter
+    && scheduleTypeFilter.size === 1
+    && scheduleTypeFilter.has('commuter_express')
+  );
+}
+
+function getTransitSegmentDistance(stations: Station[]): number {
+  let transitDistance = 0;
+  for (let index = 0; index < stations.length - 1; index += 1) {
+    transitDistance += getDistance(
+      stations[index].lat,
+      stations[index].lon,
+      stations[index + 1].lat,
+      stations[index + 1].lon
+    );
+  }
+  return transitDistance;
+}
+
+function dedupeConsecutiveCoordinates(coordinates: [number, number][]): [number, number][] {
+  return coordinates.filter((coordinate, index) => {
+    const previous = coordinates[index - 1];
+    return !previous || previous[0] !== coordinate[0] || previous[1] !== coordinate[1];
+  });
+}
+
+function interpolateShapeCoordinate(
+  coordinates: [number, number][],
+  distances: number[],
+  targetDistance: number
+): [number, number] | null {
+  if (!Number.isFinite(targetDistance) || coordinates.length === 0 || distances.length !== coordinates.length) {
+    return null;
+  }
+
+  if (targetDistance <= distances[0]) return coordinates[0];
+  if (targetDistance >= distances[distances.length - 1]) return coordinates[coordinates.length - 1];
+
+  for (let index = 1; index < distances.length; index += 1) {
+    const previousDistance = distances[index - 1];
+    const nextDistance = distances[index];
+    if (targetDistance > nextDistance) continue;
+
+    const previousCoordinate = coordinates[index - 1];
+    const nextCoordinate = coordinates[index];
+    if (nextDistance === previousDistance) return nextCoordinate;
+
+    const ratio = (targetDistance - previousDistance) / (nextDistance - previousDistance);
+    return [
+      previousCoordinate[0] + (nextCoordinate[0] - previousCoordinate[0]) * ratio,
+      previousCoordinate[1] + (nextCoordinate[1] - previousCoordinate[1]) * ratio
+    ];
+  }
+
+  return null;
+}
+
+function getShapeSegmentCoordinates(
+  route: TransitRoute
+): [number, number][] | null {
+  const shape = getLadotCommuterExpressShape(route.shapeId);
+  const stationShapeDistances = route.stationShapeDistances;
+  if (!shape || !stationShapeDistances || stationShapeDistances.length < 2) return null;
+
+  const startDistance = stationShapeDistances[0];
+  const endDistance = stationShapeDistances[stationShapeDistances.length - 1];
+  if (!Number.isFinite(startDistance) || !Number.isFinite(endDistance) || endDistance <= startDistance) {
+    return null;
+  }
+
+  const coordinates = shape.geometry.coordinates;
+  const shapeDistances = shape.shapeDistances;
+  const startCoordinate = interpolateShapeCoordinate(coordinates, shapeDistances, startDistance);
+  const endCoordinate = interpolateShapeCoordinate(coordinates, shapeDistances, endDistance);
+  if (!startCoordinate || !endCoordinate) return null;
+
+  return dedupeConsecutiveCoordinates([
+    startCoordinate,
+    ...coordinates.filter((_, index) =>
+      shapeDistances[index] > startDistance && shapeDistances[index] < endDistance
+    ),
+    endCoordinate
+  ]);
+}
+
+function getTransitRouteGeometry(route: TransitRoute): LineString {
+  const shapeCoordinates = getShapeSegmentCoordinates(route);
+  if (shapeCoordinates && shapeCoordinates.length >= 2) {
+    return {
+      type: "LineString",
+      coordinates: shapeCoordinates
+    };
+  }
+
+  return {
+    type: "LineString",
+    coordinates: route.segment.map((station) => [station.lon, station.lat] as [number, number])
+  };
+}
+
+function isDirectionAllowed(
+  line: TransitLine,
+  time: Date,
+  direction: Exclude<TransitDirection, 'both'>
+): boolean {
+  if (
+    line.schedule?.type !== 'commuter_express'
+    || !line.schedule.directionalService?.length
+  ) {
+    return true;
+  }
+
+  const activeWindow = getActivePeakWindow(line, time);
+  if (!activeWindow) return true;
+
+  return line.schedule.directionalService.some((service) =>
+    service.window === activeWindow
+    && (service.direction === 'both' || service.direction === direction)
+  );
+}
+
+function getDirectionalServiceLabel(
+  line: TransitLine,
+  time: Date,
+  direction: Exclude<TransitDirection, 'both'>
+): string | null {
+  const activeWindow = getActivePeakWindow(line, time);
+  if (!activeWindow) return null;
+
+  const service = line.schedule?.directionalService?.find((candidate) =>
+    candidate.window === activeWindow
+    && (candidate.direction === 'both' || candidate.direction === direction)
+  );
+
+  return service?.label || null;
+}
+
 export function isLineOperating(
   lineName: string,
   time: Date,
@@ -216,6 +388,16 @@ export function isLineOperating(
     const windows = schedule.operatingWindows[dayType] || [];
     if (windows.length === 0) return false;
     return windows.some((window) => isWithinTimeRange(time, window.start, window.end));
+  }
+
+  if (schedule.operatingHours && dayType in schedule.operatingHours) {
+    const hours = schedule.operatingHours[dayType];
+    if (hours === null) return false;
+    if (hours === undefined) return true;
+    if (hasFixedOperatingHours(hours)) {
+      return isWithinTimeRange(time, hours.start, hours.end);
+    }
+    return getActivePeakWindow(line, time) !== null;
   }
 
   if (dayType === 'weekday' && schedule.weekdayHours) {
@@ -239,20 +421,36 @@ export function estimateWaitTime(lineName: string, time: Date = new Date()): num
     return (schedule.frequencyPeak ?? schedule.frequency ?? 20) * 60;
   }
 
+  if (schedule.operatingHours) {
+    if (!isLineOperating(lineName, time, { scheduleTypeFilter: null })) return Infinity;
+    return (schedule.frequencyPeak ?? schedule.frequency ?? 20) * 60;
+  }
+
   return (schedule.frequency ?? schedule.frequencyPeak ?? 10) * 60;
 }
 
 async function getNextDeparture(
   lineName: string,
   arrivalTime: Date,
-  _stationName: string
+  stationName: string,
+  patternStations?: Station[],
+  patternHeadsign?: string
 ): Promise<DepartureInfo> {
   // Frequency-based static estimate. Commuter Express is not realtime-backed here.
   const waitSeconds = estimateWaitTime(lineName, arrivalTime);
+  const line = TRANSIT_LINES[lineName];
+  const stations = patternStations || line?.stations || [];
+  const stationIndex = stations.findIndex((station) => station.name === stationName);
+  const nextStation = stationIndex >= 0
+    ? stations[stationIndex + 1] || stations[stationIndex - 1]
+    : null;
+
   return {
     waitSeconds: Number.isFinite(waitSeconds) ? waitSeconds : 0,
-    departureTime: null,
-    headsign: null,
+    departureTime: Number.isFinite(waitSeconds)
+      ? new Date(arrivalTime.getTime() + waitSeconds * 1000)
+      : null,
+    headsign: patternHeadsign || nextStation?.name || null,
     isEstimate: true
   };
 }
@@ -320,10 +518,50 @@ function getCommonLines(
       continue;
     }
 
+    if (data.patterns?.length) {
+      for (const pattern of data.patterns) {
+        const idx1 = pattern.stations.findIndex(s => s.name === s1.name);
+        const idx2 = pattern.stations.findIndex(s => s.name === s2.name);
+
+        if (idx1 === -1 || idx2 === -1 || idx1 >= idx2) {
+          continue;
+        }
+
+        const direction = pattern.direction;
+        if (departureTime && !isDirectionAllowed(data, departureTime, direction)) {
+          continue;
+        }
+
+        routes.push({
+          line: lineName,
+          color: data.color,
+          gtfsRouteId: pattern.routeId || data.gtfsRouteId || null,
+          patternId: pattern.id,
+          headsign: pattern.headsign,
+          shapeId: pattern.shapeId,
+          stationShapeDistances: pattern.stationShapeDistances?.slice(idx1, idx2 + 1),
+          segment: pattern.stations.slice(idx1, idx2 + 1),
+          lineStatus: data.status || 'operating',
+          expectedOpening: data.expectedOpening || null,
+          serviceNotes: [
+            data.schedule?.scheduleNotes,
+            departureTime ? getDirectionalServiceLabel(data, departureTime, direction) : null
+          ].filter(Boolean).join(' '),
+          sourceConfidence: data.source?.confidence || data.schedule?.sourceConfidence
+        });
+      }
+      continue;
+    }
+
     const idx1 = data.stations.findIndex(s => s.name === s1.name);
     const idx2 = data.stations.findIndex(s => s.name === s2.name);
 
     if (idx1 !== -1 && idx2 !== -1) {
+      const direction = getLineDirection(idx1, idx2);
+      if (departureTime && !isDirectionAllowed(data, departureTime, direction)) {
+        continue;
+      }
+
       const start = Math.min(idx1, idx2);
       const end = Math.max(idx1, idx2);
       const segment = data.stations.slice(start, end + 1);
@@ -335,11 +573,115 @@ function getCommonLines(
         gtfsRouteId: data.gtfsRouteId || null,
         segment: segment,
         lineStatus: data.status || 'operating',
-        expectedOpening: data.expectedOpening || null
+        expectedOpening: data.expectedOpening || null,
+        serviceNotes: [
+          data.schedule?.scheduleNotes,
+          departureTime ? getDirectionalServiceLabel(data, departureTime, direction) : null
+        ].filter(Boolean).join(' '),
+        sourceConfidence: data.source?.confidence || data.schedule?.sourceConfidence
       });
     }
   }
   return routes;
+}
+
+interface DirectTransitCandidate {
+  entryStation: StationWithLine;
+  exitStation: StationWithLine;
+  route: TransitRoute;
+}
+
+function findBestNearbyDirectTransitCandidate(
+  startLoc: Location,
+  endLoc: Location,
+  departureTime: Date | null = null,
+  includeFuture = false,
+  scheduleTypeFilter: ScheduleTypeFilter = DEFAULT_ACTIVE_SCHEDULE_TYPES
+): DirectTransitCandidate | null {
+  const maxAccessDistanceKm = hasCommuterExpressOnlyFilter(scheduleTypeFilter) ? 4 : 2;
+  const maxEgressDistanceKm = hasCommuterExpressOnlyFilter(scheduleTypeFilter) ? 6 : 2;
+
+  let bestCandidate: DirectTransitCandidate | null = null;
+  let bestScore = Infinity;
+
+  for (const [lineName, data] of Object.entries(TRANSIT_LINES)) {
+    if (!scheduleTypeAllowed(data, scheduleTypeFilter)) continue;
+    if (departureTime && !isLineOperating(lineName, departureTime, { includeFuture, scheduleTypeFilter })) {
+      continue;
+    }
+
+    const patterns = data.patterns?.length
+      ? data.patterns
+      : [{
+        id: `${lineName}-default`,
+        routeId: data.gtfsRouteId,
+        direction: 'forward' as const,
+        headsign: undefined,
+        stations: data.stations
+      }];
+
+    for (const pattern of patterns) {
+      if (departureTime && !isDirectionAllowed(data, departureTime, pattern.direction)) {
+        continue;
+      }
+
+      for (let entryIndex = 0; entryIndex < pattern.stations.length - 1; entryIndex += 1) {
+        const entryPatternStation = pattern.stations[entryIndex];
+        const accessDistance = getDistance(startLoc.lat, startLoc.lon, entryPatternStation.lat, entryPatternStation.lon);
+        if (accessDistance > maxAccessDistanceKm) continue;
+
+        for (let exitIndex = entryIndex + 1; exitIndex < pattern.stations.length; exitIndex += 1) {
+          const exitPatternStation = pattern.stations[exitIndex];
+          const egressDistance = getDistance(endLoc.lat, endLoc.lon, exitPatternStation.lat, exitPatternStation.lon);
+          if (egressDistance > maxEgressDistanceKm) continue;
+
+          const segment = pattern.stations.slice(entryIndex, exitIndex + 1);
+          const routeDistance = getTransitSegmentDistance(segment);
+          const route: TransitRoute = {
+            line: lineName,
+            color: data.color,
+            gtfsRouteId: pattern.routeId || data.gtfsRouteId || null,
+            patternId: pattern.id,
+            headsign: pattern.headsign,
+            shapeId: pattern.shapeId,
+            stationShapeDistances: pattern.stationShapeDistances?.slice(entryIndex, exitIndex + 1),
+            segment,
+            lineStatus: data.status || 'operating',
+            expectedOpening: data.expectedOpening || null,
+            serviceNotes: [
+              data.schedule?.scheduleNotes,
+              departureTime ? getDirectionalServiceLabel(data, departureTime, pattern.direction) : null
+            ].filter(Boolean).join(' '),
+            sourceConfidence: data.source?.confidence || data.schedule?.sourceConfidence
+          };
+          const entryStation: StationWithLine = {
+            ...entryPatternStation,
+            line: lineName,
+            color: data.color,
+            lineStatus: data.status || 'operating',
+            expectedOpening: data.expectedOpening || null,
+            distance: accessDistance
+          };
+          const exitStation: StationWithLine = {
+            ...exitPatternStation,
+            line: lineName,
+            color: data.color,
+            lineStatus: data.status || 'operating',
+            expectedOpening: data.expectedOpening || null,
+            distance: egressDistance
+          };
+          const score = accessDistance + egressDistance + routeDistance * 0.01;
+
+          if (score < bestScore) {
+            bestScore = score;
+            bestCandidate = { entryStation, exitStation, route };
+          }
+        }
+      }
+    }
+  }
+
+  return bestCandidate;
 }
 
 function getLinesForStation(
@@ -580,14 +922,30 @@ export async function calculateRoute(
 
   const busPenaltySeconds = isBus ? 600 : 0;
 
-  const entryStation = findNearestStation(startLoc.lat, startLoc.lon, queryTime, includeFuture, scheduleTypeFilter);
-  const exitStation = findNearestStation(endLoc.lat, endLoc.lon, queryTime, includeFuture, scheduleTypeFilter);
+  let entryStation = findNearestStation(startLoc.lat, startLoc.lon, queryTime, includeFuture, scheduleTypeFilter);
+  let exitStation = findNearestStation(endLoc.lat, endLoc.lon, queryTime, includeFuture, scheduleTypeFilter);
 
   const legs: RouteLeg[] = [];
 
-  const commonRoutes = entryStation && exitStation
+  let commonRoutes = entryStation && exitStation
     ? getCommonLines(entryStation, exitStation, queryTime, includeFuture, scheduleTypeFilter)
     : [];
+
+  if (isBus && hasCommuterExpressOnlyFilter(scheduleTypeFilter)) {
+    const directCandidate = findBestNearbyDirectTransitCandidate(
+      startLoc,
+      endLoc,
+      queryTime,
+      includeFuture,
+      scheduleTypeFilter
+    );
+
+    if (directCandidate) {
+      entryStation = directCandidate.entryStation;
+      exitStation = directCandidate.exitStation;
+      commonRoutes = [directCandidate.route];
+    }
+  }
 
   let transitPlan: TransitPlan | null = null;
   let usedFutureLine = false;
@@ -682,7 +1040,7 @@ export async function calculateRoute(
     if (transitPlan!.type === 'direct' && transitPlan!.line) {
       const bestTransit = transitPlan!.line;
       const waypoints = bestTransit.segment;
-      const transitCoordinates = waypoints.map(s => [s.lon, s.lat] as [number, number]);
+      const transitGeometry = getTransitRouteGeometry(bestTransit);
 
       let transitDistance = 0;
       for (let i = 0; i < waypoints.length - 1; i++) {
@@ -693,7 +1051,13 @@ export async function calculateRoute(
       const accessTimeSeconds = legs[0].duration;
       const arrivalAtStation = new Date(queryTime.getTime() + accessTimeSeconds * 1000);
 
-      const departureInfo = await getNextDeparture(bestTransit.line, arrivalAtStation, entryStation.name);
+      const departureInfo = await getNextDeparture(
+        bestTransit.line,
+        arrivalAtStation,
+        entryStation.name,
+        bestTransit.segment,
+        bestTransit.headsign
+      );
       const waitTimeSeconds = departureInfo.waitSeconds;
       const transitDuration = (transitDistance / avgSpeedKmh) * 3600 + waitTimeSeconds;
 
@@ -704,14 +1068,16 @@ export async function calculateRoute(
         color: bestTransit.color,
         from: entryStation,
         to: exitStation,
-        geometry: { type: "LineString", coordinates: transitCoordinates },
+        geometry: transitGeometry,
         distance: transitDistance,
         duration: transitDuration,
         waitTime: waitTimeSeconds,
         departureTime: departureInfo.departureTime,
         headsign: departureInfo.headsign,
         isRealtimeSchedule: !departureInfo.isEstimate,
-        stations: bestTransit.segment
+        stations: bestTransit.segment,
+        serviceNotes: bestTransit.serviceNotes,
+        sourceConfidence: bestTransit.sourceConfidence
       });
     } else if (transitPlan!.type === 'transfer') {
       const hub = transitPlan!.hub!;
@@ -722,14 +1088,20 @@ export async function calculateRoute(
       const accessTimeSeconds = legs[0].duration;
       const arrivalAtEntry = new Date(queryTime.getTime() + accessTimeSeconds * 1000);
 
-      const departureInfo1 = await getNextDeparture(leg1.line, arrivalAtEntry, entryStation.name);
+      const departureInfo1 = await getNextDeparture(
+        leg1.line,
+        arrivalAtEntry,
+        entryStation.name,
+        leg1.segment,
+        leg1.headsign
+      );
 
       let leg1Distance = 0;
       for (let i = 0; i < leg1.segment.length - 1; i++) {
         leg1Distance += getDistance(leg1.segment[i].lat, leg1.segment[i].lon, leg1.segment[i + 1].lat, leg1.segment[i + 1].lon);
       }
       const leg1TravelTime = (leg1Distance / avgSpeedKmh) * 3600;
-      const leg1Coordinates = leg1.segment.map(s => [s.lon, s.lat] as [number, number]);
+      const leg1Geometry = getTransitRouteGeometry(leg1);
 
       legs.push({
         mode: isBus ? 'transit_bus' : 'transit',
@@ -738,25 +1110,33 @@ export async function calculateRoute(
         color: leg1.color,
         from: entryStation,
         to: hub,
-        geometry: { type: "LineString", coordinates: leg1Coordinates },
+        geometry: leg1Geometry,
         distance: leg1Distance,
         duration: leg1TravelTime + departureInfo1.waitSeconds,
         waitTime: departureInfo1.waitSeconds,
         departureTime: departureInfo1.departureTime,
         headsign: departureInfo1.headsign,
         isRealtimeSchedule: !departureInfo1.isEstimate,
-        stations: leg1.segment
+        stations: leg1.segment,
+        serviceNotes: leg1.serviceNotes,
+        sourceConfidence: leg1.sourceConfidence
       });
 
       const arrivalAtHub = new Date(arrivalAtEntry.getTime() + (departureInfo1.waitSeconds + leg1TravelTime) * 1000);
-      const departureInfo2 = await getNextDeparture(leg2.line, arrivalAtHub, hub.name);
+      const departureInfo2 = await getNextDeparture(
+        leg2.line,
+        arrivalAtHub,
+        hub.name,
+        leg2.segment,
+        leg2.headsign
+      );
 
       let leg2Distance = 0;
       for (let i = 0; i < leg2.segment.length - 1; i++) {
         leg2Distance += getDistance(leg2.segment[i].lat, leg2.segment[i].lon, leg2.segment[i + 1].lat, leg2.segment[i + 1].lon);
       }
       const leg2TravelTime = (leg2Distance / avgSpeedKmh) * 3600;
-      const leg2Coordinates = leg2.segment.map(s => [s.lon, s.lat] as [number, number]);
+      const leg2Geometry = getTransitRouteGeometry(leg2);
 
       legs.push({
         mode: isBus ? 'transit_bus' : 'transit',
@@ -765,7 +1145,7 @@ export async function calculateRoute(
         color: leg2.color,
         from: hub,
         to: exitStation,
-        geometry: { type: "LineString", coordinates: leg2Coordinates },
+        geometry: leg2Geometry,
         distance: leg2Distance,
         duration: leg2TravelTime + departureInfo2.waitSeconds,
         waitTime: departureInfo2.waitSeconds,
@@ -773,6 +1153,8 @@ export async function calculateRoute(
         headsign: departureInfo2.headsign,
         isRealtimeSchedule: !departureInfo2.isEstimate,
         stations: leg2.segment,
+        serviceNotes: leg2.serviceNotes,
+        sourceConfidence: leg2.sourceConfidence,
         isTransfer: true
       });
     }
@@ -808,6 +1190,9 @@ export async function calculateRoute(
       return `Direct ${travelMode === 'bike' ? 'Bike' : 'Walk'} (${legs[0].distance.toFixed(1)} km)`;
     }
     if (transitPlan?.type === 'direct' && transitPlan.line) {
+      if (TRANSIT_LINES[transitPlan.line.line]?.schedule?.type === 'commuter_express') {
+        return `Peak-period ${transitPlan.line.line} Commuter Express with estimated wait`;
+      }
       return `${isBus ? 'Commuter Express bus' : (travelMode === 'bike' ? 'Bike' : 'Walk')} to ${entryStation?.name}, Take ${isBus ? transitPlan.line.line : `${transitPlan.line.line} Line`}`;
     }
     if (transitPlan?.type === 'transfer' && transitPlan.leg1 && transitPlan.leg2 && transitPlan.hub) {
@@ -978,7 +1363,7 @@ export async function compareRoutes(
     routePromises.push(
       calculateRoute(startLoc, endLoc, 'transit_bus', 'balanced', queryTime, false, COMMUTER_EXPRESS_SCHEDULE_TYPES)
         .then(route => route.legs.some((leg) => leg.mode === 'transit_bus' && leg.line?.startsWith('LADOT CE'))
-          ? ({ ...route, label: 'LADOT Commuter Express' })
+          ? withTimeMetadata({ ...route, label: 'LADOT Commuter Express' }, fallbackNotice)
           : null)
         .catch(e => { console.error('Commuter Express route failed', e); return null; })
     );
