@@ -1,4 +1,8 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import {
+  MBR96_ROUTE_RESULTS_FIXTURE,
+  dispatchRouteResultsFixture
+} from './helpers/routeResultsFixture';
 
 const strictMaps = process.env.PLAYWRIGHT_STRICT_MAPS === '1';
 
@@ -15,7 +19,7 @@ async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
 }
 
-async function dispatchSampleOverlayMetadata(page: import('@playwright/test').Page) {
+async function dispatchSampleOverlayMetadata(page: Page) {
   await page.evaluate(() => {
     window.dispatchEvent(new CustomEvent('velorail:map-overlay-metadata-selected', {
       detail: {
@@ -47,6 +51,101 @@ async function dispatchSampleOverlayMetadata(page: import('@playwright/test').Pa
         ]
       }
     }));
+  });
+}
+
+async function expectInsideViewport(locator: Locator, page: Page, label: string) {
+  await expect(locator).toBeVisible();
+  const box = await locator.boundingBox();
+  const viewport = page.viewportSize();
+
+  expect(box, `${label} should have a bounding box`).not.toBeNull();
+  expect(viewport, `${label} should have a viewport`).not.toBeNull();
+  expect(box!.x, `${label} left edge`).toBeGreaterThanOrEqual(0);
+  expect(box!.y, `${label} top edge`).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width, `${label} right edge`).toBeLessThanOrEqual(viewport!.width + 1);
+  expect(box!.y + box!.height, `${label} bottom edge`).toBeLessThanOrEqual(viewport!.height + 1);
+}
+
+async function stubFallbackRouteNetwork(page: Page) {
+  await page.route('https://nominatim.openstreetmap.org/search?**', async (route) => {
+    const requestUrl = new URL(route.request().url());
+    const query = requestUrl.searchParams.get('q')?.toLowerCase() || '';
+    const isHollywood = query.includes('hollywood');
+
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{
+        lat: isHollywood ? '34.1013225' : '34.0486587',
+        lon: isHollywood ? '-118.325586' : '-118.258743',
+        display_name: isHollywood ? 'Hollywood/Vine Station' : '7th St/Metro Center'
+      }])
+    });
+  });
+
+  await page.route('https://router.project-osrm.org/route/v1/**', async (route) => {
+    const requestUrl = new URL(route.request().url());
+    const [profileAndCoords] = requestUrl.pathname.split('/route/v1/').slice(1);
+    const [profile, coordinateText] = profileAndCoords.split('/');
+    const coordinates = coordinateText.split(';').map((pair) => pair.split(',').map(Number));
+    const isDriving = profile === 'driving';
+
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 'Ok',
+        routes: [{
+          distance: isDriving ? 10_800 : 1_000,
+          duration: isDriving ? 1_020 : 60,
+          geometry: {
+            type: 'LineString',
+            coordinates
+          }
+        }]
+      })
+    });
+  });
+}
+
+async function forceGoogleRoutesFallback(page: Page) {
+  await page.evaluate(() => {
+    const maps = (window as Window & {
+      google?: {
+        maps?: {
+          importLibrary?: (name: string) => Promise<unknown>;
+          routes?: Record<string, unknown>;
+        };
+      };
+    }).google?.maps;
+    if (!maps) return;
+
+    const emptyRouteClass = {
+      computeRoutes: async () => ({ routes: [] })
+    };
+
+    try {
+      Object.defineProperty(maps, 'routes', {
+        configurable: true,
+        value: {
+          ...(maps.routes ?? {}),
+          Route: emptyRouteClass
+        }
+      });
+    } catch {
+      maps.routes = {
+        ...(maps.routes ?? {}),
+        Route: emptyRouteClass
+      };
+    }
+
+    const originalImportLibrary = maps.importLibrary?.bind(maps);
+    maps.importLibrary = async (name: string) => {
+      if (name === 'routes') {
+        return { Route: emptyRouteClass };
+      }
+
+      return originalImportLibrary ? originalImportLibrary(name) : {};
+    };
   });
 }
 
@@ -124,7 +223,7 @@ test('@MBR-89 expanded search surfaces destination repair state without opening 
   await expect(page.getByTestId('find-route-button')).toBeEnabled();
 });
 
-test('@MBR-86 @MBR-89 mobile expanded search keeps primary route action visible', async ({ page }) => {
+test('@MBR-86 @MBR-89 @MBR-93 mobile expanded search keeps primary route action visible', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ensureMapsAvailable(page);
 
@@ -146,7 +245,65 @@ test('@MBR-86 @MBR-89 mobile expanded search keeps primary route action visible'
   expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(viewport!.height);
 });
 
-test('@MBR-88 @MBR-89 bike settings popover has named controls and Escape focus return', async ({ page }) => {
+test('@MBR-95 mobile bottom surfaces hand off between search, bike settings, layers, and metadata', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await ensureMapsAvailable(page);
+
+  await page.getByPlaceholder('Where to?').fill('Hollywood/Vine Station');
+  await page.getByTestId('find-route-button').click();
+
+  const searchCard = page.locator('.search-card');
+  const findRouteButton = page.getByTestId('find-route-button');
+  await expect(searchCard).toHaveAttribute('data-search-mode', 'expanded');
+  await expect(searchCard).toHaveAttribute('data-active-bottom-surface', 'search');
+  await expect(page.getByPlaceholder('Your Location')).toBeFocused();
+  await expectInsideViewport(findRouteButton, page, 'mobile find route button');
+
+  const bikeToggle = page.getByRole('button', { name: 'Bike' });
+  await bikeToggle.click();
+
+  const bikePanel = page.getByRole('region', { name: 'Bike Settings' });
+  await expect(searchCard).toHaveAttribute('data-active-bottom-surface', 'bike-settings');
+  await expectInsideViewport(bikePanel, page, 'bike settings surface');
+
+  const layerTrigger = page.getByRole('button', { name: /layers, \d+ active/i });
+  const layerPanel = page.getByLabel('Map layers and legend');
+  await expect(layerTrigger).toBeHidden();
+  await page.keyboard.press('Escape');
+  await expect(bikePanel).toBeHidden();
+  await expect(bikeToggle).toBeFocused();
+  await expect(searchCard).toHaveAttribute('data-active-bottom-surface', 'search');
+  await expect(layerTrigger).toBeVisible();
+
+  await layerTrigger.click();
+
+  await expect(layerTrigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(layerPanel).toHaveAttribute('data-active-bottom-surface', 'layers');
+  await expect(layerPanel).toBeVisible();
+  await expect(layerPanel.locator('.map-layer-panel__title')).toBeFocused();
+  await expect(layerPanel).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 0)');
+  await expectInsideViewport(layerPanel, page, 'mobile layer surface');
+
+  await dispatchSampleOverlayMetadata(page);
+
+  const metadataPanel = page.locator('#map-overlay-metadata-panel');
+  await expect(metadataPanel).toBeVisible();
+  await expect(metadataPanel.locator('.map-overlay-metadata__title')).toBeFocused();
+  await expect(layerPanel).toBeHidden();
+  await expect(layerTrigger).toBeHidden();
+  await expectInsideViewport(metadataPanel, page, 'mobile metadata surface');
+
+  await page.keyboard.press('Escape');
+  await expect(metadataPanel).toBeHidden();
+  await expect(layerPanel).toBeVisible();
+  await expect(layerPanel.locator('.map-layer-panel__title')).toBeFocused();
+
+  await page.getByRole('button', { name: 'Close layers' }).click();
+  await expect(layerPanel).toBeHidden();
+  await expect(layerTrigger).toBeFocused();
+});
+
+test('@MBR-88 @MBR-89 @MBR-93 bike settings popover has named controls and Escape focus return', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const bikeToggle = page.getByRole('button', { name: 'Bike' });
@@ -302,7 +459,7 @@ test('@veloRail-8982 bike and walk rail estimates use different surface speeds',
   expect(walkDurationMinutes).toBeGreaterThan(0);
 });
 
-test('@smoke @MBR-89 @VR-306 @VR-307 @VR-308 bike settings popover is not clipped by the search card', async ({ page }) => {
+test('@smoke @MBR-89 @MBR-93 @VR-306 @VR-307 @VR-308 bike settings popover is not clipped by the search card', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   await page.getByRole('button', { name: 'Bike' }).click();
@@ -385,7 +542,7 @@ test('@MBR-89 @VR-305 @VR-307 overlay metadata can be dismissed with Escape', as
   await expect(metadataPanel).toBeHidden();
 });
 
-test('@MBR-89 @VR-306 @VR-308 mobile overlay panels stay within the viewport', async ({ page }) => {
+test('@MBR-89 @MBR-93 @VR-306 @VR-308 mobile overlay panels stay within the viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ensureMapsAvailable(page);
   await dispatchSampleOverlayMetadata(page);
@@ -406,60 +563,113 @@ test('@MBR-89 @VR-306 @VR-308 mobile overlay panels stay within the viewport', a
   expect(panelBox!.height).toBeLessThanOrEqual(viewport!.height * 0.52);
 });
 
-test('@MBR-84 @MBR-86 @MBR-88 @MBR-89 @VR-306 @VR-307 route results can switch sheet states, select a route, close, and reopen when options are available', async ({ page }) => {
+test('@MBR-95 mobile route sheet yields to layers and metadata without losing route context', async ({ page }) => {
   await page.setViewportSize({ width: 430, height: 932 });
+  await stubFallbackRouteNetwork(page);
   await ensureMapsAvailable(page);
+  await forceGoogleRoutesFallback(page);
 
   await page.locator('.location-status').click();
   await expect(page.getByPlaceholder('Your Location')).toBeVisible();
 
-  await page.getByPlaceholder('Your Location').fill('Union Station Los Angeles');
-  await page.getByPlaceholder('Where to?').fill('Hollywood/Vine Station');
+  await page.getByPlaceholder('Your Location').fill('Hollywood/Vine Station');
+  await page.getByPlaceholder('Your Location').press('Escape');
+  await page.getByPlaceholder('Where to?').fill('7th St/Metro Center');
+  await page.getByPlaceholder('Where to?').press('Escape');
   await page.getByRole('button', { name: 'Find Route' }).click();
 
-  await expect.poll(async () => {
-    const feedbackVisible = await page.locator('.search-feedback').isVisible().catch(() => false);
-    const sidebarVisible = await page.locator('.results-sidebar.open').isVisible().catch(() => false);
-    return feedbackVisible || sidebarVisible;
-  }, {
-    message: 'route search should show progress, an error, or results after clicking Find Route',
-    timeout: 15_000
-  }).toBe(true);
-
-  const sidebarVisible = await page.locator('.results-sidebar.open').isVisible().catch(() => false);
-  test.skip(!sidebarVisible, 'VeloRail did not render route options in this environment.');
   const resultsSheet = page.getByTestId('route-results-sheet');
+  await expect(resultsSheet).toBeVisible({ timeout: 20_000 });
   await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
+  await expect(resultsSheet).toHaveAttribute('data-active-bottom-surface', 'route');
 
+  await dispatchSampleOverlayMetadata(page);
+
+  const metadataPanel = page.locator('#map-overlay-metadata-panel');
+  await expect(metadataPanel).toBeVisible();
+  await expect(resultsSheet).toBeHidden();
+  await expect(metadataPanel.locator('.map-overlay-metadata__title')).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(metadataPanel).toBeHidden();
+  await expect(resultsSheet).toBeVisible();
+  await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
+  await expect(resultsSheet).toContainText('Route options');
+
+  const layerTrigger = page.getByRole('button', { name: /layers, \d+ active/i });
+  const layerPanel = page.getByLabel('Map layers and legend');
+  await layerTrigger.click();
+
+  await expect(layerPanel).toBeVisible();
+  await expect(resultsSheet).toBeHidden();
+  await expect(layerPanel.locator('.map-layer-panel__title')).toBeFocused();
+
+  await page.getByRole('button', { name: 'Close layers' }).click();
+  await expect(layerPanel).toBeHidden();
+  await expect(resultsSheet).toBeVisible();
+  await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
+  await expect(resultsSheet).toContainText('Route options');
+});
+
+test('@MBR-84 @MBR-86 @MBR-88 @MBR-89 @MBR-96 @VR-306 @VR-307 route results can switch sheet states, select a route, close, and reopen deterministically', async ({ page }) => {
+  await page.setViewportSize({ width: 430, height: 932 });
+  await ensureMapsAvailable(page);
+  await dispatchRouteResultsFixture(page);
+
+  const resultsSheet = page.getByTestId('route-results-sheet');
   const routeOptions = page.locator('.route-option');
-  await expect(routeOptions.first()).toHaveAttribute('aria-pressed', 'true');
-  const routeOptionCount = await routeOptions.count();
-  if (routeOptionCount > 1) {
-    const alternateOption = routeOptions.nth(1);
-    const alternateLabel = await alternateOption.locator('.route-option-label').innerText();
-    await alternateOption.click();
-    await expect(alternateOption).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.route-details h3')).toContainText(alternateLabel);
-  }
+  const optionsControl = resultsSheet.getByRole('button', { name: 'Options', exact: true });
+  const itineraryControl = resultsSheet.getByRole('button', { name: 'Itinerary', exact: true });
+  const secondRoute = MBR96_ROUTE_RESULTS_FIXTURE.routes[1];
+  const routeLabels = MBR96_ROUTE_RESULTS_FIXTURE.routes.map((route) => route.label);
 
-  await page.getByRole('button', { name: 'Itinerary' }).click();
+  await expect(resultsSheet).toBeVisible({ timeout: 20_000 });
+  await expect(resultsSheet).toHaveAttribute('aria-hidden', 'false');
+  await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
+  await expect(resultsSheet.locator('.route-options')).toBeVisible();
+  await expect(resultsSheet.locator('.route-option-label')).toContainText(routeLabels);
+
+  await expect(routeOptions).toHaveCount(MBR96_ROUTE_RESULTS_FIXTURE.routes.length);
+  const firstOption = routeOptions.first();
+  const alternateOption = routeOptions.nth(1);
+  await expect(firstOption).toHaveAttribute('aria-pressed', 'true');
+  await expect(alternateOption).toHaveAttribute('aria-pressed', 'false');
+
+  await alternateOption.click();
+  await expect(firstOption).toHaveAttribute('aria-pressed', 'false');
+  await expect(alternateOption).toHaveAttribute('aria-pressed', 'true');
+
+  await itineraryControl.click();
   await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'full');
-  await expect(page.locator('.route-details h3')).toBeFocused();
-  const selectedDetailHeading = await page.locator('.route-details h3').innerText();
+  await expect(itineraryControl).toHaveAttribute('aria-pressed', 'true');
+  await expect(optionsControl).toHaveAttribute('aria-pressed', 'false');
+  const selectedDetailHeading = `Selected itinerary: ${secondRoute.label}`;
+  await expect(page.getByRole('heading', { name: selectedDetailHeading })).toBeFocused();
+  await expect(page.locator('.route-details')).toContainText(secondRoute.summary);
 
   await page.getByRole('button', { name: 'Show route options' }).click();
   await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
+  await expect(optionsControl).toHaveAttribute('aria-pressed', 'true');
+  await expect(resultsSheet.locator('.route-options')).toBeVisible();
 
   await page.getByRole('button', { name: 'Close route results' }).click();
+  await expect(resultsSheet).toHaveAttribute('aria-hidden', 'true');
   await expect(page.locator('.results-sidebar.open')).toBeHidden();
 
-  const reopenButton = page.getByRole('button', { name: /show \d+ routes?/i });
+  const reopenButton = page.getByRole('button', { name: `Show ${MBR96_ROUTE_RESULTS_FIXTURE.routes.length} routes` });
   await expect(reopenButton).toBeVisible();
   await expect(reopenButton).toBeFocused();
+  await expect(reopenButton).toHaveAttribute('aria-controls', 'route-results-panel');
+  await expect(reopenButton).toHaveAttribute('aria-expanded', 'false');
+
   await reopenButton.click();
-  await expect(page.locator('.results-sidebar.open')).toBeVisible();
-  await page.getByRole('button', { name: 'Itinerary' }).click();
-  await expect(page.locator('.route-details h3')).toHaveText(selectedDetailHeading);
+  await expect(resultsSheet).toBeVisible();
+  await expect(resultsSheet).toHaveAttribute('aria-hidden', 'false');
+  await expect(resultsSheet).toHaveAttribute('data-route-sheet-state', 'half');
+  await expect(page.getByRole('heading', { name: 'Route results' })).toBeFocused();
+
+  await itineraryControl.click();
+  await expect(page.getByRole('heading', { name: selectedDetailHeading })).toBeFocused();
 });
 
 function parseDurationMinutes(duration: string): number {

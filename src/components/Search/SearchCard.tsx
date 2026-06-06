@@ -54,7 +54,7 @@ function getDegradedMessage(location: Location | PlaceResult | null, label: Endp
 
 export function SearchCard({ className = '' }: SearchCardProps) {
   const { searchParams, setSearchParams, isLoading, error, setError } = useRouteStore();
-  const { searchMode, expandSearch, isUsingGeolocation, currentLocation } = useUIStore();
+  const { activeBottomSurface, searchMode, expandSearch, isUsingGeolocation, currentLocation } = useUIStore();
   const { location, status: locationStatus, refresh: refreshLocation } = useGeolocation();
   const { calculateRoutes } = useRouting();
 
@@ -278,6 +278,8 @@ export function SearchCard({ className = '' }: SearchCardProps) {
       ariaLabel="Route search"
       aria-describedby={error || searchMessage || degradedMessage ? ROUTE_SEARCH_FEEDBACK_ID : undefined}
       data-search-mode={searchMode}
+      data-bottom-surface="search"
+      data-active-bottom-surface={activeBottomSurface}
     >
       <form
         className="search-form"

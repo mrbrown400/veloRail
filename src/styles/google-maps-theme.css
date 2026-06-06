@@ -2100,6 +2100,12 @@ body {
     transform: translateY(0);
   }
 
+  .results-sidebar.open.results-sidebar--surface-backgrounded {
+    pointer-events: none;
+    transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px)));
+    visibility: hidden;
+  }
+
   .results-sidebar[data-route-sheet-state="half"] {
     height: var(--vr-sheet-half-height);
   }
@@ -2160,12 +2166,24 @@ body {
     pointer-events: none;
   }
 
+  .map-container[data-active-bottom-surface="bike-settings"] .map-layer-trigger {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .map-layer-panel {
+    position: fixed;
     right: 16px;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
     left: 16px;
+    display: grid;
+    grid-template-rows: auto minmax(0, auto) auto auto;
+    height: var(--vr-sheet-max-height);
+    height: min(var(--vr-sheet-max-height), calc(100vh - env(safe-area-inset-top, 0px) - 96px));
+    height: min(var(--vr-sheet-max-height), calc(100dvh - env(safe-area-inset-top, 0px) - 96px));
     width: auto;
-    max-height: min(var(--vr-sheet-max-height), calc(100dvh - env(safe-area-inset-top, 0px) - 96px));
+    max-height: calc(100vh - env(safe-area-inset-top, 0px) - 96px);
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 96px);
     box-shadow: var(--vr-shadow-sheet);
     opacity: 0;
     pointer-events: none;
@@ -2174,6 +2192,7 @@ body {
       opacity 0.2s ease,
       transform 0.24s ease;
     visibility: hidden;
+    z-index: var(--vr-z-bottom-sheet);
   }
 
   .map-layer-panel--open {
@@ -2182,6 +2201,13 @@ body {
     transform: translateY(0);
     visibility: visible;
     z-index: var(--vr-z-bottom-sheet);
+  }
+
+  .map-layer-panel--surface-backgrounded {
+    opacity: 0;
+    transform: translateY(calc(100% + 32px));
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .map-layer-panel--metadata-open {
@@ -2207,7 +2233,14 @@ body {
   }
 
   .map-layer-panel__groups {
+    min-height: 0;
     max-height: 26vh;
+  }
+
+  .map-layer-legend,
+  .map-layer-feature-list {
+    min-height: 0;
+    overflow: hidden;
   }
 
   .layer-btn-label,
@@ -2245,6 +2278,21 @@ body {
 
   .bike-settings-toggle {
     min-height: var(--vr-touch-target-min);
+  }
+
+  .bike-settings-panel {
+    position: fixed;
+    top: auto;
+    right: 16px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+    left: 16px;
+    width: auto;
+    max-height: min(50vh, calc(100dvh - env(safe-area-inset-top, 0px) - 96px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: var(--vr-shadow-sheet);
+    z-index: var(--vr-z-bottom-sheet);
   }
 
   .map-overlay-metadata__detail {

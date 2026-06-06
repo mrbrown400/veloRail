@@ -242,7 +242,7 @@ test('@MBR-85 @MBR-89 @VR-104 @veloRail-a3d0 completed network comparison mode c
   await expect(layerPanel).toContainText('Present Only');
 });
 
-test('@MBR-87 @MBR-89 mobile layer controls collapse behind a trigger and open as a sheet', async ({ page }) => {
+test('@MBR-87 @MBR-89 @MBR-93 mobile layer controls collapse behind a trigger and open as a sheet', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ensureMapsAvailable(page);
 
@@ -257,6 +257,7 @@ test('@MBR-87 @MBR-89 mobile layer controls collapse behind a trigger and open a
   await expect(layerTrigger).toHaveAttribute('aria-expanded', 'true');
   await expect(layerPanel).toBeVisible();
   await expect(layerPanel.locator('.map-layer-panel__title')).toBeFocused();
+  await expect(layerPanel).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 0)');
 
   const panelBox = await layerPanel.boundingBox();
   const viewport = page.viewportSize();
@@ -272,7 +273,7 @@ test('@MBR-87 @MBR-89 mobile layer controls collapse behind a trigger and open a
   await expect(layerTrigger).toBeFocused();
 });
 
-test('@MBR-85 @MBR-88 @MBR-89 layer feature list opens metadata without a map click and returns focus on Escape', async ({ page }) => {
+test('@MBR-85 @MBR-88 @MBR-89 @MBR-93 layer feature list opens metadata without a map click and returns focus on Escape', async ({ page }) => {
   await ensureMapsAvailable(page);
 
   const futureOverlayToggle = page.getByRole('button', {

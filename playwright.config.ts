@@ -24,7 +24,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4174',
+          command: 'VITE_BROWSER_TEST_SEAMS=1 npm run build && npm run preview -- --host 127.0.0.1 --port 4174',
           url: baseURL,
           reuseExistingServer: false,
           timeout: 120_000
