@@ -450,3 +450,65 @@ function parseDurationMinutes(duration: string): number {
   const minuteMatch = duration.match(/(\d+)\s*min/);
   return (hourMatch ? Number(hourMatch[1]) * 60 : 0) + (minuteMatch ? Number(minuteMatch[1]) : 0);
 }
+
+test('@MBR-103 LADOT Commuter Express appears during selected weekday peak window', async ({ page }) => {
+  await page.route('https://nominatim.openstreetmap.org/search?**', async (route) => {
+    const requestUrl = new URL(route.request().url());
+    const query = requestUrl.searchParams.get('q')?.toLowerCase() || '';
+    const isSeventh = query.includes('7th') || query.includes('metro');
+
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{
+        lat: isSeventh ? '34.0487' : '33.9860',
+        lon: isSeventh ? '-118.2587' : '-118.4730',
+        display_name: isSeventh ? '7th St/Metro Center' : 'Venice near CE 437'
+      }])
+    });
+  });
+
+  await page.route('https://router.project-osrm.org/route/v1/**', async (route) => {
+    const requestUrl = new URL(route.request().url());
+    const [profileAndCoords] = requestUrl.pathname.split('/route/v1/').slice(1);
+    const [, coordinateText] = profileAndCoords.split('/');
+    const coordinates = coordinateText.split(';').map((pair) => pair.split(',').map(Number));
+
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 'Ok',
+        routes: [{
+          distance: 1_000,
+          duration: 60,
+          geometry: {
+            type: 'LineString',
+            coordinates
+          }
+        }]
+      })
+    });
+  });
+
+  await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
+  const mapErrorVisible = await page.getByText('Error Loading Google Maps').isVisible().catch(() => false);
+  test.skip(mapErrorVisible, 'MBR-103 browser route search requires a working Google Maps API key; unit tests cover CE filtering deterministically.');
+  await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
+
+  await page.locator('.location-status').click();
+  await page.getByLabel('Route mode').selectOption('all');
+  await page.getByText('Depart at').click();
+  await page.getByLabel('Departure time').fill('2026-06-02T14:30');
+  await page.getByPlaceholder('Your Location').fill('Venice near CE 437');
+  await page.getByPlaceholder('Where to?').fill('7th St/Metro Center');
+  await page.getByRole('button', { name: 'Find Route' }).click();
+
+  const commuterExpress = page.locator('.route-option', { hasText: 'LADOT Commuter Express' }).first();
+  await expect(commuterExpress).toBeVisible({ timeout: 20_000 });
+  await expect(commuterExpress).toContainText('Commuter Express Bus');
+  await expect(commuterExpress).toContainText('LADOT CE 437');
+
+  await commuterExpress.click();
+  await expect(page.locator('.route-details')).toContainText('Take LADOT CE 437 commuter express bus');
+  await expect(page.locator('.route-details')).toContainText('~20 min wait');
+});

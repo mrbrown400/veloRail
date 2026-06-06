@@ -310,13 +310,13 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
   // Get color for vehicle marker
   const getVehicleColor = () => {
     if (!selectedRoute) return '#3b82f6';
-    const transitLeg = selectedRoute.legs.find(leg => leg.mode === 'transit');
+    const transitLeg = selectedRoute.legs.find(leg => leg.mode === 'transit' || leg.mode === 'transit_bus');
     return transitLeg?.color || '#3b82f6';
   };
 
   const getVehicleType = () => {
     if (!selectedRoute) return 'train';
-    const transitLeg = selectedRoute.legs.find(leg => leg.mode === 'transit');
+    const transitLeg = selectedRoute.legs.find(leg => leg.mode === 'transit' || leg.mode === 'transit_bus');
     return transitLeg?.mode === 'transit_bus' ? 'bus' : 'train';
   };
 

@@ -93,6 +93,7 @@ function getPointName(point: Location | Station, fallback: string): string {
 
 function getLineName(leg: RouteLeg): string {
   if (!leg.line) return 'Transit';
+  if (leg.line.startsWith('LADOT CE')) return leg.line;
   return leg.line.endsWith('Line') ? leg.line : `${leg.line} Line`;
 }
 
@@ -105,14 +106,14 @@ function getModeMeta(mode: TravelMode): ModeMeta {
     case 'transit':
       return { label: 'Rail', icon: <TrainIcon /> };
     case 'transit_bus':
-      return { label: 'Bus', icon: <BusIcon /> };
+      return { label: 'Commuter Express', icon: <BusIcon /> };
     case 'driving':
       return { label: 'Drive', icon: <CarIcon /> };
   }
 }
 
 function getTransferCount(legs: RouteLeg[]): number {
-  return Math.max(0, legs.filter((leg) => leg.mode === 'transit').length - 1);
+  return Math.max(0, legs.filter((leg) => leg.mode === 'transit' || leg.mode === 'transit_bus').length - 1);
 }
 
 function getBikeSafetyScore(legs: RouteLeg[]): number | null {
@@ -135,7 +136,7 @@ function getInstruction(leg: RouteLeg): string {
     case 'walk':
       return `Walk to ${toName}`;
     case 'transit_bus':
-      return `Take bus to ${toName}`;
+      return `Take ${getLineName(leg)} commuter express bus to ${toName}`;
     case 'driving':
       return `Drive to ${toName}`;
   }
@@ -180,7 +181,7 @@ function getDelayTone(leg: RouteLeg): 'success' | 'warning' | 'danger' {
 
 function LegItem({ leg, index, totalLegs }: LegItemProps) {
   const mode = getModeMeta(leg.mode);
-  const waitInfo = leg.mode === 'transit' ? getWaitInfo(leg) : null;
+  const waitInfo = leg.mode === 'transit' || leg.mode === 'transit_bus' ? getWaitInfo(leg) : null;
   const safetyBadge = getSafetyBadge(leg);
   const fromName = getPointName(leg.from, index === 0 ? 'Origin' : 'Previous stop');
   const toName = getPointName(leg.to, index === totalLegs - 1 ? 'Destination' : 'Next stop');
@@ -214,7 +215,7 @@ function LegItem({ leg, index, totalLegs }: LegItemProps) {
           <span>{leg.distance.toFixed(1)} km</span>
           <span>{formatDuration(leg.duration)}</span>
 
-          {leg.mode === 'transit' && (
+          {(leg.mode === 'transit' || leg.mode === 'transit_bus') && (
             <span className="route-line-chip" style={lineStyle}>
               {getLineName(leg)}
             </span>
