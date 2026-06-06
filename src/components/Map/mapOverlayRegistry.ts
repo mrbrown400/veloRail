@@ -1,3 +1,4 @@
+import { TRANSIT_LINES } from '@/data/transitLines';
 import { IMPORTED_TRANSIT_PROPOSALS } from '@/data/transitProposalSources';
 import type {
   MapOverlayComparisonMode,
@@ -147,6 +148,7 @@ export interface MapOverlayFeatureListItem {
   label: string;
   description: string;
   badgeLabel: string;
+  color?: string;
   scenario: MapOverlayScenario;
   metadata: MapOverlayMetadata;
   highlightAvailable: boolean;
@@ -518,7 +520,7 @@ export function getMapOverlayFeatureListItems(visibility: MapOverlayVisibility):
   const items: MapOverlayFeatureListItem[] = [];
 
   if (visibility[CURRENT_TRANSIT_OVERLAY_ID]) {
-    items.push(createNativeTransitFeatureListItem());
+    items.push(...getCurrentTransitFeatureListItems());
   }
 
   if (visibility[FUTURE_PROJECTS_OVERLAY_ID]) {
@@ -552,11 +554,14 @@ function getProposalFeatureListItems(
 ): MapOverlayFeatureListItem[] {
   return getProposalOverlayInputsByGroup(groups).map(({ proposal }) => {
     const metadata = getProposalMetadata(proposal, undefined, overlayId);
+    const style = getProposalOverlayStyle(proposal);
+
     return {
       identity: metadata.featureIdentity ?? createOverlayFeatureIdentity(overlayId, metadata.id),
       label: metadata.title,
       description: `${metadata.subtitle} · ${metadata.statusLabel} · ${metadata.confidenceLabel} confidence`,
       badgeLabel: metadata.badgeLabel,
+      color: style.legend.color,
       scenario,
       metadata,
       highlightAvailable: true
@@ -564,38 +569,74 @@ function getProposalFeatureListItems(
   });
 }
 
-function createNativeTransitFeatureListItem(): MapOverlayFeatureListItem {
+function getCurrentTransitFeatureListItems(): MapOverlayFeatureListItem[] {
   const style = MAP_OVERLAY_STYLE_CONFIG.current;
 
-  return {
-    identity: createOverlayFeatureIdentity(CURRENT_TRANSIT_OVERLAY_ID, 'google-transit-layer'),
-    label: 'Current Google Transit layer',
-    description: 'Native Google TransitLayer context; per-line geometry is managed by Google Maps and cannot be highlighted individually.',
-    badgeLabel: style.badge.label,
-    scenario: style.legend.scenario,
-    metadata: {
-      id: 'current-transit-google-transit-layer',
-      proposalId: 'current-transit',
-      featureIdentity: createOverlayFeatureIdentity(CURRENT_TRANSIT_OVERLAY_ID, 'google-transit-layer'),
+  return Object.entries(TRANSIT_LINES).map(([lineName, line]) => {
+    const stations = line.stations.filter((station) => !station.waypoint);
+    const firstStation = stations[0];
+    const lastStation = stations[stations.length - 1];
+    const mode = line.schedule?.type ? formatToken(line.schedule.type) : 'transit';
+    const frequency = line.schedule?.frequency
+      ? `Every ${line.schedule.frequency} min`
+      : undefined;
+    const status = line.status ? formatToken(line.status) : 'operating';
+    const lineLabel = getCurrentTransitLineLabel(lineName);
+    const identity = createOverlayFeatureIdentity(
+      CURRENT_TRANSIT_OVERLAY_ID,
+      `current-transit-${slugifyLegendLabel(lineName)}`
+    );
+    const metadata: MapOverlayMetadata = {
+      id: identity.featureId,
+      proposalId: identity.featureId,
+      featureIdentity: identity,
       kind: 'line',
-      title: 'Current Google Transit layer',
-      subtitle: 'Native Google Maps TransitLayer',
+      title: lineLabel,
+      subtitle: `line · ${mode}${frequency ? ` · ${frequency}` : ''}`,
       badgeLabel: style.badge.label,
       badgeClassName: style.badge.className,
-      statusLabel: 'operational',
-      classificationLabel: 'Google Maps native layer',
-      confidenceLabel: 'high',
-      uncertaintyLabel: 'none',
-      disclaimer: 'Google TransitLayer does not expose per-line geometry to VeloRail, so current native transit entries open metadata without map-line highlighting.',
+      statusLabel: status,
+      classificationLabel: 'current system',
+      confidenceLabel: 'checked in',
+      uncertaintyLabel: 'owned data boundary',
+      disclaimer: 'Current-system details come from VeloRail-owned checked-in routing data. The map surface remains Google Maps TransitLayer; Google does not expose clickable per-line TransitLayer metadata to this app.',
       details: [
-        metadataDetail('Behavior', 'Opens metadata only; no per-line highlight is available from Google TransitLayer.'),
-        metadataDetail('Renderer', 'Google Maps TransitLayer')
+        metadataDetail('Line', lineLabel),
+        metadataDetail('Mode', mode),
+        metadataDetail('Frequency', frequency),
+        metadataDetail('Station count', `${stations.length}`),
+        metadataDetail('Endpoints', firstStation && lastStation ? `${firstStation.name} to ${lastStation.name}` : undefined),
+        metadataDetail('Color', line.color),
+        metadataDetail('VeloRail routing', 'Used by VeloRail routing'),
+        metadataDetail('Map highlight', 'No custom current-line highlight until VeloRail current geometry overlay is added'),
+        metadataDetail('GTFS route ID', line.gtfsRouteId),
+        metadataDetail('Status', status)
       ].filter((detail): detail is MapOverlayMetadataDetail => Boolean(detail)),
-      sources: []
-    },
-    highlightAvailable: false,
-    highlightUnavailableReason: 'Google TransitLayer does not expose per-line geometry for VeloRail highlighting.'
-  };
+      sources: [{
+        title: 'VeloRail checked-in current transit routing dataset',
+        publisher: 'VeloRail',
+        sourceType: 'checked_in_operational_routing_data',
+        note: 'Derived from src/data/transitLines.ts, not from Google Maps TransitLayer line-click metadata.'
+      }]
+    };
+
+    return {
+      identity,
+      label: lineLabel,
+      description: `${mode}${frequency ? ` · ${frequency}` : ''} · ${stations.length} stations`,
+      badgeLabel: style.badge.label,
+      color: line.color,
+      scenario: style.legend.scenario,
+      metadata,
+      highlightAvailable: false,
+      highlightUnavailableReason: 'Google TransitLayer does not expose per-line geometry for VeloRail highlighting.'
+    };
+  });
+}
+
+function getCurrentTransitLineLabel(lineName: string): string {
+  if (/line$/i.test(lineName)) return lineName;
+  return `${lineName} Line`;
 }
 
 export function createOverlayFeatureIdentity(

@@ -1698,8 +1698,9 @@ body {
 
 .map-layer-feature-list__item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--gm-spacing-xs);
   min-height: var(--vr-touch-target-min);
   padding: var(--gm-spacing-xs) var(--gm-spacing-sm);
   border: 1px solid var(--gm-border);
@@ -1731,6 +1732,30 @@ body {
   box-shadow: var(--vr-focus-ring);
 }
 
+.map-layer-feature-list__swatch {
+  position: relative;
+  display: block;
+  width: 20px;
+  height: 12px;
+}
+
+.map-layer-feature-list__swatch::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  border-top: 4px solid currentColor;
+  border-radius: var(--gm-radius-full);
+  content: "";
+  transform: translateY(-50%);
+}
+
+.map-layer-feature-list__text {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
 .map-layer-feature-list__label {
   min-width: 0;
   font-size: var(--gm-font-size-sm);
@@ -1749,8 +1774,6 @@ body {
 }
 
 .map-layer-feature-list__badge {
-  grid-column: 2;
-  grid-row: 1 / span 2;
   align-self: center;
   max-width: 92px;
   overflow: hidden;

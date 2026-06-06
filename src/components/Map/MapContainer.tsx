@@ -467,8 +467,17 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
                     onBlur={() => setHoveredFeature(null)}
                     onClick={(event) => openFeatureMetadata(item, event.currentTarget)}
                   >
-                    <span className="map-layer-feature-list__label">{item.label}</span>
-                    <span className="map-layer-feature-list__description">{item.description}</span>
+                    {item.color && (
+                      <span
+                        className="map-layer-feature-list__swatch"
+                        style={{ color: item.color }}
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span className="map-layer-feature-list__text">
+                      <span className="map-layer-feature-list__label">{item.label}</span>
+                      <span className="map-layer-feature-list__description">{item.description}</span>
+                    </span>
                     <span className="map-layer-feature-list__badge">{item.badgeLabel}</span>
                   </button>
                 );

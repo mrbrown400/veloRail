@@ -15,6 +15,40 @@ async function ensureMapsAvailable(page: import('@playwright/test').Page) {
   await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
 }
 
+test('@MBR-102 current-only layer details expose checked-in current transit metadata', async ({ page }) => {
+  await ensureMapsAvailable(page);
+
+  const layerPanel = page.getByLabel('Map layers and legend');
+  await expect(layerPanel).toContainText('Layer details');
+  await expect(layerPanel).toContainText('Red Line');
+  await expect(layerPanel).toContainText('rail · Every 6 min');
+
+  const futureOverlayToggle = page.getByRole('button', {
+    name: /Official planned, funded, and under-construction future rail and BRT alignments/i
+  });
+  const visionaryToggle = page.getByRole('button', {
+    name: /unofficial visionary rail concepts/i
+  });
+  const nationalizedToggle = page.getByRole('button', {
+    name: /hypothetical passenger-conversion planning over sourced freight corridors; not approved service/i
+  });
+
+  await expect(futureOverlayToggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(visionaryToggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(nationalizedToggle).toHaveAttribute('aria-pressed', 'false');
+
+  await page.getByRole('button', { name: /Red Line.*Google TransitLayer does not expose per-line geometry/i }).click();
+
+  const metadataPanel = page.getByRole('region', { name: /Red Line/i });
+  await expect(metadataPanel).toBeVisible();
+  await expect(metadataPanel).toContainText('Current');
+  await expect(metadataPanel).toContainText('Union Station to North Hollywood');
+  await expect(metadataPanel).toContainText('Used by VeloRail routing');
+  await expect(metadataPanel).toContainText('No custom current-line highlight until VeloRail current geometry overlay is added');
+  await expect(metadataPanel).toContainText('VeloRail-owned checked-in routing data');
+  await expect(metadataPanel).toContainText('Google Maps TransitLayer');
+});
+
 test('@MBR-85 @MBR-89 @VR-003 @VR-004 @VR-305 @VR-307 @VR-403 @VR-404 @VR-405 @VR-406 @VR-407 @VR-500 @VR-501 @VR-502 @veloRail-967a @veloRail-1581 @veloRail-16bd nationalized overlay exposes hypothetical conversion legend and metadata panel', async ({ page }) => {
   await ensureMapsAvailable(page);
 
@@ -248,7 +282,7 @@ test('@MBR-85 @MBR-88 @MBR-89 layer feature list opens metadata without a map cl
 
   const featureList = page.getByLabel('Keyboard-accessible overlay metadata');
   await expect(featureList).toContainText('Google Maps renders these lines');
-  const firstFeature = featureList.getByRole('button').first();
+  const firstFeature = featureList.getByRole('button', { name: /D Line Westwood Extension/i });
   const firstFeatureText = await firstFeature.innerText();
 
   await firstFeature.click();

@@ -83,6 +83,52 @@ test('map overlay registry has deterministic order and default visibility', asyn
   assert.ok(featureItems.every((item) => item.metadata.sources));
 });
 
+
+test('current transit feature-list items expose checked-in routing metadata', async () => {
+  const {
+    CURRENT_TRANSIT_OVERLAY_ID,
+    getMapOverlayFeatureListItems
+  } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
+  const {
+    TRANSIT_LINES
+  } = await loadAppModule('/src/data/transitLines.ts');
+
+  const items = getMapOverlayFeatureListItems({ [CURRENT_TRANSIT_OVERLAY_ID]: true }).filter(
+    item => item.identity.overlayId === CURRENT_TRANSIT_OVERLAY_ID
+  );
+  const byTitle = new Map(items.map(item => [item.metadata.title, item]));
+  const redLine = byTitle.get('Red Line');
+
+  assert.equal(items.length, Object.keys(TRANSIT_LINES).length);
+  assert.ok(redLine);
+  assert.equal(redLine.badgeLabel, 'Current');
+  assert.equal(redLine.metadata.badgeClassName, 'map-overlay-metadata__badge--current');
+  assert.equal(redLine.color, TRANSIT_LINES.Red.color);
+  assert.match(redLine.metadata.subtitle, /rail/);
+  assert.match(redLine.metadata.subtitle, /Every 6 min/);
+  assert.deepEqual(
+    redLine.metadata.details.map(detail => [detail.label, detail.value]),
+    [
+      ['Line', 'Red Line'],
+      ['Mode', 'rail'],
+      ['Frequency', 'Every 6 min'],
+      ['Station count', '14'],
+      ['Endpoints', 'Union Station to North Hollywood'],
+      ['Color', '#E31837'],
+      ['VeloRail routing', 'Used by VeloRail routing'],
+      ['Map highlight', 'No custom current-line highlight until VeloRail current geometry overlay is added'],
+      ['GTFS route ID', '802'],
+      ['Status', 'operating']
+    ]
+  );
+  assert.equal(redLine.highlightAvailable, false);
+  assert.match(redLine.highlightUnavailableReason, /TransitLayer does not expose per-line geometry/);
+  assert.match(redLine.metadata.disclaimer, /VeloRail-owned checked-in routing data/);
+  assert.match(redLine.metadata.disclaimer, /Google Maps TransitLayer/);
+  assert.match(redLine.metadata.disclaimer, /does not expose clickable per-line/);
+  assert.equal(redLine.metadata.sources[0].sourceType, 'checked_in_operational_routing_data');
+});
+
 test('map overlay legend items come from current registry and proposal labels', async () => {
   const {
     getMapOverlayLegendItems
@@ -126,7 +172,7 @@ test('map overlay feature list items map visible layer details to stable line id
   );
   const visionary = byProposal.get('vision-la-river-rail');
   const converted = byProposal.get('alameda-corridor-south-alameda-passenger-conversion');
-  const nativeCurrent = byProposal.get('current-transit');
+  const nativeCurrent = byProposal.get('current-transit-red');
 
   assert.ok(future);
   assert.ok(visionary);
