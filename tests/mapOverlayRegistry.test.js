@@ -85,6 +85,52 @@ test('map overlay legend items come from current registry and proposal labels', 
   assert.ok(legendItems.every((item) => item.color));
 });
 
+
+test('map overlay feature list items map visible layer details to stable line identities', async () => {
+  const {
+    FUTURE_PROJECTS_OVERLAY_ID,
+    CURRENT_TRANSIT_OVERLAY_ID,
+    getDefaultMapOverlayVisibility,
+    getMapOverlayFeatureListItems,
+    getOverlayFeatureIdentityKey,
+    getProposalLineOverlayFeatureIdentity,
+    getProposalOverlayInputsByGroup
+  } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
+
+  const visibility = {
+    ...getDefaultMapOverlayVisibility(),
+    [FUTURE_PROJECTS_OVERLAY_ID]: true,
+    'visionary-concepts': true,
+    'nationalized-rail': true
+  };
+  const items = getMapOverlayFeatureListItems(visibility);
+  const byProposal = new Map(items.map((item) => [item.metadata.proposalId, item]));
+  const future = getProposalOverlayInputsByGroup('future').find(
+    ({ proposal }) => proposal.id === 'metro-d-line-extension-westwood'
+  );
+  const visionary = byProposal.get('vision-la-river-rail');
+  const converted = byProposal.get('alameda-corridor-south-alameda-passenger-conversion');
+  const nativeCurrent = byProposal.get('current-transit');
+
+  assert.ok(future);
+  assert.ok(visionary);
+  assert.ok(converted);
+  assert.ok(nativeCurrent);
+
+  const futureIdentity = getProposalLineOverlayFeatureIdentity(FUTURE_PROJECTS_OVERLAY_ID, future.proposal);
+  const futureItem = byProposal.get(future.proposal.id);
+
+  assert.ok(futureItem);
+  assert.deepEqual(futureItem.identity, futureIdentity);
+  assert.equal(futureItem.metadata.featureIdentity.featureId, 'metro-d-line-extension-westwood-line');
+  assert.equal(getOverlayFeatureIdentityKey(futureItem.identity), 'future-projects:metro-d-line-extension-westwood-line');
+  assert.equal(visionary.identity.overlayId, 'visionary-concepts');
+  assert.equal(converted.identity.overlayId, 'nationalized-rail');
+  assert.equal(nativeCurrent.identity.overlayId, CURRENT_TRANSIT_OVERLAY_ID);
+  assert.equal(nativeCurrent.highlightAvailable, false);
+  assert.match(nativeCurrent.highlightUnavailableReason, /TransitLayer does not expose per-line geometry/);
+});
+
 test('overlay style config drives proposal rendering and native legend metadata', async () => {
   const {
     MAP_OVERLAY_STYLE_CONFIG,
@@ -455,6 +501,27 @@ test('converted passenger metadata links back to source freight corridor and sta
   assert.match(metadata.disclaimer, /Hypothetical passenger-conversion planning concept/);
   assert.equal(stationMetadata.kind, 'station');
   assert.equal(stationMetadata.title, 'South Alameda / Slauson');
+});
+
+
+test('map overlay store clears selected and hovered feature identities when their layer turns off', async () => {
+  const {
+    useMapOverlayStore
+  } = await loadAppModule('/src/stores/mapOverlayStore.ts');
+
+  useMapOverlayStore.getState().resetOverlayVisibility();
+  useMapOverlayStore.getState().setOverlayVisible('visionary-concepts', true);
+  const identity = {
+    overlayId: 'visionary-concepts',
+    featureId: 'vision-la-river-rail-line'
+  };
+
+  useMapOverlayStore.getState().setHoveredFeature(identity);
+  useMapOverlayStore.getState().setSelectedFeature(identity);
+  useMapOverlayStore.getState().setOverlayVisible('visionary-concepts', false);
+
+  assert.equal(useMapOverlayStore.getState().hoveredFeature, null);
+  assert.equal(useMapOverlayStore.getState().selectedFeature, null);
 });
 
 test('map overlay store toggles one overlay without mutating others', async () => {

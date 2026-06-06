@@ -1828,3 +1828,109 @@ body {
     max-height: 50vh;
   }
 }
+
+.map-layer-details {
+  display: grid;
+  gap: var(--gm-spacing-xs);
+  padding-top: var(--gm-spacing-sm);
+  border-top: 1px solid var(--gm-border);
+}
+
+.map-layer-details__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gm-spacing-sm);
+}
+
+.map-layer-details__list {
+  display: grid;
+  gap: var(--gm-spacing-xs);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.map-layer-detail {
+  --detail-accent: var(--gm-blue);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--gm-spacing-xs);
+  width: 100%;
+  padding: var(--gm-spacing-xs) var(--gm-spacing-sm);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius-sm);
+  background: var(--gm-background);
+  color: var(--gm-text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.map-layer-detail:hover,
+.map-layer-detail--hovered,
+.map-layer-detail:focus-visible {
+  border-color: var(--detail-accent);
+  box-shadow: inset 3px 0 0 var(--detail-accent), var(--gm-shadow-1);
+}
+
+.map-layer-detail--selected {
+  background: var(--gm-background-selected);
+  border-color: var(--detail-accent);
+  box-shadow: inset 4px 0 0 var(--detail-accent);
+}
+
+.map-layer-detail--future {
+  --detail-accent: var(--vr-color-layer-future);
+}
+
+.map-layer-detail--visionary {
+  --detail-accent: var(--vr-color-layer-visionary);
+}
+
+.map-layer-detail--nationalized {
+  --detail-accent: var(--vr-color-layer-nationalized);
+}
+
+.map-layer-detail--current {
+  --detail-accent: var(--vr-color-layer-current);
+}
+
+.map-layer-detail__marker {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--detail-accent);
+  border-radius: var(--gm-radius-full);
+}
+
+.map-layer-detail--selected .map-layer-detail__marker {
+  background: var(--detail-accent);
+}
+
+.map-layer-detail__content {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.map-layer-detail__label,
+.map-layer-detail__description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-layer-detail__label {
+  font-size: var(--gm-font-size-sm);
+  font-weight: var(--vr-font-weight-semibold);
+}
+
+.map-layer-detail__description {
+  color: var(--gm-text-secondary);
+  font-size: var(--gm-font-size-xs);
+}
+
+.map-layer-detail__badge {
+  color: var(--detail-accent);
+  font-size: var(--gm-font-size-xs);
+  font-weight: var(--vr-font-weight-semibold);
+}

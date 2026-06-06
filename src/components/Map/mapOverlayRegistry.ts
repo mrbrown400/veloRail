@@ -9,6 +9,11 @@ import type {
   MapOverlayVisibility
 } from '@/types/mapOverlays';
 import type {
+  MapOverlayFeatureIdentity,
+  MapOverlayFeatureHighlight,
+  MapOverlayFeatureHighlightState
+} from '@/types/mapOverlays';
+import type {
   ProposalMarkerInput,
   ProposalPolylineInput,
   ProposalRenderingMetadata,
@@ -105,6 +110,7 @@ export interface MapOverlayMetadataDetail {
 export interface MapOverlayMetadata {
   id: string;
   proposalId: string;
+  featureIdentity?: MapOverlayFeatureIdentity;
   kind: MapOverlayMetadataKind;
   title: string;
   subtitle: string;
@@ -129,6 +135,24 @@ interface ProposalOverlayItem {
   maxZoom?: number;
 }
 
+interface ProposalLineOverlayItem extends ProposalOverlayItem {
+  overlay: google.maps.Polyline;
+  featureId: string;
+  baseOptions: google.maps.PolylineOptions;
+  zIndex: number;
+}
+
+export interface MapOverlayFeatureListItem {
+  identity: MapOverlayFeatureIdentity;
+  label: string;
+  description: string;
+  badgeLabel: string;
+  scenario: MapOverlayScenario;
+  metadata: MapOverlayMetadata;
+  highlightAvailable: boolean;
+  highlightUnavailableReason?: string;
+}
+
 const FUTURE_GROUPS: ProposalLayerGroup[] = ['future'];
 const VISIONARY_GROUPS: ProposalLayerGroup[] = ['visionary'];
 const NATIONALIZED_GROUPS: ProposalLayerGroup[] = ['freight', 'converted_passenger'];
@@ -147,6 +171,21 @@ export const MAP_OVERLAY_VISIONARY_SERVICE_NOTICE =
   'Visionary overlays are unofficial concepts with explicit provenance and uncertainty; they are not Google Maps transit data or approved service.';
 export const MAP_OVERLAY_NATIONALIZED_SERVICE_NOTICE =
   'Nationalized rail overlays are hypothetical passenger-conversion planning over sourced freight corridors; candidates require review and are not approved service.';
+export const MAP_OVERLAY_FEATURE_HIGHLIGHT_EVENT = 'velorail:map-overlay-feature-highlighted';
+
+const MAP_OVERLAY_HIGHLIGHT_STYLES: Record<MapOverlayFeatureHighlightState, Pick<google.maps.PolylineOptions, 'strokeOpacity' | 'strokeWeight' | 'zIndex'>> = {
+  idle: {},
+  hovered: {
+    strokeOpacity: 1,
+    strokeWeight: 6,
+    zIndex: 9_000
+  },
+  selected: {
+    strokeOpacity: 1,
+    strokeWeight: 8,
+    zIndex: 10_000
+  }
+};
 
 const MAP_OVERLAY_COMPARISON_MODE_DEFINITIONS: MapOverlayComparisonModeDefinition[] = [
   {
@@ -360,7 +399,7 @@ export const MAP_OVERLAY_DEFINITIONS: MapOverlayDefinition[] = [
     scenario: 'future',
     order: 20,
     defaultVisible: false,
-    create: createProposalGroupOverlay(FUTURE_GROUPS, 20)
+    create: createProposalGroupOverlay(FUTURE_PROJECTS_OVERLAY_ID, FUTURE_GROUPS, 20)
   },
   {
     id: 'visionary-concepts',
@@ -369,7 +408,7 @@ export const MAP_OVERLAY_DEFINITIONS: MapOverlayDefinition[] = [
     scenario: 'visionary',
     order: 30,
     defaultVisible: false,
-    create: createProposalGroupOverlay(VISIONARY_GROUPS, 30)
+    create: createProposalGroupOverlay('visionary-concepts', VISIONARY_GROUPS, 30)
   },
   {
     id: 'nationalized-rail',
@@ -378,7 +417,7 @@ export const MAP_OVERLAY_DEFINITIONS: MapOverlayDefinition[] = [
     scenario: 'nationalized',
     order: 40,
     defaultVisible: false,
-    create: createProposalGroupOverlay(NATIONALIZED_GROUPS, 40)
+    create: createProposalGroupOverlay('nationalized-rail', NATIONALIZED_GROUPS, 40)
   },
   {
     id: 'bicycling',
@@ -465,6 +504,28 @@ export function getMapOverlayLegendItems(): MapOverlayLegendItem[] {
   ];
 }
 
+export function getMapOverlayFeatureListItems(visibility: MapOverlayVisibility): MapOverlayFeatureListItem[] {
+  const items: MapOverlayFeatureListItem[] = [];
+
+  if (visibility[CURRENT_TRANSIT_OVERLAY_ID]) {
+    items.push(createNativeTransitFeatureListItem());
+  }
+
+  if (visibility[FUTURE_PROJECTS_OVERLAY_ID]) {
+    items.push(...getProposalFeatureListItems(FUTURE_PROJECTS_OVERLAY_ID, 'future', FUTURE_GROUPS));
+  }
+
+  if (visibility['visionary-concepts']) {
+    items.push(...getProposalFeatureListItems('visionary-concepts', 'visionary', VISIONARY_GROUPS));
+  }
+
+  if (visibility['nationalized-rail']) {
+    items.push(...getProposalFeatureListItems('nationalized-rail', 'nationalized', NATIONALIZED_GROUPS));
+  }
+
+  return items;
+}
+
 export function getDefaultMapOverlayVisibility(): MapOverlayVisibility {
   return Object.fromEntries(
     MAP_OVERLAY_DEFINITIONS.map((definition) => [
@@ -472,6 +533,70 @@ export function getDefaultMapOverlayVisibility(): MapOverlayVisibility {
       definition.defaultVisible
     ])
   ) as MapOverlayVisibility;
+}
+
+function getProposalFeatureListItems(
+  overlayId: MapOverlayId,
+  scenario: MapOverlayScenario,
+  groups: ProposalLayerGroup[]
+): MapOverlayFeatureListItem[] {
+  return getProposalOverlayInputsByGroup(groups).map(({ proposal }) => {
+    const metadata = getProposalMetadata(proposal, undefined, overlayId);
+    return {
+      identity: metadata.featureIdentity ?? createOverlayFeatureIdentity(overlayId, metadata.id),
+      label: metadata.title,
+      description: `${metadata.subtitle} · ${metadata.statusLabel} · ${metadata.confidenceLabel} confidence`,
+      badgeLabel: metadata.badgeLabel,
+      scenario,
+      metadata,
+      highlightAvailable: true
+    };
+  });
+}
+
+function createNativeTransitFeatureListItem(): MapOverlayFeatureListItem {
+  const style = MAP_OVERLAY_STYLE_CONFIG.current;
+
+  return {
+    identity: createOverlayFeatureIdentity(CURRENT_TRANSIT_OVERLAY_ID, 'google-transit-layer'),
+    label: 'Current Google Transit layer',
+    description: 'Native Google TransitLayer context; per-line geometry is managed by Google Maps and cannot be highlighted individually.',
+    badgeLabel: style.badge.label,
+    scenario: style.legend.scenario,
+    metadata: {
+      id: 'current-transit-google-transit-layer',
+      proposalId: 'current-transit',
+      featureIdentity: createOverlayFeatureIdentity(CURRENT_TRANSIT_OVERLAY_ID, 'google-transit-layer'),
+      kind: 'line',
+      title: 'Current Google Transit layer',
+      subtitle: 'Native Google Maps TransitLayer',
+      badgeLabel: style.badge.label,
+      badgeClassName: style.badge.className,
+      statusLabel: 'operational',
+      classificationLabel: 'Google Maps native layer',
+      confidenceLabel: 'high',
+      uncertaintyLabel: 'none',
+      disclaimer: 'Google TransitLayer does not expose per-line geometry to VeloRail, so current native transit entries open metadata without map-line highlighting.',
+      details: [
+        metadataDetail('Behavior', 'Opens metadata only; no per-line highlight is available from Google TransitLayer.'),
+        metadataDetail('Renderer', 'Google Maps TransitLayer')
+      ].filter((detail): detail is MapOverlayMetadataDetail => Boolean(detail)),
+      sources: []
+    },
+    highlightAvailable: false,
+    highlightUnavailableReason: 'Google TransitLayer does not expose per-line geometry for VeloRail highlighting.'
+  };
+}
+
+export function createOverlayFeatureIdentity(
+  overlayId: MapOverlayId,
+  featureId: string
+): MapOverlayFeatureIdentity {
+  return { overlayId, featureId };
+}
+
+export function getOverlayFeatureIdentityKey(identity: MapOverlayFeatureIdentity): string {
+  return `${identity.overlayId}:${identity.featureId}`;
 }
 
 function getProposalLegendItems(
@@ -547,21 +672,24 @@ function createSetMapHandle(overlay: SetMapOverlay, map: google.maps.Map): MapOv
 }
 
 function createProposalGroupOverlay(
+  overlayId: MapOverlayId,
   groups: ProposalLayerGroup[],
   layerOrder: number
 ): (map: google.maps.Map) => MapOverlayHandle {
   return (map) => {
     let visible = false;
     const overlays: ProposalOverlayItem[] = [];
+    const lineOverlays: ProposalLineOverlayItem[] = [];
     const listeners: google.maps.MapsEventListener[] = [];
     const infoWindow = new google.maps.InfoWindow();
 
     getProposalOverlayInputsByGroup(groups).forEach((input, proposalIndex) => {
       const { proposal, polyline, markers } = input;
       const zIndex = layerOrder * 100 + proposalIndex;
-      const proposalOverlays = createProposalOverlays(map, proposal, polyline, markers, zIndex, infoWindow);
+      const proposalOverlays = createProposalOverlays(map, overlayId, proposal, polyline, markers, zIndex, infoWindow);
 
       overlays.push(...proposalOverlays.overlays);
+      lineOverlays.push(...proposalOverlays.lineOverlays);
       listeners.push(...proposalOverlays.listeners);
     });
 
@@ -581,6 +709,9 @@ function createProposalGroupOverlay(
         visible = nextVisible;
         syncVisibility();
       },
+      setFeatureHighlight(highlight) {
+        applyProposalFeatureHighlight(lineOverlays, highlight);
+      },
       dispose() {
         infoWindow.close();
         zoomListener.remove();
@@ -593,6 +724,7 @@ function createProposalGroupOverlay(
 
 function createProposalOverlays(
   map: google.maps.Map,
+  overlayId: MapOverlayId,
   proposal: TransitProposal,
   polyline: ProposalPolylineInput,
   markers: ProposalMarkerInput[],
@@ -600,22 +732,25 @@ function createProposalOverlays(
   infoWindow: google.maps.InfoWindow
 ) {
   const overlays: ProposalOverlayItem[] = [];
+  const lineOverlays: ProposalLineOverlayItem[] = [];
   const listeners: google.maps.MapsEventListener[] = [];
   const rendering = proposal.rendering;
 
-  const lineOverlays = createProposalLineOverlays(proposal, polyline, zIndex);
-  lineOverlays.forEach((line) => {
+  const proposalLineOverlays = createProposalLineOverlays(overlayId, proposal, polyline, zIndex);
+  proposalLineOverlays.forEach((lineOverlay) => {
+    const { overlay: line } = lineOverlay;
     overlays.push({
       overlay: line,
       minZoom: rendering?.minZoom,
       maxZoom: rendering?.maxZoom
     });
+    lineOverlays.push(lineOverlay);
 
     if (rendering?.clickable ?? true) {
       listeners.push(line.addListener('click', (event: google.maps.MapMouseEvent) => {
         if (!event.latLng) return;
 
-        publishMapOverlayMetadata(getProposalMetadata(proposal));
+        publishMapOverlayMetadata(getProposalMetadata(proposal, undefined, overlayId));
         infoWindow.setContent(getProposalInfoContent(proposal));
         infoWindow.setPosition(event.latLng);
         infoWindow.open(map);
@@ -624,7 +759,7 @@ function createProposalOverlays(
   });
 
   if (!shouldRenderProposalStationMarkers(proposal)) {
-    return { overlays, listeners };
+    return { overlays, lineOverlays, listeners };
   }
 
   markers.forEach((markerInput) => {
@@ -640,24 +775,72 @@ function createProposalOverlays(
 
     if (rendering?.clickable ?? true) {
       listeners.push(marker.addListener('click', () => {
-        publishMapOverlayMetadata(getProposalMetadata(proposal, markerInput));
+        publishMapOverlayMetadata(getProposalMetadata(proposal, markerInput, overlayId));
         infoWindow.setContent(getProposalInfoContent(proposal, markerInput));
         infoWindow.open(map, marker);
       }));
     }
   });
 
-  return { overlays, listeners };
+  return { overlays, lineOverlays, listeners };
 }
 
 function createProposalLineOverlays(
+  overlayId: MapOverlayId,
   proposal: TransitProposal,
   polyline: ProposalPolylineInput,
   zIndex: number
+): ProposalLineOverlayItem[] {
+  const featureId = getProposalLineFeatureId(proposal);
+  const baseOptions = getProposalPolylineOptions(proposal, polyline, zIndex);
+
+  return [{
+    overlay: new google.maps.Polyline(baseOptions),
+    featureId: createOverlayFeatureIdentity(overlayId, featureId).featureId,
+    baseOptions,
+    zIndex
+  }];
+}
+
+function getProposalLineFeatureId(proposal: TransitProposal): string {
+  return `${proposal.id}-${proposal.kind}`;
+}
+
+export function getProposalLineOverlayFeatureIdentity(
+  overlayId: MapOverlayId,
+  proposal: TransitProposal
+): MapOverlayFeatureIdentity {
+  return createOverlayFeatureIdentity(overlayId, getProposalLineFeatureId(proposal));
+}
+
+function applyProposalFeatureHighlight(
+  lineOverlays: ProposalLineOverlayItem[],
+  highlight: MapOverlayFeatureHighlight | null
 ) {
-  return [
-    new google.maps.Polyline(getProposalPolylineOptions(proposal, polyline, zIndex))
-  ];
+  lineOverlays.forEach((lineOverlay) => {
+    const highlightState = highlight?.featureId === lineOverlay.featureId ? highlight.state : 'idle';
+    const style = MAP_OVERLAY_HIGHLIGHT_STYLES[highlightState];
+
+    const nextOptions = {
+      strokeOpacity: lineOverlay.baseOptions.strokeOpacity,
+      strokeWeight: lineOverlay.baseOptions.strokeWeight,
+      zIndex: lineOverlay.zIndex,
+      ...style
+    };
+
+    lineOverlay.overlay.setOptions(nextOptions);
+
+    if (typeof window !== 'undefined' && highlight?.featureId === lineOverlay.featureId) {
+      window.dispatchEvent(new CustomEvent(MAP_OVERLAY_FEATURE_HIGHLIGHT_EVENT, {
+        detail: {
+          featureId: lineOverlay.featureId,
+          state: highlightState,
+          strokeWeight: nextOptions.strokeWeight,
+          zIndex: nextOptions.zIndex
+        }
+      }));
+    }
+  });
 }
 
 function getProposalPolylineOptions(
@@ -849,11 +1032,13 @@ function isProposalOverlayLayer(proposal: TransitProposal): boolean {
 
 export function getProposalMetadata(
   proposal: TransitProposal,
-  markerInput?: ProposalMarkerInput
+  markerInput?: ProposalMarkerInput,
+  overlayId?: MapOverlayId
 ): MapOverlayMetadata {
   const style = getProposalOverlayStyle(proposal);
   const kind: MapOverlayMetadataKind = markerInput ? 'station' : proposal.kind;
   const title = markerInput?.title ?? proposal.shortName ?? proposal.name;
+  const featureId = markerInput ? `${proposal.id}-station-${markerInput.id}` : getProposalLineFeatureId(proposal);
   const status = markerInput?.status ?? proposal.status;
   const conversionScenario = proposal.status === 'converted_passenger'
     ? getActiveConversionScenario(proposal)
@@ -883,6 +1068,7 @@ export function getProposalMetadata(
   return {
     id: `${proposal.id}-${kind}${markerInput ? `-${markerInput.id}` : ''}`,
     proposalId: proposal.id,
+    featureIdentity: overlayId ? createOverlayFeatureIdentity(overlayId, featureId) : undefined,
     kind,
     title,
     subtitle: `${formatToken(kind)} · ${formatToken(proposal.mode)}`,
