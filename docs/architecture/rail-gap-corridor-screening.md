@@ -2,6 +2,8 @@
 
 MBR-99 screens the checked-in LA freight and passenger-conversion candidates against the completed-network baseline before any additional passenger-conversion display work. The goal is to identify corridors that fill non-redundant car-free travel gaps, while keeping freight-only evidence separate from hypothetical passenger-service assumptions.
 
+> Final MBR-100 recommendations are published in `docs/architecture/rail-gap-recommendations.md`. Treat this screening document as the candidate evidence table and the MBR-100 recommendation document as the go/no-go handoff for follow-up implementation work.
+
 ## Baseline And Source Policy
 
 The completed-network baseline is `present-plus-future` from `docs/architecture/completed-network-comparison.md`: current Google Maps transit context plus official planned, funded, or under-construction overlays. It does not merge in visionary or nationalized scenarios, and it does not change routing.
