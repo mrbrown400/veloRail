@@ -67,6 +67,50 @@ test('map overlay registry has deterministic order and default visibility', asyn
   assert.match(MAP_OVERLAY_NATIONALIZED_SERVICE_NOTICE, /candidates require review/);
 });
 
+
+test('current transit feature-list items expose checked-in routing metadata', async () => {
+  const {
+    CURRENT_TRANSIT_OVERLAY_ID,
+    getMapOverlayFeatureListItems
+  } = await loadAppModule('/src/components/Map/mapOverlayRegistry.ts');
+  const {
+    TRANSIT_LINES
+  } = await loadAppModule('/src/data/transitLines.ts');
+
+  const items = getMapOverlayFeatureListItems().filter(
+    item => item.overlayId === CURRENT_TRANSIT_OVERLAY_ID
+  );
+  const byTitle = new Map(items.map(item => [item.title, item]));
+  const redLine = byTitle.get('Red Line');
+
+  assert.equal(items.length, Object.keys(TRANSIT_LINES).length);
+  assert.ok(redLine);
+  assert.equal(redLine.badgeLabel, 'Current');
+  assert.equal(redLine.badgeClassName, 'map-overlay-metadata__badge--current');
+  assert.equal(redLine.color, TRANSIT_LINES.Red.color);
+  assert.match(redLine.subtitle, /rail/);
+  assert.match(redLine.subtitle, /Every 6 min/);
+  assert.deepEqual(
+    redLine.details.map(detail => [detail.label, detail.value]),
+    [
+      ['Line', 'Red Line'],
+      ['Mode', 'rail'],
+      ['Frequency', 'Every 6 min'],
+      ['Station count', '14'],
+      ['Endpoints', 'Union Station ↔ North Hollywood'],
+      ['Color', '#E31837'],
+      ['VeloRail routing', 'Used by VeloRail routing'],
+      ['Map highlight', 'No custom current-line highlight until VeloRail current geometry overlay is added'],
+      ['GTFS route ID', '802'],
+      ['Status', 'operating']
+    ]
+  );
+  assert.match(redLine.disclaimer, /VeloRail-owned checked-in routing data/);
+  assert.match(redLine.disclaimer, /Google Maps TransitLayer/);
+  assert.match(redLine.disclaimer, /does not expose clickable per-line/);
+  assert.equal(redLine.sources[0].sourceType, 'checked_in_operational_routing_data');
+});
+
 test('map overlay legend items come from current registry and proposal labels', async () => {
   const {
     getMapOverlayLegendItems

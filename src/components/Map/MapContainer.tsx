@@ -12,6 +12,7 @@ import {
   getMapOverlayComparisonModes,
   getMapOverlayGroupDefinitions,
   getMapOverlayLegendItems,
+  getMapOverlayFeatureListItems,
   getOrderedMapOverlayDefinitions,
   type MapOverlayMetadata
 } from './mapOverlayRegistry';
@@ -54,6 +55,7 @@ const overlayControlById = new Map(
 );
 const overlayGroups = getMapOverlayGroupDefinitions();
 const overlayLegendItems = getMapOverlayLegendItems();
+const overlayFeatureListItems = getMapOverlayFeatureListItems();
 const comparisonModes = getMapOverlayComparisonModes();
 
 const getRouteViewportPadding = (): google.maps.Padding => {
@@ -106,6 +108,9 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
     (overlay) => overlayVisibility[overlay.id] ?? false
   ).length;
   const visibleLegendItems = overlayLegendItems.filter(
+    (item) => overlayVisibility[item.overlayId] ?? false
+  );
+  const visibleFeatureListItems = overlayFeatureListItems.filter(
     (item) => overlayVisibility[item.overlayId] ?? false
   );
   const isVisionaryOverlayVisible = overlayVisibility['visionary-concepts'] ?? false;
@@ -265,6 +270,41 @@ export function MapContainer({ onMapLoad }: MapContainerProps) {
             />
           ))}
         </div>
+
+        <section className="map-layer-details" aria-labelledby="map-layer-details-title">
+          <div className="map-layer-details__header">
+            <h3 id="map-layer-details-title" className="map-layer-details__title">Layer details</h3>
+            <span className="map-layer-details__count">{visibleFeatureListItems.length}</span>
+          </div>
+          {visibleFeatureListItems.length > 0 ? (
+            <div className="map-layer-details__list">
+              {visibleFeatureListItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`map-layer-details__item map-layer-details__item--${item.overlayId === 'current-transit' ? 'current' : item.badgeClassName.replace('map-overlay-metadata__badge--', '')}`}
+                  onClick={() => setSelectedOverlayMetadata(item)}
+                  aria-label={`Show ${item.title} layer details`}
+                >
+                  <span
+                    className="map-layer-details__swatch"
+                    style={{ color: item.color }}
+                    aria-hidden="true"
+                  />
+                  <span className="map-layer-details__body">
+                    <span className="map-layer-details__name">{item.title}</span>
+                    <span className="map-layer-details__meta">{item.subtitle}</span>
+                  </span>
+                  <span className={`map-layer-details__badge ${item.badgeClassName}`}>
+                    {item.badgeLabel}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="map-layer-details__empty">Turn on a VeloRail-owned overlay to review line details.</p>
+          )}
+        </section>
 
         {isLegendOpen && (
           <div id="map-layer-legend" className="map-layer-legend" role="region" aria-label="Visible layer legend">

@@ -1,3 +1,4 @@
+import { TRANSIT_LINES } from '@/data/transitLines';
 import { IMPORTED_TRANSIT_PROPOSALS } from '@/data/transitProposalSources';
 import type {
   MapOverlayComparisonMode,
@@ -117,6 +118,8 @@ export interface MapOverlayMetadata {
   disclaimer?: string;
   details: MapOverlayMetadataDetail[];
   sources: MapOverlayMetadataSource[];
+  overlayId: MapOverlayId;
+  color: string;
 }
 
 interface SetMapOverlay {
@@ -463,6 +466,81 @@ export function getMapOverlayLegendItems(): MapOverlayLegendItem[] {
     ...getProposalLegendItems('visionary-concepts', 'visionary', VISIONARY_GROUPS),
     ...getProposalLegendItems('nationalized-rail', 'nationalized', NATIONALIZED_GROUPS)
   ];
+}
+
+export function getMapOverlayFeatureListItems(): MapOverlayMetadata[] {
+  return [
+    ...getCurrentTransitFeatureListItems(),
+    ...getProposalFeatureListItems(FUTURE_PROJECTS_OVERLAY_ID, FUTURE_GROUPS),
+    ...getProposalFeatureListItems('visionary-concepts', VISIONARY_GROUPS),
+    ...getProposalFeatureListItems('nationalized-rail', NATIONALIZED_GROUPS)
+  ];
+}
+
+function getCurrentTransitFeatureListItems(): MapOverlayMetadata[] {
+  const { badge } = MAP_OVERLAY_STYLE_CONFIG.current;
+
+  return Object.entries(TRANSIT_LINES).map(([lineName, line]) => {
+    const stations = line.stations.filter((station) => !station.waypoint);
+    const firstStation = stations[0];
+    const lastStation = stations[stations.length - 1];
+    const mode = line.schedule?.type ? formatToken(line.schedule.type) : 'transit';
+    const frequency = line.schedule?.frequency
+      ? `Every ${line.schedule.frequency} min`
+      : undefined;
+    const status = line.status ? formatToken(line.status) : 'operating';
+    const lineLabel = getCurrentTransitLineLabel(lineName);
+
+    return {
+      id: `current-transit-${slugifyLegendLabel(lineName)}`,
+      proposalId: `current-transit-${slugifyLegendLabel(lineName)}`,
+      overlayId: CURRENT_TRANSIT_OVERLAY_ID,
+      kind: 'line',
+      title: lineLabel,
+      subtitle: `line · ${mode}${frequency ? ` · ${frequency}` : ''}`,
+      badgeLabel: badge.label,
+      badgeClassName: badge.className,
+      statusLabel: status,
+      classificationLabel: 'current system',
+      confidenceLabel: 'checked in',
+      uncertaintyLabel: 'owned data boundary',
+      disclaimer: 'Current-system details come from VeloRail-owned checked-in routing data. The map surface remains Google Maps TransitLayer; Google does not expose clickable per-line TransitLayer metadata to this app.',
+      details: [
+        metadataDetail('Line', lineLabel),
+        metadataDetail('Mode', mode),
+        metadataDetail('Frequency', frequency),
+        metadataDetail('Station count', `${stations.length}`),
+        metadataDetail('Endpoints', firstStation && lastStation ? `${firstStation.name} ↔ ${lastStation.name}` : undefined),
+        metadataDetail('Color', line.color),
+        metadataDetail('VeloRail routing', 'Used by VeloRail routing'),
+        metadataDetail('Map highlight', 'No custom current-line highlight until VeloRail current geometry overlay is added'),
+        metadataDetail('GTFS route ID', line.gtfsRouteId),
+        metadataDetail('Status', status)
+      ].filter((detail): detail is MapOverlayMetadataDetail => Boolean(detail)),
+      sources: [{
+        title: 'VeloRail checked-in current transit routing dataset',
+        publisher: 'VeloRail',
+        sourceType: 'checked_in_operational_routing_data',
+        note: 'Derived from src/data/transitLines.ts, not from Google Maps TransitLayer line-click metadata.'
+      }],
+      color: line.color
+    };
+  });
+}
+
+function getCurrentTransitLineLabel(lineName: string): string {
+  if (/line$/i.test(lineName)) return lineName;
+  return `${lineName} Line`;
+}
+
+function getProposalFeatureListItems(
+  overlayId: MapOverlayId,
+  groups: ProposalLayerGroup[]
+): MapOverlayMetadata[] {
+  return getProposalOverlayInputsByGroup(groups).map(({ proposal }) => ({
+    ...getProposalMetadata(proposal, undefined, overlayId),
+    overlayId
+  }));
 }
 
 export function getDefaultMapOverlayVisibility(): MapOverlayVisibility {
@@ -849,7 +927,8 @@ function isProposalOverlayLayer(proposal: TransitProposal): boolean {
 
 export function getProposalMetadata(
   proposal: TransitProposal,
-  markerInput?: ProposalMarkerInput
+  markerInput?: ProposalMarkerInput,
+  overlayId = getOverlayIdForProposal(proposal)
 ): MapOverlayMetadata {
   const style = getProposalOverlayStyle(proposal);
   const kind: MapOverlayMetadataKind = markerInput ? 'station' : proposal.kind;
@@ -894,6 +973,8 @@ export function getProposalMetadata(
     uncertaintyLabel: formatToken(proposal.uncertainty.level),
     disclaimer: proposal.uncertainty.disclaimer ?? proposal.uncertainty.sourceNotes,
     details,
+    overlayId,
+    color: style.legend.color,
     sources: proposal.provenance.map((source) => ({
       title: source.title,
       publisher: source.publisher,
@@ -912,6 +993,17 @@ function getActiveConversionScenario(proposal: TransitProposal) {
   if (!scenarioId) return scenarios[0];
 
   return scenarios.find((scenario) => scenario.id === scenarioId);
+}
+
+function getOverlayIdForProposal(proposal: TransitProposal): MapOverlayId {
+  const layerGroup = proposal.rendering?.layerGroup;
+
+  if (layerGroup === 'visionary') return 'visionary-concepts';
+  if (layerGroup === 'freight' || layerGroup === 'converted_passenger') return 'nationalized-rail';
+  if (layerGroup === 'future') return FUTURE_PROJECTS_OVERLAY_ID;
+  if (proposal.status === 'operational') return CURRENT_TRANSIT_OVERLAY_ID;
+
+  return FUTURE_PROJECTS_OVERLAY_ID;
 }
 
 function getProposalStyleKey(proposal: TransitProposal): MapOverlayStyleKey {
