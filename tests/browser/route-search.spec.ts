@@ -70,6 +70,24 @@ test('@smoke @VR-304 @VR-305 typed endpoints make the route search respond visib
   }).toBe(true);
 });
 
+
+test('@MBR-113 route search exposes and selects Arrive by time mode', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page.getByRole('region', { name: 'Route search' })).toBeVisible({ timeout: 20_000 });
+
+  const departAt = page.getByRole('radio', { name: 'Depart at' });
+  const arriveBy = page.getByRole('radio', { name: 'Arrive by' });
+
+  await expect(departAt).toBeVisible();
+  await expect(departAt).toBeChecked();
+  await expect(arriveBy).toBeVisible();
+
+  await arriveBy.check();
+  await expect(arriveBy).toBeChecked();
+  await expect(page.getByLabel('Arrival time')).toBeVisible();
+});
+
 test('@veloRail-a0c4 route search uses Maps JavaScript Routes without request shape errors', async ({ page }) => {
   const consoleMessages: string[] = [];
   const pageErrors: string[] = [];

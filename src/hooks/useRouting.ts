@@ -37,7 +37,8 @@ export function useRouting(): UseRoutingReturn {
         searchParams.safety,
         searchParams.mode,
         searchParams.departureTime,
-        false // includeFuture
+        false, // includeFuture
+        searchParams.timeMode
       );
 
       setRoutes(routes);
@@ -71,6 +72,7 @@ export function useRouting(): UseRoutingReturn {
     searchParams.safety,
     searchParams.mode,
     searchParams.departureTime,
+    searchParams.timeMode,
     setLoading,
     setError,
     setRoutes,

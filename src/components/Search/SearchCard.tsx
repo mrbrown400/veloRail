@@ -9,7 +9,7 @@ import { useRouteStore, useUIStore } from '@/stores';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useRouting } from '@/hooks/useRouting';
 import { geocode } from '@/services/geocoding';
-import type { Location, PlaceResult, ModeFilter, SafetyPreference } from '@/types';
+import type { Location, PlaceResult, ModeFilter, SafetyPreference, TimeMode } from '@/types';
 
 interface SearchCardProps {
   className?: string;
@@ -146,6 +146,11 @@ export function SearchCard({ className = '' }: SearchCardProps) {
     setSearchParams({ departureTime: time });
   };
 
+  const handleTimeModeChange = (timeMode: TimeMode) => {
+    clearFeedback();
+    setSearchParams({ timeMode });
+  };
+
   const handleLocationClick = () => {
     if (searchMode === 'collapsed') {
       expandSearch();
@@ -231,7 +236,9 @@ export function SearchCard({ className = '' }: SearchCardProps) {
         {/* Time Selector */}
         <TimeSelector
           value={searchParams.departureTime}
+          timeMode={searchParams.timeMode}
           onChange={handleTimeChange}
+          onTimeModeChange={handleTimeModeChange}
         />
 
         {/* Options Row */}

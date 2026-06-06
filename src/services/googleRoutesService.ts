@@ -9,7 +9,8 @@ import type {
   TravelMode,
   LineString,
   GoogleRouteResult,
-  GoogleTransitDetails
+  GoogleTransitDetails,
+  TimeMode
 } from '@/types';
 
 type GoogleRouteTravelMode = 'BICYCLING' | 'DRIVING' | 'WALKING' | 'TRANSIT';
@@ -79,6 +80,7 @@ type GoogleRoutesComputeRequest = {
   travelMode: GoogleRouteTravelMode;
   computeAlternativeRoutes?: boolean;
   departureTime?: Date;
+  arrivalTime?: Date;
   fields: string[];
   routingPreference?: 'TRAFFIC_AWARE' | 'TRAFFIC_AWARE_OPTIMAL' | 'TRAFFIC_UNAWARE';
   transitPreference?: {
@@ -259,10 +261,11 @@ export async function getWalkingRoute(
 export async function getTransitRoute(
   origin: Location,
   destination: Location,
-  departureTime: Date
+  queryTime: Date,
+  timeMode: TimeMode = 'departAt'
 ): Promise<GoogleRouteResult | null> {
   const route = await computeGoogleRoute(origin, destination, 'TRANSIT', 'transit routing', {
-    departureTime,
+    ...buildTransitTimeRequest(queryTime, timeMode),
     transitPreference: {
       allowedTransitModes: ['RAIL', 'SUBWAY', 'TRAIN', 'LIGHT_RAIL'],
       routingPreference: 'LESS_WALKING'
@@ -275,6 +278,13 @@ export async function getTransitRoute(
 // ============================================
 // Result Conversion
 // ============================================
+
+
+function buildTransitTimeRequest(queryTime: Date, timeMode: TimeMode): Pick<GoogleRoutesComputeRequest, 'departureTime' | 'arrivalTime'> {
+  return timeMode === 'arriveBy'
+    ? { arrivalTime: queryTime }
+    : { departureTime: queryTime };
+}
 
 async function computeGoogleRoute(
   origin: Location,
@@ -570,7 +580,8 @@ export function extractTransitLegs(
 export async function getFullTransitRoute(
   origin: Location,
   destination: Location,
-  departureTime: Date
+  queryTime: Date,
+  timeMode: TimeMode = 'departAt'
 ): Promise<{
   totalDuration: number;
   totalDistance: number;
@@ -583,7 +594,7 @@ export async function getFullTransitRoute(
   }>;
 } | null> {
   const route = await computeGoogleRoute(origin, destination, 'TRANSIT', 'full transit routing', {
-    departureTime,
+    ...buildTransitTimeRequest(queryTime, timeMode),
     transitPreference: {
       allowedTransitModes: ['RAIL', 'SUBWAY', 'TRAIN', 'LIGHT_RAIL'],
       routingPreference: 'LESS_WALKING'

@@ -33,10 +33,11 @@ function App() {
               Error Loading Google Maps
             </h2>
             <p className="app-state-copy">
-              Please check your API key configuration.
+              Please check your API key configuration. Route search controls are still available.
             </p>
           </div>
         </div>
+        <SearchCard className={sidebarOpen ? 'sidebar-open' : ''} />
       </div>
     );
   }
