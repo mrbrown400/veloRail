@@ -54,6 +54,33 @@ Keep agent internet access off for normal implementation work. Setup scripts alr
 
 Enable agent internet access only for tasks that explicitly need live source checks, such as official future transit source monitoring. Prefer a narrow allowlist and `GET` requests only for those tasks.
 
+## Linear delegation
+
+Codex tasks delegated from Linear require the cloud environment and Linear integration to be connected in this order:
+
+1. Connect GitHub in Codex web.
+2. Create a Codex cloud environment for `mrbrown400/veloRail`.
+3. Use `main` as the default branch unless the task explicitly needs another branch.
+4. Configure the setup script as `bash scripts/codex-cloud-setup.sh`.
+5. Add the environment variables listed above in Codex environment settings.
+6. Install Codex for Linear from Codex settings.
+7. Link the Linear account by mentioning `@Codex` in a Linear issue comment.
+8. Delegate work by assigning an issue to Codex or mentioning `@Codex` in a comment.
+
+When the Linear issue could match multiple repos or environments, pin the repo in the comment:
+
+```text
+@Codex please run this in mrbrown400/veloRail.
+```
+
+For browser-facing tasks, include the expected gate in the issue or comment:
+
+```text
+Run npm run quality and npm run test:browser:required -- --grep @<task-id> if this changes user-facing UI.
+```
+
+The Linear issue should already include the normal VeloRail frame: purpose, inputs, expected deliverables, acceptance criteria, Codex prompt, dependencies, and explicit out-of-scope items.
+
 ## Verification commands
 
 Standard code gate:

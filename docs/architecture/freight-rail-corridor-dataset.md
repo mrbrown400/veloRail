@@ -77,6 +77,11 @@ Bike-rail scoring uses `vr-502-bike-rail-access-heuristic-v1`, an offline statio
 
 VR-407 adds `src/data/laNationalizedRailScenario.ts` to package the first bounded scenario. It includes the generated Alameda Corridor, BNSF LA to San Bernardino, and Union Pacific LA to Inland Empire converted-passenger records, and excludes Pacific Harbor Line as freight context only.
 
+
+## Completed-Network Gap Screening
+
+MBR-99 adds `docs/architecture/rail-gap-corridor-screening.md` as the current gap-value screen for checked-in freight and passenger-conversion candidates. The screen keeps VR-406 freight suitability separate from completed-network gap value: BNSF and Union Pacific Inland Empire corridors can score well as continuous rights-of-way while still being likely redundant passenger-conversion overlays, Pacific Harbor Line remains freight-only context, and Alameda/South Alameda is the only current clear-gap study candidate.
+
 ## Source Watch List
 
 Each source record includes `accessedAt: 2026-05-19` and a `License/terms:` note. Re-check these sources before refreshing ownership, operators, line names, or geometry:
